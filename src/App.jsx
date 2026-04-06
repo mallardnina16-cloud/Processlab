@@ -5,8 +5,10 @@ const SUPABASE_URL = "https://wetjzebxuyefzvulujxl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_v6ENOZboJkDNbUy88oZJ0w_juqtwSb6";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const COACH_EMAIL = "mallardnina16@gmail.com";
+
 const C = {
-  black: "#0a0a0a", white: "#ffffff", pink: "#E8879C", darkPink: "#c9637a",
+  black: "#0a0a0a", white: "#ffffff", pink: "#E8879C",
   surface: "#141414", card: "#1a1a1a", border: "#2a2a2a",
   muted: "#555555", textMuted: "#888888", green: "#4ade80", red: "#f87171",
   purple: "#a78bfa", orange: "#fb923c", blue: "#60a5fa",
@@ -80,29 +82,60 @@ const Spinner = () => (
   </div>
 );
 
-// Session status helpers
 const SESSION_OPTIONS = [
   { value: "done", label: "✅ Faite", color: C.green },
   { value: "rest", label: "😴 Jour de repos", color: C.blue },
   { value: "missed", label: "❌ Pas faite", color: C.red },
 ];
-
-const sessionColor = (val) => {
-  const opt = SESSION_OPTIONS.find(o => o.value === val);
-  return opt ? opt.color : C.textMuted;
-};
-
-const sessionLabel = (val) => {
-  const opt = SESSION_OPTIONS.find(o => o.value === val);
-  return opt ? opt.label : "—";
-};
-
+const sessionColor = v => SESSION_OPTIONS.find(o => o.value === v)?.color || C.textMuted;
+const sessionLabel = v => SESSION_OPTIONS.find(o => o.value === v)?.label || "—";
 const feelings = ["😩", "😔", "😐", "🙂", "🔥"];
 const feelingLabels = ["Très difficile", "Difficile", "Neutre", "Bien", "Excellent"];
 const today = new Date().toISOString().slice(0, 10);
 const daysUntil = d => Math.ceil((new Date(d) - new Date(today)) / 86400000);
 
-// ── HOOKS SUPABASE ────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// LOGIN SCREEN
+// ══════════════════════════════════════════════════════════════════════════════
+const LoginScreen = ({ onLogin }) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async () => {
+    if (!email || !password) return setError("Remplis tous les champs.");
+    setLoading(true);
+    setError("");
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+    if (err) { setError("Email ou mot de passe incorrect."); setLoading(false); return; }
+    onLogin(data.user);
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ marginBottom: 40 }}><Logo size={32} /></div>
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 8px", letterSpacing: "-0.5px" }}>Connexion</h2>
+        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 32, marginTop: 0 }}>Connecte-toi à ton espace Process Lab</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <Inp label="Email" type="email" placeholder="ton@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+          <Inp label="Mot de passe" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleLogin()} />
+          {error && <div style={{ background: C.red + "22", border: `1px solid ${C.red}44`, borderRadius: 10, padding: "10px 14px", fontSize: 13, color: C.red }}>{error}</div>}
+          <Btn onClick={handleLogin} disabled={loading} style={{ marginTop: 6 }}>
+            {loading ? "Connexion..." : "Se connecter →"}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HOOKS
+// ══════════════════════════════════════════════════════════════════════════════
 const useClients = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -263,7 +296,7 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Inp label="Nom de l'exercice" placeholder="ex: Squat, Pompes..." value={ex.name} onChange={e => updEx(ex.id, { name: e.target.value })} />
+            <Inp label="Nom de l'exercice" placeholder="ex: Squat..." value={ex.name} onChange={e => updEx(ex.id, { name: e.target.value })} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
               <Inp label="Séries" type="number" min="1" value={ex.sets} onChange={e => updEx(ex.id, { sets: parseInt(e.target.value) || 1 })} />
               <Inp label="Reps / Durée" placeholder="12 ou 45s" value={ex.reps} onChange={e => updEx(ex.id, { reps: e.target.value })} />
@@ -377,7 +410,7 @@ const WorkoutPlayer = ({ workout, onFinish }) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// JOURNAL ENTRY CARD (Coach view)
+// ENTRY CARD
 // ══════════════════════════════════════════════════════════════════════════════
 const EntryCard = ({ e }) => (
   <Card>
@@ -385,47 +418,22 @@ const EntryCard = ({ e }) => (
       <span style={{ fontWeight: 700 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
       <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
     </div>
-
-    {/* Stats grid */}
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-      <div style={{ background: "#111", borderRadius: 10, padding: 10 }}>
-        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>PAS</div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: C.pink }}>{(e.steps || 0).toLocaleString()}</div>
-      </div>
-      <div style={{ background: "#111", borderRadius: 10, padding: 10 }}>
-        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SÉANCE</div>
-        <div style={{ fontWeight: 700, fontSize: 13, color: sessionColor(e.session_status) }}>{sessionLabel(e.session_status)}</div>
-      </div>
-      <div style={{ background: "#111", borderRadius: 10, padding: 10 }}>
-        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>HYDRATATION</div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: C.blue }}>{e.hydration || "—"} L</div>
-      </div>
-      <div style={{ background: "#111", borderRadius: 10, padding: 10 }}>
-        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SOMMEIL</div>
-        <div style={{ fontSize: 15, fontWeight: 700 }}>{e.sleep_hours || "—"}h {e.nap ? "· 😴 sieste" : ""}</div>
-      </div>
+      <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>PAS</div><div style={{ fontSize: 18, fontWeight: 900, color: C.pink }}>{(e.steps || 0).toLocaleString()}</div></div>
+      <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SÉANCE</div><div style={{ fontWeight: 700, fontSize: 13, color: sessionColor(e.session_status) }}>{sessionLabel(e.session_status)}</div></div>
+      <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>HYDRATATION</div><div style={{ fontSize: 18, fontWeight: 900, color: C.blue }}>{e.hydration || "—"} L</div></div>
+      <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SOMMEIL</div><div style={{ fontSize: 15, fontWeight: 700 }}>{e.sleep_hours || "—"}h {e.nap ? "· 😴" : ""}</div></div>
     </div>
-
     {e.meal_note && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}><span style={{ color: C.white, fontWeight: 700 }}>Repas : </span>{e.meal_note}</div>}
-
-    {/* Difficulty */}
-    {e.had_difficulty && (
-      <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: 10, marginBottom: 8 }}>
-        <div style={{ fontSize: 11, color: C.orange, fontWeight: 700, marginBottom: 4 }}>⚠️ DIFFICULTÉ RENCONTRÉE</div>
-        <div style={{ fontSize: 13, color: C.white }}>{e.difficulty_note || "Oui"}</div>
-      </div>
-    )}
-
-    {e.coach_message && (
-      <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {e.coach_message}</div>
-    )}
+    {e.had_difficulty && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: 10, marginBottom: 8 }}><div style={{ fontSize: 11, color: C.orange, fontWeight: 700, marginBottom: 4 }}>⚠️ DIFFICULTÉ</div><div style={{ fontSize: 13 }}>{e.difficulty_note}</div></div>}
+    {e.coach_message && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {e.coach_message}</div>}
   </Card>
 );
 
 // ══════════════════════════════════════════════════════════════════════════════
 // COACH APP
 // ══════════════════════════════════════════════════════════════════════════════
-const CoachApp = ({ onSwitch }) => {
+const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient } = useClients();
   const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout } = useWorkouts();
   const [selected, setSelected] = useState(null);
@@ -434,20 +442,30 @@ const CoachApp = ({ onSwitch }) => {
   const [editingWorkout, setEditingWorkout] = useState(null);
   const [buildingWorkout, setBuildingWorkout] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
-  const [newClient, setNewClient] = useState({ name: "", goal: "", start_date: "", next_payment: "" });
+  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "" });
+  const [addingClient, setAddingClient] = useState(false);
   const [msgText, setMsgText] = useState("");
 
   const client = clients.find(c => c.id === selected);
-  const { entries, weights, measurements, assignedWorkouts, loading: loadingData, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout } = useClientData(selected);
-
+  const { entries, weights, measurements, assignedWorkouts, loading: loadingData, addEntry, updateEntry, toggleWorkout } = useClientData(selected);
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5; });
 
   const handleAddClient = async () => {
-    if (!newClient.name) return;
-    const avatar = newClient.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await addClient({ ...newClient, avatar, streak: 0, today_done: false });
+    if (!newClientForm.name || !newClientForm.email || !newClientForm.password) return alert("Remplis au minimum le nom, l'email et le mot de passe.");
+    setAddingClient(true);
+    // 1. Créer le compte auth
+    const { data: authData, error: authErr } = await supabase.auth.admin
+      ? await supabase.auth.signUp({ email: newClientForm.email, password: newClientForm.password })
+      : await supabase.auth.signUp({ email: newClientForm.email, password: newClientForm.password });
+    if (authErr) { alert("Erreur : " + authErr.message); setAddingClient(false); return; }
+    const userId = authData.user?.id;
+    // 2. Créer le profil cliente
+    const avatar = newClientForm.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, streak: 0, today_done: false, user_id: userId });
+    setAddingClient(false);
     setShowAddClient(false);
-    setNewClient({ name: "", goal: "", start_date: "", next_payment: "" });
+    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "" });
+    alert(`✅ Compte créé !\n\nEnvoie ces infos à ${newClientForm.name} :\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
   };
 
   const handleSendMessage = async () => {
@@ -455,8 +473,7 @@ const CoachApp = ({ onSwitch }) => {
     const todayEntry = entries.find(e => e.date === today);
     if (todayEntry) { await updateEntry(todayEntry.id, { coach_message: msgText }); }
     else { await addEntry({ date: today, steps: 0, feeling: 3, meal_note: "", session_status: "rest", coach_message: msgText }); }
-    setMsgText("");
-    alert("✅ Message envoyé !");
+    setMsgText(""); alert("✅ Message envoyé !");
   };
 
   if (buildingWorkout || editingWorkout) return (
@@ -469,9 +486,9 @@ const CoachApp = ({ onSwitch }) => {
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <Logo />
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <span style={{ fontSize: 11, color: C.textMuted, background: C.card, padding: "4px 10px", borderRadius: 6 }}>Coach</span>
-          <button onClick={onSwitch} style={{ background: C.pink + "22", border: `1px solid ${C.pink}`, color: C.pink, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>Vue Cliente →</button>
+          <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
         </div>
       </div>
 
@@ -515,6 +532,7 @@ const CoachApp = ({ onSwitch }) => {
               </div>
               <Card>
                 <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>JOURNAL DU JOUR</div>
+                {clients.length === 0 && <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune cliente pour l'instant. Clique sur "+" pour en ajouter une.</p>}
                 {clients.map(c => (
                   <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
                     <Avatar initials={c.avatar} size={32} color={c.today_done ? C.pink : C.muted} />
@@ -534,25 +552,21 @@ const CoachApp = ({ onSwitch }) => {
                 <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Mes séances 💪</h1>
                 <Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Nouvelle séance</Btn>
               </div>
-              {loadingWorkouts ? <Spinner /> : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {workouts.map(w => (
-                    <Card key={w.id}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                        <div><div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{w.name}</div>{w.description && <div style={{ fontSize: 13, color: C.textMuted }}>{w.description}</div>}</div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <Btn small variant="secondary" onClick={() => setEditingWorkout(w)} style={{ width: "auto" }}>✏️</Btn>
-                          <Btn small variant="danger" onClick={() => deleteWorkout(w.id)} style={{ width: "auto" }}>🗑️</Btn>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 10 }}>
-                        <Badge color={C.orange}>{w.exercises?.length || 0} exercices</Badge>
-                        <Badge color={C.purple}>{w.exercises?.reduce((a, e) => a + e.sets, 0) || 0} séries</Badge>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
+              {loadingWorkouts ? <Spinner /> : workouts.map(w => (
+                <Card key={w.id} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div><div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{w.name}</div>{w.description && <div style={{ fontSize: 13, color: C.textMuted }}>{w.description}</div>}</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Btn small variant="secondary" onClick={() => setEditingWorkout(w)} style={{ width: "auto" }}>✏️</Btn>
+                      <Btn small variant="danger" onClick={() => deleteWorkout(w.id)} style={{ width: "auto" }}>🗑️</Btn>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <Badge color={C.orange}>{w.exercises?.length || 0} exercices</Badge>
+                    <Badge color={C.purple}>{w.exercises?.reduce((a, e) => a + e.sets, 0) || 0} séries</Badge>
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
 
@@ -600,14 +614,12 @@ const CoachApp = ({ onSwitch }) => {
                       <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>POIDS</div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
                         {[{ l: "DÉPART", v: `${weights[0].value} kg`, c: C.white }, { l: "ACTUEL", v: `${weights[weights.length - 1].value} kg`, c: C.pink }, { l: "PERDU", v: `-${(weights[0].value - weights[weights.length - 1].value).toFixed(1)} kg`, c: C.green }].map(s => (
-                          <div key={s.l} style={{ background: "#111", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                            <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>{s.l}</div>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div>
-                          </div>
+                          <div key={s.l} style={{ background: "#111", borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></div>
                         ))}
                       </div>
                     </Card>
                   )}
+                  {weights.length <= 1 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de données de poids.</p></Card>}
                 </div>
               )}
 
@@ -623,18 +635,21 @@ const CoachApp = ({ onSwitch }) => {
       </div>
 
       {showAddClient && (
-        <div style={{ position: "fixed", inset: 0, background: "#000a", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 420 }}>
-            <h3 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 900 }}>Nouvelle cliente</h3>
+        <div style={{ position: "fixed", inset: 0, background: "#000c", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}>
+            <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 900 }}>Nouvelle cliente</h3>
+            <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 20, marginTop: 0 }}>Un compte sera créé automatiquement. Tu recevras les identifiants à lui transmettre.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <Inp label="Nom" placeholder="Camille Rousseau" value={newClient.name} onChange={e => setNewClient({ ...newClient, name: e.target.value })} />
-              <Inp label="Objectif" placeholder="Perte de poids..." value={newClient.goal} onChange={e => setNewClient({ ...newClient, goal: e.target.value })} />
-              <Inp label="Date de début" type="date" value={newClient.start_date} onChange={e => setNewClient({ ...newClient, start_date: e.target.value })} />
-              <Inp label="Prochain paiement" type="date" value={newClient.next_payment} onChange={e => setNewClient({ ...newClient, next_payment: e.target.value })} />
+              <Inp label="Nom complet" placeholder="Camille Rousseau" value={newClientForm.name} onChange={e => setNewClientForm({ ...newClientForm, name: e.target.value })} />
+              <Inp label="Email" type="email" placeholder="camille@email.com" value={newClientForm.email} onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })} />
+              <Inp label="Mot de passe temporaire" type="text" placeholder="ex: Processlab2025!" value={newClientForm.password} onChange={e => setNewClientForm({ ...newClientForm, password: e.target.value })} />
+              <Inp label="Objectif" placeholder="Perte de poids..." value={newClientForm.goal} onChange={e => setNewClientForm({ ...newClientForm, goal: e.target.value })} />
+              <Inp label="Date de début" type="date" value={newClientForm.start_date} onChange={e => setNewClientForm({ ...newClientForm, start_date: e.target.value })} />
+              <Inp label="Prochain paiement" type="date" value={newClientForm.next_payment} onChange={e => setNewClientForm({ ...newClientForm, next_payment: e.target.value })} />
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <Btn variant="secondary" onClick={() => setShowAddClient(false)} style={{ flex: 1 }}>Annuler</Btn>
-              <Btn onClick={handleAddClient} style={{ flex: 2 }}>Ajouter</Btn>
+              <Btn onClick={handleAddClient} disabled={addingClient} style={{ flex: 2 }}>{addingClient ? "Création..." : "Créer le compte"}</Btn>
             </div>
           </div>
         </div>
@@ -646,16 +661,13 @@ const CoachApp = ({ onSwitch }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // CLIENT APP
 // ══════════════════════════════════════════════════════════════════════════════
-const ClientApp = ({ onSwitch }) => {
-  const CLIENT_ID = "demo-client";
+const ClientApp = ({ user, onLogout }) => {
   const [clientInfo, setClientInfo] = useState(null);
   const [screen, setScreen] = useState("home");
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [bodyTab, setBodyTab] = useState("weight");
   const [newWeight, setNewWeight] = useState("");
   const [newMeasure, setNewMeasure] = useState({ chest: "", waist: "", hips: "", thighs: "" });
-
-  // Journal state
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
   const [mealNote, setMealNote] = useState("");
@@ -668,16 +680,15 @@ const ClientApp = ({ onSwitch }) => {
   const [hadDifficulty, setHadDifficulty] = useState(null);
   const [difficultyNote, setDifficultyNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const { entries, weights, measurements, assignedWorkouts, loading, addEntry, addWeight, addMeasurement } = useClientData(CLIENT_ID);
-  const { workouts } = useWorkouts();
 
   useEffect(() => {
-    supabase.from("clients").select("*").eq("id", CLIENT_ID).single().then(({ data }) => {
-      setClientInfo(data || { name: "Camille R.", avatar: "CR", streak: 0, goal: "Perte de poids" });
+    supabase.from("clients").select("*").eq("user_id", user.id).single().then(({ data }) => {
+      if (data) setClientInfo(data);
     });
-  }, []);
+  }, [user.id]);
+
+  const { entries, weights, measurements, assignedWorkouts, loading, addEntry, addWeight, addMeasurement } = useClientData(clientInfo?.id);
+  const { workouts } = useWorkouts();
 
   const myWorkouts = workouts.filter(w => assignedWorkouts.includes(w.id));
   const todayEntry = entries.find(e => e.date === today);
@@ -692,26 +703,12 @@ const ClientApp = ({ onSwitch }) => {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
-    await addEntry({
-      date: today,
-      steps: parseInt(steps),
-      feeling,
-      meal_note: mealNote,
-      session_status: sessionStatus,
-      session_note: sessionNote,
-      hydration: parseFloat(hydration),
-      sleep_hours: parseFloat(sleepHours),
-      nap,
-      had_difficulty: hadDifficulty,
-      difficulty_note: difficultyNote,
-    });
-    setSubmitted(true);
-    setTimeout(() => {
-      setScreen("home"); setSubmitted(false); setSubmitting(false);
-      setFeeling(null); setSteps(""); setMealNote(""); setPhotos([]);
-      setSessionStatus(null); setSessionNote(""); setHydration("");
-      setSleepHours(""); setNap(null); setHadDifficulty(null); setDifficultyNote("");
-    }, 1600);
+    await addEntry({ date: today, steps: parseInt(steps), feeling, meal_note: mealNote, session_status: sessionStatus, session_note: sessionNote, hydration: parseFloat(hydration), sleep_hours: parseFloat(sleepHours), nap, had_difficulty: hadDifficulty, difficulty_note: difficultyNote });
+    setSubmitting(false);
+    setScreen("home");
+    setFeeling(null); setSteps(""); setMealNote(""); setPhotos([]);
+    setSessionStatus(null); setSessionNote(""); setHydration("");
+    setSleepHours(""); setNap(null); setHadDifficulty(null); setDifficultyNote("");
   };
 
   const handleAddWeight = async () => { if (!newWeight) return; await addWeight(parseFloat(newWeight)); setNewWeight(""); alert("✅ Poids enregistré !"); };
@@ -720,12 +717,11 @@ const ClientApp = ({ onSwitch }) => {
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => setActiveWorkout(null)} />;
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
 
-  // HOME
   if (screen === "home") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Logo />
-        <button onClick={onSwitch} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Vue Coach →</button>
+        <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
       </div>
       <div style={{ padding: 20 }}>
         <div style={{ marginBottom: 22 }}>
@@ -733,101 +729,59 @@ const ClientApp = ({ onSwitch }) => {
           <h1 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 6px", letterSpacing: "-1px" }}>{clientInfo.name?.split(" ")[0]} 👋</h1>
           <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
         </div>
-        {coachMsg && (
-          <Card style={{ marginBottom: 14, borderColor: C.pink + "44", background: C.pink + "08" }}>
-            <div style={{ fontSize: 10, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>MESSAGE DE TON COACH</div>
-            <div style={{ fontSize: 14, lineHeight: 1.5 }}>{coachMsg}</div>
-          </Card>
-        )}
+        {coachMsg && <Card style={{ marginBottom: 14, borderColor: C.pink + "44", background: C.pink + "08" }}><div style={{ fontSize: 10, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>MESSAGE DE TON COACH</div><div style={{ fontSize: 14, lineHeight: 1.5 }}>{coachMsg}</div></Card>}
         <Card style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>JOURNAL DU JOUR</div>
           {todayEntry ? (
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <span style={{ fontSize: 30 }}>{feelings[(todayEntry.feeling || 3) - 1]}</span>
-              <div>
-                <div style={{ fontWeight: 700 }}>Rempli ✅</div>
-                <div style={{ fontSize: 12, color: C.textMuted }}>{(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration}L · {todayEntry.sleep_hours}h sommeil</div>
-              </div>
+              <div><div style={{ fontWeight: 700 }}>Rempli ✅</div><div style={{ fontSize: 12, color: C.textMuted }}>{(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration}L · {todayEntry.sleep_hours}h sommeil</div></div>
             </div>
-          ) : (
-            <><p style={{ color: C.textMuted, fontSize: 13, marginBottom: 12, marginTop: 0 }}>Tu n'as pas encore rempli ton journal.</p><Btn onClick={() => setScreen("journal")}>Remplir mon journal →</Btn></>
-          )}
+          ) : <><p style={{ color: C.textMuted, fontSize: 13, marginBottom: 12, marginTop: 0 }}>Tu n'as pas encore rempli ton journal.</p><Btn onClick={() => setScreen("journal")}>Remplir mon journal →</Btn></>}
         </Card>
         {myWorkouts.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>Mes séances</div>
-            {myWorkouts.map(w => (
-              <Card key={w.id} onClick={() => setActiveWorkout(w)} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", border: `1.5px solid ${C.orange}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💪</div>
-                <div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 15, marginBottom: 3 }}>{w.name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div></div>
-                <div style={{ color: C.orange, fontWeight: 700, fontSize: 13 }}>Démarrer →</div>
-              </Card>
-            ))}
+            {myWorkouts.map(w => <Card key={w.id} onClick={() => setActiveWorkout(w)} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}><div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", border: `1.5px solid ${C.orange}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💪</div><div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 15, marginBottom: 3 }}>{w.name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div></div><div style={{ color: C.orange, fontWeight: 700, fontSize: 13 }}>Démarrer →</div></Card>)}
           </div>
         )}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <Card onClick={() => setScreen("body")} style={{ cursor: "pointer" }}>
-            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>POIDS</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: C.pink }}>{lastWeight ? `${lastWeight.value} kg` : "—"}</div>
-            {startWeight && lastWeight && startWeight.value !== lastWeight.value && <div style={{ fontSize: 11, color: C.green }}>-{(startWeight.value - lastWeight.value).toFixed(1)} kg</div>}
-          </Card>
-          <Card onClick={() => setScreen("history")} style={{ cursor: "pointer" }}>
-            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>ENTRÉES</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: C.purple }}>{entries.length}</div>
-            <div style={{ fontSize: 11, color: C.textMuted }}>jours</div>
-          </Card>
+          <Card onClick={() => setScreen("body")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>POIDS</div><div style={{ fontSize: 22, fontWeight: 900, color: C.pink }}>{lastWeight ? `${lastWeight.value} kg` : "—"}</div>{startWeight && lastWeight && startWeight.value !== lastWeight.value && <div style={{ fontSize: 11, color: C.green }}>-{(startWeight.value - lastWeight.value).toFixed(1)} kg</div>}</Card>
+          <Card onClick={() => setScreen("history")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>ENTRÉES</div><div style={{ fontSize: 22, fontWeight: 900, color: C.purple }}>{entries.length}</div><div style={{ fontSize: 11, color: C.textMuted }}>jours</div></Card>
         </div>
         <Btn variant="ghost" onClick={() => setScreen("history")}>📋 Voir mon historique</Btn>
       </div>
     </div>
   );
 
-  // JOURNAL
   if (screen === "journal") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
       <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Journal du jour</h2>
       <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 24, marginTop: 0 }}>{new Date(today).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</p>
-
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-
-        {/* Feeling */}
         <div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Comment tu te sens aujourd'hui ?</div>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Comment tu te sens ?</div>
           <div style={{ display: "flex", gap: 8 }}>{feelings.map((f, i) => <button key={i} onClick={() => setFeeling(i + 1)} style={{ flex: 1, padding: "12px 0", background: feeling === i + 1 ? C.pink + "22" : "#111", border: `2px solid ${feeling === i + 1 ? C.pink : C.border}`, borderRadius: 12, fontSize: 22, cursor: "pointer" }}>{f}</button>)}</div>
           {feeling && <div style={{ textAlign: "center", fontSize: 12, color: C.textMuted, marginTop: 6 }}>{feelingLabels[feeling - 1]}</div>}
         </div>
-
-        {/* Steps */}
         <Inp label="Nombre de pas" type="number" inputMode="numeric" placeholder="ex: 9500" value={steps} onChange={e => setSteps(e.target.value)} />
-
-        {/* Hydration */}
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>💧 Hydratation (hors thé & café)</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {["0.5", "1", "1.5", "2", "2.5", "3+"].map(v => (
-              <button key={v} onClick={() => setHydration(v === "3+" ? "3" : v)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${hydration === (v === "3+" ? "3" : v) ? C.blue : C.border}`, background: hydration === (v === "3+" ? "3" : v) ? C.blue + "22" : "#111", color: hydration === (v === "3+" ? "3" : v) ? C.blue : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v} L</button>
-            ))}
+            {["0.5", "1", "1.5", "2", "2.5", "3+"].map(v => <button key={v} onClick={() => setHydration(v === "3+" ? "3" : v)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${hydration === (v === "3+" ? "3" : v) ? C.blue : C.border}`, background: hydration === (v === "3+" ? "3" : v) ? C.blue + "22" : "#111", color: hydration === (v === "3+" ? "3" : v) ? C.blue : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v} L</button>)}
           </div>
         </div>
-
-        {/* Sleep */}
         <div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>😴 Sommeil</div>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>😴 Heures de sommeil</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            {["5", "6", "7", "8", "9", "10+"].map(v => (
-              <button key={v} onClick={() => setSleepHours(v === "10+" ? "10" : v)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${sleepHours === (v === "10+" ? "10" : v) ? C.purple : C.border}`, background: sleepHours === (v === "10+" ? "10" : v) ? C.purple + "22" : "#111", color: sleepHours === (v === "10+" ? "10" : v) ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v}h</button>
-            ))}
+            {["5", "6", "7", "8", "9", "10+"].map(v => <button key={v} onClick={() => setSleepHours(v === "10+" ? "10" : v)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${sleepHours === (v === "10+" ? "10" : v) ? C.purple : C.border}`, background: sleepHours === (v === "10+" ? "10" : v) ? C.purple + "22" : "#111", color: sleepHours === (v === "10+" ? "10" : v) ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v}h</button>)}
           </div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Sieste aujourd'hui ?</div>
           <div style={{ display: "flex", gap: 10 }}>
-            {[true, false].map(val => (
-              <button key={String(val)} onClick={() => setNap(val)} style={{ flex: 1, padding: 12, borderRadius: 12, border: `2px solid ${nap === val ? C.purple : C.border}`, background: nap === val ? C.purple + "22" : "#111", color: nap === val ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "😴 Oui" : "❌ Non"}</button>
-            ))}
+            {[true, false].map(val => <button key={String(val)} onClick={() => setNap(val)} style={{ flex: 1, padding: 12, borderRadius: 12, border: `2px solid ${nap === val ? C.purple : C.border}`, background: nap === val ? C.purple + "22" : "#111", color: nap === val ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "😴 Oui" : "❌ Non"}</button>)}
           </div>
         </div>
-
-        {/* Meals */}
         <div>
           <TA label="Mes repas du jour" placeholder="Décris ce que tu as mangé..." value={mealNote} onChange={e => setMealNote(e.target.value)} />
           <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer", marginTop: 10 }}>
@@ -835,54 +789,29 @@ const ClientApp = ({ onSwitch }) => {
             <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter des photos repas</div><div style={{ fontSize: 11, color: C.textMuted }}>Plusieurs photos possibles</div></div>
             <input type="file" accept="image/*" multiple capture="environment" style={{ display: "none" }} onChange={handlePhoto} />
           </label>
-          {photos.length > 0 && (
-            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-              {photos.map((p, i) => (
-                <div key={i} style={{ position: "relative" }}>
-                  <img src={p} alt="" style={{ width: 68, height: 68, objectFit: "cover", borderRadius: 10 }} />
-                  <button onClick={() => setPhotos(photos.filter((_, j) => j !== i))} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
+          {photos.length > 0 && <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>{photos.map((p, i) => <div key={i} style={{ position: "relative" }}><img src={p} alt="" style={{ width: 68, height: 68, objectFit: "cover", borderRadius: 10 }} /><button onClick={() => setPhotos(photos.filter((_, j) => j !== i))} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button></div>)}</div>}
         </div>
-
-        {/* Session */}
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Séance du jour</div>
-          <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
-            {SESSION_OPTIONS.map(opt => (
-              <button key={opt.value} onClick={() => setSessionStatus(opt.value)} style={{ padding: 13, borderRadius: 12, border: `2px solid ${sessionStatus === opt.value ? opt.color : C.border}`, background: sessionStatus === opt.value ? opt.color + "22" : "#111", color: sessionStatus === opt.value ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer", textAlign: "left" }}>{opt.label}</button>
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {SESSION_OPTIONS.map(opt => <button key={opt.value} onClick={() => setSessionStatus(opt.value)} style={{ padding: 13, borderRadius: 12, border: `2px solid ${sessionStatus === opt.value ? opt.color : C.border}`, background: sessionStatus === opt.value ? opt.color + "22" : "#111", color: sessionStatus === opt.value ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer", textAlign: "left" }}>{opt.label}</button>)}
           </div>
-          {sessionStatus === "done" && (
-            <div style={{ marginTop: 12 }}>
-              <TA label="Note sur la séance (optionnel)" placeholder="Comment ça s'est passé ?" value={sessionNote} onChange={e => setSessionNote(e.target.value)} />
-            </div>
-          )}
+          {sessionStatus === "done" && <div style={{ marginTop: 12 }}><TA label="Note (optionnel)" placeholder="Comment ça s'est passé ?" value={sessionNote} onChange={e => setSessionNote(e.target.value)} /></div>}
         </div>
-
-        {/* Difficulty */}
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>⚠️ As-tu rencontré une difficulté aujourd'hui ?</div>
           <div style={{ display: "flex", gap: 10, marginBottom: hadDifficulty ? 12 : 0 }}>
-            {[true, false].map(val => (
-              <button key={String(val)} onClick={() => setHadDifficulty(val)} style={{ flex: 1, padding: 13, borderRadius: 12, border: `2px solid ${hadDifficulty === val ? (val ? C.orange : C.green) : C.border}`, background: hadDifficulty === val ? (val ? C.orange + "22" : C.green + "22") : "#111", color: hadDifficulty === val ? (val ? C.orange : C.green) : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "⚠️ Oui" : "✅ Non"}</button>
-            ))}
+            {[true, false].map(val => <button key={String(val)} onClick={() => setHadDifficulty(val)} style={{ flex: 1, padding: 13, borderRadius: 12, border: `2px solid ${hadDifficulty === val ? (val ? C.orange : C.green) : C.border}`, background: hadDifficulty === val ? (val ? C.orange + "22" : C.green + "22") : "#111", color: hadDifficulty === val ? (val ? C.orange : C.green) : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "⚠️ Oui" : "✅ Non"}</button>)}
           </div>
-          {hadDifficulty && (
-            <TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir, fatigue, stress au travail..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />
-          )}
+          {hadDifficulty && <TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir, fatigue, stress..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />}
         </div>
-
         <Btn onClick={handleSubmit} disabled={!canSubmit || submitting} style={{ marginBottom: 30 }}>
-          {submitting ? "Envoi en cours..." : submitted ? "✅ Envoyé !" : "Envoyer mon journal"}
+          {submitting ? "Envoi en cours..." : "Envoyer mon journal"}
         </Btn>
       </div>
     </div>
   );
 
-  // BODY
   if (screen === "body") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
@@ -890,52 +819,27 @@ const ClientApp = ({ onSwitch }) => {
       <Tab tabs={[["weight", "⚖️ Poids"], ["measures", "📏 Mensurations"]]} active={bodyTab} onChange={setBodyTab} />
       {bodyTab === "weight" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {weights.length > 1 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {[{ l: "DÉPART", v: `${startWeight.value} kg`, c: C.white }, { l: "ACTUEL", v: `${lastWeight.value} kg`, c: C.pink }, { l: "PERDU", v: `-${(startWeight.value - lastWeight.value).toFixed(1)} kg`, c: C.green }].map(s => (
-                <Card key={s.l} style={{ padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></Card>
-              ))}
-            </div>
-          )}
-          <Card>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UN PESAGE</div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input type="number" step="0.1" placeholder="ex: 63.2 kg" value={newWeight} onChange={e => setNewWeight(e.target.value)} style={{ ...inputSt, flex: 1 }} />
-              <button onClick={handleAddWeight} style={{ background: C.pink, border: "none", borderRadius: 10, padding: "11px 18px", fontWeight: 800, color: C.black, cursor: "pointer" }}>+</button>
-            </div>
-          </Card>
+          {weights.length > 1 && <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>{[{ l: "DÉPART", v: `${startWeight.value} kg`, c: C.white }, { l: "ACTUEL", v: `${lastWeight.value} kg`, c: C.pink }, { l: "PERDU", v: `-${(startWeight.value - lastWeight.value).toFixed(1)} kg`, c: C.green }].map(s => <Card key={s.l} style={{ padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></Card>)}</div>}
+          <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UN PESAGE</div><div style={{ display: "flex", gap: 10 }}><input type="number" step="0.1" placeholder="ex: 63.2 kg" value={newWeight} onChange={e => setNewWeight(e.target.value)} style={{ ...inputSt, flex: 1 }} /><button onClick={handleAddWeight} style={{ background: C.pink, border: "none", borderRadius: 10, padding: "11px 18px", fontWeight: 800, color: C.black, cursor: "pointer" }}>+</button></div></Card>
           {weights.length > 0 && <Card>{[...weights].reverse().map((w, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{new Date(w.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span><span style={{ fontWeight: 700 }}>{w.value} kg</span></div>)}</Card>}
         </div>
       )}
       {bodyTab === "measures" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {measurements.length >= 2 && (() => {
-            const first = measurements[0], last = measurements[measurements.length - 1];
-            return <Card>{[["chest", "Poitrine"], ["waist", "Tour de taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => { const diff = last[k] - first[k]; return <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{label}</span><span><strong>{last[k]} cm</strong> <span style={{ color: diff < 0 ? C.green : diff > 0 ? C.red : C.textMuted, fontSize: 11 }}>{diff < 0 ? diff : diff > 0 ? `+${diff}` : "—"} cm</span></span></div>; })}</Card>;
-          })()}
-          <Card>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>NOUVELLES MENSURATIONS</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[["chest", "Poitrine (cm)"], ["waist", "Tour de taille (cm)"], ["hips", "Hanches (cm)"], ["thighs", "Cuisses (cm)"]].map(([k, label]) => <input key={k} type="number" placeholder={label} value={newMeasure[k]} onChange={e => setNewMeasure({ ...newMeasure, [k]: e.target.value })} style={inputSt} />)}
-              <Btn onClick={handleAddMeasure}>Enregistrer</Btn>
-            </div>
-          </Card>
+          {measurements.length >= 2 && (() => { const first = measurements[0], last = measurements[measurements.length - 1]; return <Card>{[["chest", "Poitrine"], ["waist", "Tour de taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => { const diff = last[k] - first[k]; return <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{label}</span><span><strong>{last[k]} cm</strong> <span style={{ color: diff < 0 ? C.green : diff > 0 ? C.red : C.textMuted, fontSize: 11 }}>{diff < 0 ? diff : diff > 0 ? `+${diff}` : "—"} cm</span></span></div>; })}</Card>; })()}
+          <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>NOUVELLES MENSURATIONS</div><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[["chest", "Poitrine (cm)"], ["waist", "Tour de taille (cm)"], ["hips", "Hanches (cm)"], ["thighs", "Cuisses (cm)"]].map(([k, label]) => <input key={k} type="number" placeholder={label} value={newMeasure[k]} onChange={e => setNewMeasure({ ...newMeasure, [k]: e.target.value })} style={inputSt} />)}<Btn onClick={handleAddMeasure}>Enregistrer</Btn></div></Card>
         </div>
       )}
     </div>
   );
 
-  // HISTORY
   if (screen === "history") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
       <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon historique</h2>
       {loading ? <Spinner /> : entries.map((e, i) => (
         <Card key={i} style={{ marginBottom: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}</span>
-            <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
-          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 700, fontSize: 14 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}</span><span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
             <div style={{ background: "#111", borderRadius: 8, padding: 8, textAlign: "center" }}><div style={{ fontSize: 9, color: C.textMuted }}>PAS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 13 }}>{(e.steps || 0).toLocaleString()}</div></div>
             <div style={{ background: "#111", borderRadius: 8, padding: 8, textAlign: "center" }}><div style={{ fontSize: 9, color: C.textMuted }}>SÉANCE</div><div style={{ fontWeight: 800, fontSize: 13, color: sessionColor(e.session_status) }}>{e.session_status === "done" ? "✅" : e.session_status === "rest" ? "😴" : "❌"}</div></div>
@@ -955,6 +859,43 @@ const ClientApp = ({ onSwitch }) => {
 // ROOT
 // ══════════════════════════════════════════════════════════════════════════════
 export default function App() {
-  const [view, setView] = useState("coach");
-  return view === "coach" ? <CoachApp onSwitch={() => setView("client")} /> : <ClientApp onSwitch={() => setView("coach")} />;
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isCoach, setIsCoach] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        setIsCoach(session.user.email === COACH_EMAIL);
+      }
+      setLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        setIsCoach(session.user.email === COACH_EMAIL);
+      } else {
+        setUser(null);
+        setIsCoach(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = (u) => {
+    setUser(u);
+    setIsCoach(u.email === COACH_EMAIL);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsCoach(false);
+  };
+
+  if (loading) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
+  if (!user) return <LoginScreen onLogin={handleLogin} />;
+  if (isCoach) return <CoachApp user={user} onLogout={handleLogout} />;
+  return <ClientApp user={user} onLogout={handleLogout} />;
 }
