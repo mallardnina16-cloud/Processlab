@@ -94,10 +94,18 @@ const feelingLabels = ["Très difficile", "Difficile", "Neutre", "Bien", "Excell
 const today = new Date().toISOString().slice(0, 10);
 const daysUntil = d => Math.ceil((new Date(d) - new Date(today)) / 86400000);
 
-// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+// Format date correctly
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  // Handle both ISO format and text format
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+};
+
 const requestNotifications = async () => {
   if (!("Notification" in window)) {
-    alert("Les notifications ne sont pas supportées sur ce navigateur.\n\nAjoute l'app à ton écran d'accueil depuis Safari pour les activer.");
+    alert("Ajoute l'app à ton écran d'accueil depuis Safari pour activer les notifications.");
     return false;
   }
   if (Notification.permission === "granted") return true;
@@ -163,11 +171,7 @@ const useClients = () => {
     const { data } = await supabase.from("clients").insert([client]).select().single();
     if (data) setClients(c => [...c, data]); return data;
   };
-  const updateClient = async (id, patch) => {
-    const { data } = await supabase.from("clients").update(patch).eq("id", id).select().single();
-    if (data) setClients(c => c.map(x => x.id === id ? data : x));
-  };
-  return { clients, loading, addClient, updateClient, refresh: fetch };
+  return { clients, loading, addClient, refresh: fetch };
 };
 
 const useWorkouts = () => {
@@ -220,13 +224,17 @@ const useClientData = (clientId) => {
       supabase.from("entries").select("*").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("weights").select("*").eq("client_id", clientId).order("date"),
       supabase.from("measurements").select("*").eq("client_id", clientId).order("date"),
-      supabase.from("client_workouts").select("*, workouts(*)").eq("client_id", clientId),
+      supabase.from("client_workouts").select("*, workouts(*, exercises(*))").eq("client_id", clientId),
       supabase.from("progress_photos").select("*").eq("client_id", clientId).order("date", { ascending: false }),
     ]);
     setEntries(e.data || []);
     setWeights(w.data || []);
     setMeasurements(m.data || []);
-    setAssignedWorkouts((cw.data || []).map(x => ({ workout_id: x.workout_id, scheduled_date: x.scheduled_date, workout: x.workouts })));
+    setAssignedWorkouts((cw.data || []).map(x => ({
+      workout_id: x.workout_id,
+      scheduled_date: x.scheduled_date,
+      workout: x.workouts,
+    })));
     setProgressPhotos(pp.data || []);
     setLoading(false);
   };
@@ -248,13 +256,13 @@ const useClientData = (clientId) => {
     const { data } = await supabase.from("measurements").insert([{ ...m, client_id: clientId, date: today }]).select().single();
     if (data) setMeasurements(ms => [...ms, data]);
   };
-  const toggleWorkout = async (workoutId, scheduledDate) => {
+  const toggleWorkout = async (workoutId) => {
     const has = assignedWorkouts.find(a => a.workout_id === workoutId);
     if (has) {
       await supabase.from("client_workouts").delete().eq("client_id", clientId).eq("workout_id", workoutId);
       setAssignedWorkouts(a => a.filter(x => x.workout_id !== workoutId));
     } else {
-      await supabase.from("client_workouts").insert([{ client_id: clientId, workout_id: workoutId, scheduled_date: scheduledDate || null }]);
+      await supabase.from("client_workouts").insert([{ client_id: clientId, workout_id: workoutId, scheduled_date: null }]);
       fetch();
     }
   };
@@ -266,11 +274,8 @@ const useClientData = (clientId) => {
     const { data } = await supabase.from("progress_photos").insert([{ client_id: clientId, photo, note, date: today }]).select().single();
     if (data) setProgressPhotos(pp => [data, ...pp]);
   };
-  const addSessionLog = async (log) => {
-    await supabase.from("session_logs").insert([{ ...log, client_id: clientId }]);
-  };
 
-  return { entries, weights, measurements, assignedWorkouts, progressPhotos, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addSessionLog, refresh: fetch };
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, refresh: fetch };
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -336,8 +341,6 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
               <Inp label="Reps / Durée" placeholder="12 ou 45s" value={ex.reps} onChange={e => updEx(ex.id, { reps: e.target.value })} />
               <Inp label="Repos (sec)" type="number" value={ex.rest} onChange={e => updEx(ex.id, { rest: parseInt(e.target.value) || 0 })} />
             </div>
-
-            {/* Poids suggéré */}
             <div>
               <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>⚖️ Poids suggéré</label>
               <div style={{ display: "flex", gap: 10 }}>
@@ -352,7 +355,6 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
                 </select>
               </div>
             </div>
-
             <TA label="Consigne" placeholder="Ex: descends bien..." value={ex.note} onChange={e => updEx(ex.id, { note: e.target.value })} style={{ minHeight: 56 }} />
             <div>
               <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Photo</label>
@@ -381,7 +383,7 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// WORKOUT PLAYER (with client logging)
+// WORKOUT PLAYER
 // ══════════════════════════════════════════════════════════════════════════════
 const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
   const [currentEx, setCurrentEx] = useState(0);
@@ -411,9 +413,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
     const newDone = doneSets + 1;
     setCompletedSets({ ...completedSets, [ex.id]: newDone });
     if (newDone < ex.sets) { startRest(ex.rest); }
-    else {
-      setShowLog(true);
-    }
+    else { setShowLog(true); }
   };
 
   const confirmExercise = () => {
@@ -428,12 +428,23 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
 
   const saveAndFinish = async () => {
     if (clientId) {
+      // Build exercise logs with names
+      const logsWithNames = {};
+      workout.exercises.forEach(e => {
+        logsWithNames[e.id] = {
+          name: e.name,
+          suggested_weight: e.suggested_weight,
+          weight_type: e.weight_type,
+          weight: exLogs[e.id]?.weight || "",
+          reps: exLogs[e.id]?.reps || "",
+        };
+      });
       await supabase.from("session_logs").insert([{
         client_id: clientId,
         workout_id: workout.id,
         workout_name: workout.name,
         date: today,
-        exercise_logs: JSON.stringify(exLogs),
+        exercise_logs: JSON.stringify(logsWithNames),
         note: globalNote,
       }]);
     }
@@ -445,21 +456,22 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
       <div style={{ textAlign: "center", paddingTop: 40, marginBottom: 32 }}>
         <div style={{ fontSize: 72, marginBottom: 16 }}>🏆</div>
         <h1 style={{ fontSize: 26, fontWeight: 900, marginBottom: 8 }}>Séance terminée !</h1>
-        <p style={{ color: C.textMuted }}>{workout.exercises.length} exercices · {workout.exercises.reduce((a, e) => a + e.sets, 0)} séries</p>
+        <p style={{ color: C.textMuted }}>{workout.name} · {workout.exercises.length} exercices</p>
       </div>
       <Card style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📝 NOTE SUR LA SÉANCE (OPTIONNEL)</div>
-        <TA placeholder="Comment c'était ? Difficultés, sensations, progression..." value={globalNote} onChange={e => setGlobalNote(e.target.value)} style={{ minHeight: 100 }} />
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📝 NOTE SUR LA SÉANCE</div>
+        <TA placeholder="Comment c'était ? Difficultés, sensations..." value={globalNote} onChange={e => setGlobalNote(e.target.value)} style={{ minHeight: 100 }} />
       </Card>
       <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>RÉCAP DE MES PERFORMANCES</div>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 16 }}>MES PERFORMANCES</div>
         {workout.exercises.map(ex => (
-          <div key={ex.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ fontWeight: 700, marginBottom: 8 }}>{ex.name}</div>
+          <div key={ex.id} style={{ marginBottom: 18, paddingBottom: 18, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 15 }}>{ex.name}</div>
+            {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 8 }}>⚖️ Suggéré : {ex.suggested_weight} {ex.weight_type}</div>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <div>
                 <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>POIDS UTILISÉ</div>
-                <input type="text" placeholder={ex.suggested_weight ? `Suggéré: ${ex.suggested_weight} ${ex.weight_type}` : "ex: 10 kg"} value={exLogs[ex.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} />
+                <input type="text" placeholder="ex: 10 kg" value={exLogs[ex.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} />
               </div>
               <div>
                 <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>REPS RÉELLES</div>
@@ -491,14 +503,14 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
             <Btn small variant="ghost" onClick={() => { clearInterval(timerRef.current); setResting(false); }} style={{ width: "auto", margin: "16px auto 0" }}>Passer →</Btn>
           </div>
         )}
-
         {showLog && (
           <Card style={{ marginBottom: 20, borderColor: C.green + "44" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ Exercice terminé ! Note tes perfs :</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ {ex.name} terminé ! Note tes perfs :</div>
+            {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 10 }}>⚖️ Suggéré : {ex.suggested_weight} {ex.weight_type}</div>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>POIDS UTILISÉ</div>
-                <input type="text" placeholder={ex.suggested_weight ? `${ex.suggested_weight} ${ex.weight_type}` : "ex: 10 kg"} value={exLogs[ex.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} />
+                <input type="text" placeholder="ex: 10 kg" value={exLogs[ex.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} />
               </div>
               <div>
                 <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>REPS RÉELLES</div>
@@ -508,19 +520,16 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
             <Btn onClick={confirmExercise} style={{ fontSize: 14 }}>Continuer →</Btn>
           </Card>
         )}
-
         {!showLog && (
-          <div style={{ marginBottom: 20 }}>
+          <div>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>EXERCICE {currentEx + 1}</div>
             <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{ex.name}</h2>
             {ex.photo && <img src={ex.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
-
             {ex.suggested_weight && (
               <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>
                 ⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Poids suggéré :</span> {ex.suggested_weight} {ex.weight_type}
               </div>
             )}
-
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
               {[{ l: "SÉRIES", v: `${doneSets}/${ex.sets}`, c: C.pink }, { l: "REPS", v: ex.reps, c: C.white }, { l: "REPOS", v: `${ex.rest}s`, c: C.orange }].map(s => (
                 <div key={s.l} style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
@@ -563,6 +572,65 @@ const EntryCard = ({ e }) => (
     {e.coach_message && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {e.coach_message}</div>}
   </Card>
 );
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PERF CARD - detailed exercise display
+// ══════════════════════════════════════════════════════════════════════════════
+const PerfCard = ({ log }) => {
+  let exLogs = {};
+  try { exLogs = JSON.parse(log.exercise_logs || "{}"); } catch {}
+
+  return (
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{log.workout_name}</div>
+          <div style={{ fontSize: 12, color: C.textMuted }}>{new Date(log.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</div>
+        </div>
+        <Badge color={C.green}>✅ Réalisée</Badge>
+      </div>
+
+      {/* Exercise details */}
+      {Object.values(exLogs).length > 0 && (
+        <div style={{ marginBottom: log.note ? 14 : 0 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>DÉTAIL DES EXERCICES</div>
+          {Object.values(exLogs).map((exLog, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name || "Exercice"}</div>
+                {exLog.suggested_weight && (
+                  <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                {exLog.weight ? (
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div>
+                    <div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: C.muted }}>—</div>
+                )}
+                {exLog.reps ? (
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div>
+                    <div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {log.note && (
+        <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>
+          💬 {log.note}
+        </div>
+      )}
+    </Card>
+  );
+};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // COACH APP
@@ -659,7 +727,7 @@ const CoachApp = ({ user, onLogout }) => {
               {paymentAlerts.length > 0 && (
                 <div style={{ background: "#fbbf2415", border: "1px solid #fbbf2444", borderRadius: 12, padding: 16, marginBottom: 20 }}>
                   <div style={{ fontWeight: 700, color: "#fbbf24", marginBottom: 8, fontSize: 13 }}>⚠️ Paiements à venir</div>
-                  {paymentAlerts.map(c => <div key={c.id} style={{ fontSize: 13 }}>{c.name} — {new Date(c.next_payment).toLocaleDateString("fr-FR")} (J-{daysUntil(c.next_payment)})</div>)}
+                  {paymentAlerts.map(c => <div key={c.id} style={{ fontSize: 13 }}>{c.name} — {formatDate(c.next_payment)} (J-{daysUntil(c.next_payment)})</div>)}
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
@@ -736,16 +804,29 @@ const CoachApp = ({ user, onLogout }) => {
                     const assigned = assignedWorkouts.find(a => a.workout_id === w.id);
                     return (
                       <Card key={w.id} style={{ borderColor: assigned ? C.green + "44" : C.border }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: assigned ? 12 : 0 }}>
-                          <div><div style={{ fontWeight: 800, marginBottom: 4 }}>{w.name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div></div>
-                          <button onClick={() => toggleWorkout(w.id)} style={{ padding: "8px 16px", borderRadius: 100, fontWeight: 700, fontSize: 12, cursor: "pointer", background: assigned ? C.green + "22" : C.pink + "22", border: `1.5px solid ${assigned ? C.green : C.pink}`, color: assigned ? C.green : C.pink }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: assigned ? 14 : 0 }}>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
+                            <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices · {w.exercises?.reduce((a, e) => a + e.sets, 0) || 0} séries</div>
+                          </div>
+                          <button onClick={() => toggleWorkout(w.id)} style={{ padding: "8px 16px", borderRadius: 100, fontWeight: 700, fontSize: 12, cursor: "pointer", background: assigned ? C.green + "22" : C.pink + "22", border: `1.5px solid ${assigned ? C.green : C.pink}`, color: assigned ? C.green : C.pink, flexShrink: 0 }}>
                             {assigned ? "✓ Assignée" : "+ Assigner"}
                           </button>
                         </div>
                         {assigned && (
                           <div>
-                            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>📅 DATE PRÉVUE</div>
-                            <input type="date" value={assigned.scheduled_date || ""} onChange={e => updateScheduledDate(w.id, e.target.value)} style={{ ...inputSt, fontSize: 13 }} />
+                            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>📅 Date prévue</div>
+                            <input
+                              type="date"
+                              value={assigned.scheduled_date || ""}
+                              onChange={e => updateScheduledDate(w.id, e.target.value)}
+                              style={{ ...inputSt, fontSize: 14 }}
+                            />
+                            {assigned.scheduled_date && (
+                              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
+                                Prévue le {new Date(assigned.scheduled_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                              </div>
+                            )}
                           </div>
                         )}
                       </Card>
@@ -756,27 +837,10 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "perf" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 4 }}>Historique des séances réalisées par {client.name.split(" ")[0]}.</div>
-                  {sessionLogs.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card> : sessionLogs.map((log, i) => (
-                    <Card key={i}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                        <span style={{ fontWeight: 700 }}>{log.workout_name}</span>
-                        <span style={{ fontSize: 12, color: C.textMuted }}>{new Date(log.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
-                      </div>
-                      {log.exercise_logs && (() => {
-                        try {
-                          const logs = JSON.parse(log.exercise_logs);
-                          return Object.entries(logs).map(([exId, exLog]) => (
-                            <div key={exId} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
-                              <span style={{ color: C.textMuted }}>{exLog.name || exId}</span>
-                              <span><span style={{ color: C.pink }}>{exLog.weight || "—"}</span> · <span style={{ color: C.purple }}>{exLog.reps || "—"} reps</span></span>
-                            </div>
-                          ));
-                        } catch { return null; }
-                      })()}
-                      {log.note && <div style={{ background: C.pink + "15", borderRadius: 8, padding: 8, fontSize: 12, color: C.pink, marginTop: 8 }}>💬 {log.note}</div>}
-                    </Card>
-                  ))}
+                  {sessionLogs.length === 0
+                    ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card>
+                    : sessionLogs.map((log, i) => <PerfCard key={i} log={log} />)
+                  }
                 </div>
               )}
 
@@ -799,7 +863,7 @@ const CoachApp = ({ user, onLogout }) => {
                         {progressPhotos.map((p, i) => (
                           <div key={i}>
                             <img src={p.photo} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 12, marginBottom: 4 }} />
-                            <div style={{ fontSize: 11, color: C.textMuted }}>{new Date(p.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>
+                            <div style={{ fontSize: 11, color: C.textMuted }}>{formatDate(p.date)}</div>
                             {p.note && <div style={{ fontSize: 11, color: C.white }}>{p.note}</div>}
                           </div>
                         ))}
@@ -856,7 +920,7 @@ const ClientApp = ({ user, onLogout }) => {
   const [newWeight, setNewWeight] = useState("");
   const [newMeasure, setNewMeasure] = useState({ chest: "", waist: "", hips: "", thighs: "" });
   const [newPhotoNote, setNewPhotoNote] = useState("");
-  const [notifEnabled, setNotifEnabled] = useState(Notification?.permission === "granted");
+  const [notifEnabled, setNotifEnabled] = useState(typeof Notification !== "undefined" && Notification?.permission === "granted");
 
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
@@ -898,20 +962,18 @@ const ClientApp = ({ user, onLogout }) => {
     setSessionStatus(null); setSessionNote(""); setHydration(""); setSleepHours(""); setNap(null); setHadDifficulty(null); setDifficultyNote("");
   };
 
-  const handleAddWeight = async () => { if (!newWeight) return; await addWeight(parseFloat(newWeight)); setNewWeight(""); };
+  const handleAddWeight = async () => { if (!newWeight) return; await addWeight(parseFloat(newWeight)); setNewWeight(""); alert("✅ Poids enregistré !"); };
   const handleAddMeasure = async () => { await addMeasurement({ chest: parseFloat(newMeasure.chest), waist: parseFloat(newMeasure.waist), hips: parseFloat(newMeasure.hips), thighs: parseFloat(newMeasure.thighs) }); setNewMeasure({ chest: "", waist: "", hips: "", thighs: "" }); alert("✅ Mensurations enregistrées !"); };
-
   const handleAddProgressPhoto = async (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = async ev => { await addProgressPhoto(ev.target.result, newPhotoNote); setNewPhotoNote(""); alert("✅ Photo ajoutée !"); };
     reader.readAsDataURL(file);
   };
-
   const handleEnableNotifs = async () => {
     const granted = await requestNotifications();
     if (granted) { setNotifEnabled(true); alert("✅ Rappels activés ! Tu recevras une notification à 20h chaque soir."); }
-    else { alert("❌ Permission refusée.\n\nPour activer les notifications :\nRéglages → Process Lab → Notifications → Autoriser"); }
+    else { alert("Pour activer les notifications :\nRéglages → Process Lab → Notifications → Autoriser"); }
   };
 
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => setActiveWorkout(null)} clientId={clientInfo?.id} />;
@@ -930,7 +992,6 @@ const ClientApp = ({ user, onLogout }) => {
           <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
         </div>
 
-        {/* Notif banner */}
         {!notifEnabled && (
           <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div>
@@ -948,12 +1009,11 @@ const ClientApp = ({ user, onLogout }) => {
           {todayEntry ? (
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <span style={{ fontSize: 30 }}>{feelings[(todayEntry.feeling || 3) - 1]}</span>
-              <div><div style={{ fontWeight: 700 }}>Rempli ✅</div><div style={{ fontSize: 12, color: C.textMuted }}>{(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration}L · {todayEntry.sleep_hours}h sommeil</div></div>
+              <div><div style={{ fontWeight: 700 }}>Rempli ✅</div><div style={{ fontSize: 12, color: C.textMuted }}>{(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration}L · {todayEntry.sleep_hours}h</div></div>
             </div>
           ) : <><p style={{ color: C.textMuted, fontSize: 13, marginBottom: 12, marginTop: 0 }}>Tu n'as pas encore rempli ton journal.</p><Btn onClick={() => setScreen("journal")}>Remplir mon journal →</Btn></>}
         </Card>
 
-        {/* Séances assignées */}
         {myWorkouts.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>💪 Mes entraînements</div>
@@ -968,7 +1028,11 @@ const ClientApp = ({ user, onLogout }) => {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
                     <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div>
-                    {scheduledDate && <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>{isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>}
+                    {scheduledDate && (
+                      <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>
+                        {isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}
+                      </div>
+                    )}
                   </div>
                   <div style={{ color: C.orange, fontWeight: 700, fontSize: 13 }}>▶</div>
                 </Card>
@@ -1036,30 +1100,27 @@ const ClientApp = ({ user, onLogout }) => {
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
       <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon suivi corps</h2>
       <Tab tabs={[["weight", "⚖️ Poids"], ["measures", "📏 Mensurations"], ["photos", "📸 Photos"]]} active={bodyTab} onChange={setBodyTab} />
-
       {bodyTab === "weight" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {weights.length > 1 && <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>{[{ l: "DÉPART", v: `${startWeight.value} kg`, c: C.white }, { l: "ACTUEL", v: `${lastWeight.value} kg`, c: C.pink }, { l: "PERDU", v: `-${(startWeight.value - lastWeight.value).toFixed(1)} kg`, c: C.green }].map(s => <Card key={s.l} style={{ padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></Card>)}</div>}
           <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UN PESAGE</div><div style={{ display: "flex", gap: 10 }}><input type="number" step="0.1" placeholder="ex: 63.2 kg" value={newWeight} onChange={e => setNewWeight(e.target.value)} style={{ ...inputSt, flex: 1 }} /><button onClick={handleAddWeight} style={{ background: C.pink, border: "none", borderRadius: 10, padding: "11px 18px", fontWeight: 800, color: C.black, cursor: "pointer" }}>+</button></div></Card>
-          {weights.length > 0 && <Card>{[...weights].reverse().map((w, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{new Date(w.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span><span style={{ fontWeight: 700 }}>{w.value} kg</span></div>)}</Card>}
+          {weights.length > 0 && <Card>{[...weights].reverse().map((w, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{formatDate(w.date)}</span><span style={{ fontWeight: 700 }}>{w.value} kg</span></div>)}</Card>}
         </div>
       )}
-
       {bodyTab === "measures" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {measurements.length >= 2 && (() => { const first = measurements[0], last = measurements[measurements.length - 1]; return <Card>{[["chest", "Poitrine"], ["waist", "Tour de taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => { const diff = last[k] - first[k]; return <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{label}</span><span><strong>{last[k]} cm</strong> <span style={{ color: diff < 0 ? C.green : diff > 0 ? C.red : C.textMuted, fontSize: 11 }}>{diff < 0 ? diff : diff > 0 ? `+${diff}` : "—"} cm</span></span></div>; })}</Card>; })()}
           <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>NOUVELLES MENSURATIONS</div><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[["chest", "Poitrine (cm)"], ["waist", "Tour de taille (cm)"], ["hips", "Hanches (cm)"], ["thighs", "Cuisses (cm)"]].map(([k, label]) => <input key={k} type="number" placeholder={label} value={newMeasure[k]} onChange={e => setNewMeasure({ ...newMeasure, [k]: e.target.value })} style={inputSt} />)}<Btn onClick={handleAddMeasure}>Enregistrer</Btn></div></Card>
         </div>
       )}
-
       {bodyTab === "photos" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Card>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UNE PHOTO DE PROGRESSION</div>
-            <input type="text" placeholder="Note (optionnel) : ex: Semaine 4, de face" value={newPhotoNote} onChange={e => setNewPhotoNote(e.target.value)} style={{ ...inputSt, marginBottom: 10 }} />
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UNE PHOTO</div>
+            <input type="text" placeholder="Note : ex: Semaine 4, de face" value={newPhotoNote} onChange={e => setNewPhotoNote(e.target.value)} style={{ ...inputSt, marginBottom: 10 }} />
             <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer" }}>
               <span style={{ fontSize: 20 }}>📸</span>
-              <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter une photo</div><div style={{ fontSize: 11, color: C.textMuted }}>De face, de profil, de dos...</div></div>
+              <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter une photo de progression</div><div style={{ fontSize: 11, color: C.textMuted }}>De face, de profil, de dos...</div></div>
               <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleAddProgressPhoto} />
             </label>
           </Card>
@@ -1070,7 +1131,7 @@ const ClientApp = ({ user, onLogout }) => {
                 {progressPhotos.map((p, i) => (
                   <div key={i}>
                     <img src={p.photo} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 12, marginBottom: 4 }} />
-                    <div style={{ fontSize: 11, color: C.textMuted }}>{new Date(p.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</div>
+                    <div style={{ fontSize: 11, color: C.textMuted }}>{formatDate(p.date)}</div>
                     {p.note && <div style={{ fontSize: 11, color: C.white }}>{p.note}</div>}
                   </div>
                 ))}
