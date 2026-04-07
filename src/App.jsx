@@ -1235,18 +1235,19 @@ const ClientApp = ({ user, onLogout }) => {
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => setActiveWorkout(null)} clientId={clientId} />;
 
   // Show journal form
-  if (screen === "journal") return (
-    loading ? (
-      <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>
-    ) : (
-      <JournalForm
-        existing={todayEntry}
-        onSave={handleSaveJournal}
-        onBack={() => setScreen("home")}
-        clientId={clientId}
-      />
-    )
+  if (screen === "journal") {
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>
   );
+  return (
+    <JournalForm
+      existing={todayEntry}
+      onSave={handleSaveJournal}
+      onBack={() => setScreen("home")}
+      clientId={clientId}
+    />
+  );
+}
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
 
