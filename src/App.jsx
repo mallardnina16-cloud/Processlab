@@ -30,9 +30,9 @@ const Card = ({ children, style = {}, onClick }) => (
 
 const Btn = ({ children, onClick, variant = "primary", disabled, small, style = {} }) => (
   <button onClick={onClick} disabled={disabled} style={{
-    background: variant === "primary" ? C.pink : variant === "danger" ? C.red + "22" : variant === "ghost" ? "transparent" : variant === "green" ? C.green : variant === "draft" ? C.blue + "22" : "#222",
-    color: variant === "primary" ? C.black : variant === "danger" ? C.red : variant === "green" ? C.black : variant === "draft" ? C.blue : C.white,
-    border: variant === "ghost" ? `1px solid ${C.border}` : variant === "danger" ? `1px solid ${C.red}44` : variant === "draft" ? `1px solid ${C.blue}44` : "none",
+    background: variant === "primary" ? C.pink : variant === "danger" ? C.red + "22" : variant === "ghost" ? "transparent" : variant === "green" ? C.green : "#222",
+    color: variant === "primary" ? C.black : variant === "danger" ? C.red : variant === "green" ? C.black : C.white,
+    border: variant === "ghost" ? `1px solid ${C.border}` : variant === "danger" ? `1px solid ${C.red}44` : "none",
     borderRadius: small ? 8 : 12, padding: small ? "7px 14px" : "13px 20px",
     fontWeight: 800, fontSize: small ? 13 : 15, cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.4 : 1, fontFamily: "inherit", transition: "all .15s", ...style,
@@ -107,7 +107,6 @@ const addDays = (dateStr, days) => {
   return d.toISOString().slice(0, 10);
 };
 
-// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 const scheduleNotification = () => {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   const now = new Date();
@@ -116,27 +115,17 @@ const scheduleNotification = () => {
   if (now >= target) target.setDate(target.getDate() + 1);
   const delay = target - now;
   setTimeout(() => {
-    new Notification("process lab. 📋", {
-      body: "N'oublie pas de remplir ton journal du jour !",
-      icon: "/icon.png",
-    });
-    scheduleNotification(); // reschedule for next day
+    new Notification("process lab. 📋", { body: "N'oublie pas de remplir ton journal du jour !", icon: "/icon.png" });
+    scheduleNotification();
   }, delay);
 };
 
 const requestNotifications = async () => {
-  if (!("Notification" in window)) {
-    alert("Les notifications ne sont pas disponibles.\n\nAjoute l'app à ton écran d'accueil depuis Safari pour les activer.");
-    return false;
-  }
-  if (Notification.permission === "granted") {
-    scheduleNotification();
-    return true;
-  }
+  if (!("Notification" in window)) { alert("Ajoute l'app à ton écran d'accueil depuis Safari pour activer les notifications."); return false; }
+  if (Notification.permission === "granted") { scheduleNotification(); return true; }
   const perm = await Notification.requestPermission();
   if (perm === "granted") {
     scheduleNotification();
-    // Send immediate confirmation
     new Notification("process lab. ✅", { body: "Rappels activés ! Tu seras notifiée à 20h chaque soir.", icon: "/icon.png" });
     return true;
   }
@@ -189,20 +178,20 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
     newPassword: "",
   });
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     const avatar = form.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment }, form.newPassword);
+    await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment });
     setSaving(false); onClose();
   };
 
   const handleDelete = async () => {
     if (!confirmDelete) { setConfirmDelete(true); return; }
     setDeleting(true);
-    await onDelete(client.id, client.user_id);
+    await onDelete(client.id);
     setDeleting(false); onClose();
   };
 
@@ -220,9 +209,6 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
           <Inp label="Montant toutes les 4 semaines (€)" type="number" value={form.monthly_amount} onChange={e => setForm({ ...form, monthly_amount: e.target.value })} />
           <Inp label="Date de début" type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
           <Inp label="Prochain paiement" type="date" value={form.next_payment} onChange={e => setForm({ ...form, next_payment: e.target.value })} />
-          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
-            <Inp label="Nouveau mot de passe (optionnel)" type="text" placeholder="Laisser vide = pas de changement" value={form.newPassword} onChange={e => setForm({ ...form, newPassword: e.target.value })} />
-          </div>
         </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
           <Btn variant="secondary" onClick={onClose} style={{ flex: 1 }}>Annuler</Btn>
@@ -233,9 +219,7 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
             <Btn variant="danger" onClick={handleDelete} style={{ width: "100%" }}>🗑️ Supprimer cette cliente</Btn>
           ) : (
             <div>
-              <div style={{ background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 10, padding: 14, marginBottom: 10, fontSize: 13, color: C.red, textAlign: "center" }}>
-                ⚠️ Action irréversible. Toutes les données seront supprimées.
-              </div>
+              <div style={{ background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 10, padding: 14, marginBottom: 10, fontSize: 13, color: C.red, textAlign: "center" }}>⚠️ Action irréversible. Toutes les données seront supprimées.</div>
               <div style={{ display: "flex", gap: 10 }}>
                 <Btn variant="secondary" onClick={() => setConfirmDelete(false)} style={{ flex: 1 }}>Annuler</Btn>
                 <Btn variant="danger" onClick={handleDelete} disabled={deleting} style={{ flex: 1, background: C.red, color: C.white, border: "none" }}>{deleting ? "Suppression..." : "Confirmer 🗑️"}</Btn>
@@ -263,7 +247,7 @@ const useClients = () => {
   const addClient = async (c) => { const { data } = await supabase.from("clients").insert([c]).select().single(); if (data) setClients(cl => [...cl, data]); return data; };
   const updateClient = async (id, patch) => { const { data } = await supabase.from("clients").update(patch).eq("id", id).select().single(); if (data) setClients(c => c.map(x => x.id === id ? data : x)); return data; };
   const deleteClient = async (id) => { await supabase.from("clients").delete().eq("id", id); setClients(c => c.filter(x => x.id !== id)); };
-  return { clients, loading, addClient, updateClient, deleteClient, refresh: fetch };
+  return { clients, loading, addClient, updateClient, deleteClient };
 };
 
 const useWorkouts = () => {
@@ -327,12 +311,12 @@ const useClientData = (clientId) => {
 
   const addEntry = async (entry) => {
     const { data } = await supabase.from("entries").insert([{ ...entry, client_id: clientId }]).select().single();
-    if (data) { setEntries(e => [data, ...e]); if (entry.confirmed) await supabase.from("clients").update({ today_done: true }).eq("id", clientId); }
+    if (data) { setEntries(e => [data, ...e]); await supabase.from("clients").update({ today_done: true }).eq("id", clientId); }
     return data;
   };
   const updateEntry = async (id, patch) => {
     const { data } = await supabase.from("entries").update(patch).eq("id", id).select().single();
-    if (data) { setEntries(e => e.map(x => x.id === id ? data : x)); if (patch.confirmed) await supabase.from("clients").update({ today_done: true }).eq("id", clientId); }
+    if (data) setEntries(e => e.map(x => x.id === id ? data : x));
     return data;
   };
   const addWeight = async (value) => { const { data } = await supabase.from("weights").insert([{ client_id: clientId, value, date: today }]).select().single(); if (data) setWeights(w => [...w, data]); };
@@ -351,29 +335,47 @@ const useClientData = (clientId) => {
     return data;
   };
 
-  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, refresh: fetch };
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment };
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// JOURNAL FORM — used for both create and edit
+// JOURNAL FORM — always pre-fills from existing entry
 // ══════════════════════════════════════════════════════════════════════════════
-const JournalForm = ({ existing, onSave, onBack, clientId }) => {
-  const isConfirmed = existing?.confirmed;
-
-  const [feeling, setFeeling] = useState(existing?.feeling || null);
-  const [steps, setSteps] = useState(existing?.steps?.toString() || "");
-  const [mealNote, setMealNote] = useState(existing?.meal_note || "");
-  const [photos, setPhotos] = useState(existing?.photos || []);
-  const [sessionStatus, setSessionStatus] = useState(existing?.session_status || null);
-  const [sessionNote, setSessionNote] = useState(existing?.session_note || "");
-  const [hydration, setHydration] = useState(existing?.hydration?.toString() || "");
-  const [sleepHours, setSleepHours] = useState(existing?.sleep_hours?.toString() || "");
-  const [nap, setNap] = useState(existing?.nap ?? null);
-  const [hadDifficulty, setHadDifficulty] = useState(existing?.had_difficulty ?? null);
-  const [difficultyNote, setDifficultyNote] = useState(existing?.difficulty_note || "");
+const JournalForm = ({ existing, onSave, onBack }) => {
+  const [feeling, setFeeling] = useState(null);
+  const [steps, setSteps] = useState("");
+  const [mealNote, setMealNote] = useState("");
+  const [photos, setPhotos] = useState([]);
+  const [sessionStatus, setSessionStatus] = useState(null);
+  const [sessionNote, setSessionNote] = useState("");
+  const [hydration, setHydration] = useState("");
+  const [sleepHours, setSleepHours] = useState("");
+  const [nap, setNap] = useState(null);
+  const [hadDifficulty, setHadDifficulty] = useState(null);
+  const [difficultyNote, setDifficultyNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  const canSubmit = feeling && steps && mealNote && sessionStatus !== null && hydration && sleepHours && nap !== null && hadDifficulty !== null;
+  // Pre-fill from existing entry when it arrives
+  useEffect(() => {
+    if (existing && !initialized) {
+      setFeeling(existing.feeling || null);
+      setSteps(existing.steps?.toString() || "");
+      setMealNote(existing.meal_note || "");
+      setPhotos(existing.photos || []);
+      setSessionStatus(existing.session_status || null);
+      setSessionNote(existing.session_note || "");
+      setHydration(existing.hydration?.toString() || "");
+      setSleepHours(existing.sleep_hours?.toString() || "");
+      setNap(existing.nap ?? null);
+      setHadDifficulty(existing.had_difficulty ?? null);
+      setDifficultyNote(existing.difficulty_note || "");
+      setInitialized(true);
+    }
+    if (!existing && !initialized) {
+      setInitialized(true);
+    }
+  }, [existing]);
 
   const handlePhoto = e => {
     Array.from(e.target.files).forEach(file => {
@@ -383,44 +385,28 @@ const JournalForm = ({ existing, onSave, onBack, clientId }) => {
     });
   };
 
-  const buildPayload = (confirmed) => ({
-    date: today,
-    steps: parseInt(steps),
-    feeling,
-    meal_note: mealNote,
-    session_status: sessionStatus,
-    session_note: sessionNote,
-    hydration: parseFloat(hydration),
-    sleep_hours: parseFloat(sleepHours),
-    nap,
-    had_difficulty: hadDifficulty,
-    difficulty_note: difficultyNote,
-    confirmed,
-  });
-
-  const handleSaveDraft = async () => {
+  const handleSave = async () => {
     setSaving(true);
-    await onSave(buildPayload(false), false);
+    await onSave({
+      date: today,
+      steps: parseInt(steps) || 0,
+      feeling: feeling || 3,
+      meal_note: mealNote,
+      session_status: sessionStatus || "rest",
+      session_note: sessionNote,
+      hydration: parseFloat(hydration) || 0,
+      sleep_hours: parseFloat(sleepHours) || 0,
+      nap: nap || false,
+      had_difficulty: hadDifficulty || false,
+      difficulty_note: difficultyNote,
+    });
     setSaving(false);
     onBack();
   };
 
-  const handleConfirm = async () => {
-    if (!canSubmit) return;
-    setSaving(true);
-    await onSave(buildPayload(true), true);
-    setSaving(false);
-    onBack();
-  };
-
-  if (isConfirmed) return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-      <div style={{ textAlign: "center", padding: "40px 0" }}>
-        <div style={{ fontSize: 60, marginBottom: 16 }}>✅</div>
-        <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Journal confirmé !</h2>
-        <p style={{ color: C.textMuted }}>Ton journal du jour a été validé définitivement.</p>
-      </div>
+  if (!initialized) return (
+    <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Spinner />
     </div>
   );
 
@@ -428,22 +414,25 @@ const JournalForm = ({ existing, onSave, onBack, clientId }) => {
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Journal du jour</h2>
-        {existing && !existing.confirmed && <Badge color={C.blue}>📝 Brouillon</Badge>}
+        <h2 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>
+          {existing ? "Mon journal du jour ✏️" : "Journal du jour"}
+        </h2>
       </div>
-      <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 24, marginTop: 4 }}>{new Date(today).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</p>
-
-      {existing && !existing.confirmed && (
-        <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 12, padding: 14, marginBottom: 20, fontSize: 13, color: C.blue }}>
-          💡 Tu peux modifier ton journal au fur et à mesure. N'oublie pas de le <strong>confirmer le soir</strong> pour valider définitivement.
-        </div>
-      )}
+      <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 24, marginTop: 4 }}>
+        {new Date(today).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+        {existing && <span style={{ color: C.green, marginLeft: 8, fontWeight: 700 }}>· Déjà rempli aujourd'hui</span>}
+      </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
         {/* Feeling */}
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Comment tu te sens ?</div>
-          <div style={{ display: "flex", gap: 8 }}>{feelings.map((f, i) => <button key={i} onClick={() => setFeeling(i + 1)} style={{ flex: 1, padding: "12px 0", background: feeling === i + 1 ? C.pink + "22" : "#111", border: `2px solid ${feeling === i + 1 ? C.pink : C.border}`, borderRadius: 12, fontSize: 22, cursor: "pointer" }}>{f}</button>)}</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {feelings.map((f, i) => (
+              <button key={i} onClick={() => setFeeling(i + 1)} style={{ flex: 1, padding: "12px 0", background: feeling === i + 1 ? C.pink + "22" : "#111", border: `2px solid ${feeling === i + 1 ? C.pink : C.border}`, borderRadius: 12, fontSize: 22, cursor: "pointer" }}>{f}</button>
+            ))}
+          </div>
           {feeling && <div style={{ textAlign: "center", fontSize: 12, color: C.textMuted, marginTop: 6 }}>{feelingLabels[feeling - 1]}</div>}
         </div>
 
@@ -453,15 +442,29 @@ const JournalForm = ({ existing, onSave, onBack, clientId }) => {
         {/* Hydration */}
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>💧 Hydratation (hors thé & café)</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{["0.5", "1", "1.5", "2", "2.5", "3+"].map(v => <button key={v} onClick={() => setHydration(v === "3+" ? "3" : v)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${hydration === (v === "3+" ? "3" : v) ? C.blue : C.border}`, background: hydration === (v === "3+" ? "3" : v) ? C.blue + "22" : "#111", color: hydration === (v === "3+" ? "3" : v) ? C.blue : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v} L</button>)}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {["0.5", "1", "1.5", "2", "2.5", "3+"].map(v => {
+              const val = v === "3+" ? "3" : v;
+              return <button key={v} onClick={() => setHydration(val)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${hydration === val ? C.blue : C.border}`, background: hydration === val ? C.blue + "22" : "#111", color: hydration === val ? C.blue : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v} L</button>;
+            })}
+          </div>
         </div>
 
         {/* Sleep */}
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>😴 Heures de sommeil</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>{["5", "6", "7", "8", "9", "10+"].map(v => <button key={v} onClick={() => setSleepHours(v === "10+" ? "10" : v)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${sleepHours === (v === "10+" ? "10" : v) ? C.purple : C.border}`, background: sleepHours === (v === "10+" ? "10" : v) ? C.purple + "22" : "#111", color: sleepHours === (v === "10+" ? "10" : v) ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v}h</button>)}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            {["5", "6", "7", "8", "9", "10+"].map(v => {
+              const val = v === "10+" ? "10" : v;
+              return <button key={v} onClick={() => setSleepHours(val)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${sleepHours === val ? C.purple : C.border}`, background: sleepHours === val ? C.purple + "22" : "#111", color: sleepHours === val ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v}h</button>;
+            })}
+          </div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Sieste ?</div>
-          <div style={{ display: "flex", gap: 10 }}>{[true, false].map(val => <button key={String(val)} onClick={() => setNap(val)} style={{ flex: 1, padding: 12, borderRadius: 12, border: `2px solid ${nap === val ? C.purple : C.border}`, background: nap === val ? C.purple + "22" : "#111", color: nap === val ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "😴 Oui" : "❌ Non"}</button>)}</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {[true, false].map(val => (
+              <button key={String(val)} onClick={() => setNap(val)} style={{ flex: 1, padding: 12, borderRadius: 12, border: `2px solid ${nap === val ? C.purple : C.border}`, background: nap === val ? C.purple + "22" : "#111", color: nap === val ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "😴 Oui" : "❌ Non"}</button>
+            ))}
+          </div>
         </div>
 
         {/* Meals + Photos */}
@@ -473,7 +476,6 @@ const JournalForm = ({ existing, onSave, onBack, clientId }) => {
               <div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter des photos repas</div>
               <div style={{ fontSize: 11, color: C.textMuted }}>Pellicule ou appareil photo</div>
             </div>
-            {/* NO capture attribute = user can choose between gallery and camera */}
             <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handlePhoto} />
           </label>
           {photos.length > 0 && (
@@ -491,29 +493,36 @@ const JournalForm = ({ existing, onSave, onBack, clientId }) => {
         {/* Session */}
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Séance du jour</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{SESSION_OPTIONS.map(opt => <button key={opt.value} onClick={() => setSessionStatus(opt.value)} style={{ padding: 13, borderRadius: 12, border: `2px solid ${sessionStatus === opt.value ? opt.color : C.border}`, background: sessionStatus === opt.value ? opt.color + "22" : "#111", color: sessionStatus === opt.value ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer", textAlign: "left" }}>{opt.label}</button>)}</div>
-          {sessionStatus === "done" && <div style={{ marginTop: 12 }}><TA label="Note (optionnel)" placeholder="Comment ça s'est passé ?" value={sessionNote} onChange={e => setSessionNote(e.target.value)} /></div>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {SESSION_OPTIONS.map(opt => (
+              <button key={opt.value} onClick={() => setSessionStatus(opt.value)} style={{ padding: 13, borderRadius: 12, border: `2px solid ${sessionStatus === opt.value ? opt.color : C.border}`, background: sessionStatus === opt.value ? opt.color + "22" : "#111", color: sessionStatus === opt.value ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer", textAlign: "left" }}>{opt.label}</button>
+            ))}
+          </div>
+          {sessionStatus === "done" && (
+            <div style={{ marginTop: 12 }}>
+              <TA label="Note (optionnel)" placeholder="Comment ça s'est passé ?" value={sessionNote} onChange={e => setSessionNote(e.target.value)} />
+            </div>
+          )}
         </div>
 
         {/* Difficulty */}
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>⚠️ As-tu rencontré une difficulté ?</div>
-          <div style={{ display: "flex", gap: 10, marginBottom: hadDifficulty ? 12 : 0 }}>{[true, false].map(val => <button key={String(val)} onClick={() => setHadDifficulty(val)} style={{ flex: 1, padding: 13, borderRadius: 12, border: `2px solid ${hadDifficulty === val ? (val ? C.orange : C.green) : C.border}`, background: hadDifficulty === val ? (val ? C.orange + "22" : C.green + "22") : "#111", color: hadDifficulty === val ? (val ? C.orange : C.green) : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "⚠️ Oui" : "✅ Non"}</button>)}</div>
-          {hadDifficulty && <TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />}
+          <div style={{ display: "flex", gap: 10, marginBottom: hadDifficulty ? 12 : 0 }}>
+            {[true, false].map(val => (
+              <button key={String(val)} onClick={() => setHadDifficulty(val)} style={{ flex: 1, padding: 13, borderRadius: 12, border: `2px solid ${hadDifficulty === val ? (val ? C.orange : C.green) : C.border}`, background: hadDifficulty === val ? (val ? C.orange + "22" : C.green + "22") : "#111", color: hadDifficulty === val ? (val ? C.orange : C.green) : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "⚠️ Oui" : "✅ Non"}</button>
+            ))}
+          </div>
+          {hadDifficulty && (
+            <TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />
+          )}
         </div>
 
-        {/* Actions */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 30 }}>
-          <Btn variant="draft" onClick={handleSaveDraft} disabled={saving || !steps}>
-            {saving ? "Enregistrement..." : "💾 Enregistrer en brouillon"}
-          </Btn>
-          <Btn onClick={handleConfirm} disabled={!canSubmit || saving}>
-            {saving ? "Confirmation..." : "✅ Confirmer mon journal définitivement"}
-          </Btn>
-          <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center" }}>
-            ⚠️ Une fois confirmé, le journal ne pourra plus être modifié.
-          </div>
-        </div>
+        {/* Single save button */}
+        <Btn onClick={handleSave} disabled={saving} style={{ marginBottom: 30 }}>
+          {saving ? "Enregistrement..." : existing ? "💾 Mettre à jour mon journal" : "💾 Enregistrer mon journal"}
+        </Btn>
+
       </div>
     </div>
   );
@@ -814,10 +823,7 @@ const EntryCard = ({ e }) => (
   <Card>
     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
       <span style={{ fontWeight: 700 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {e.confirmed ? <Badge color={C.green}>✅ Confirmé</Badge> : <Badge color={C.blue}>📝 Brouillon</Badge>}
-        <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
-      </div>
+      <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>PAS</div><div style={{ fontSize: 18, fontWeight: 900, color: C.pink }}>{(e.steps || 0).toLocaleString()}</div></div>
@@ -896,19 +902,11 @@ const CoachApp = ({ user, onLogout }) => {
     await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, streak: 0, today_done: false, user_id: userId });
     setAddingClient(false); setShowAddClient(false);
     setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
-    alert(`✅ Compte créé !\n\nEnvoie ces infos :\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
+    alert(`✅ Compte créé !\n\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
   };
 
-  const handleSaveClient = async (id, patch, newPassword) => {
-    await updateClient(id, patch);
-    alert("✅ Profil mis à jour !");
-  };
-
-  const handleDeleteClient = async (id) => {
-    await deleteClient(id);
-    setSelected(null); setMainTab("dashboard");
-    alert("✅ Cliente supprimée.");
-  };
+  const handleSaveClient = async (id, patch) => { await updateClient(id, patch); alert("✅ Profil mis à jour !"); };
+  const handleDeleteClient = async (id) => { await deleteClient(id); setSelected(null); setMainTab("dashboard"); alert("✅ Cliente supprimée."); };
 
   const handleAddPayment = async () => {
     if (!paymentAmount || !paymentDate) return alert("Remplis le montant et la date.");
@@ -923,7 +921,7 @@ const CoachApp = ({ user, onLogout }) => {
     if (!msgText.trim() || !selected) return;
     const todayEntry = entries.find(e => e.date === today);
     if (todayEntry) { await updateEntry(todayEntry.id, { coach_message: msgText }); }
-    else { await addEntry({ date: today, steps: 0, feeling: 3, meal_note: "", session_status: "rest", coach_message: msgText, confirmed: false }); }
+    else { await addEntry({ date: today, steps: 0, feeling: 3, meal_note: "", session_status: "rest", coach_message: msgText }); }
     setMsgText(""); alert("✅ Message envoyé !");
   };
 
@@ -1169,12 +1167,7 @@ const CoachApp = ({ user, onLogout }) => {
       )}
 
       {editingClient && (
-        <EditClientModal
-          client={editingClient}
-          onSave={handleSaveClient}
-          onDelete={handleDeleteClient}
-          onClose={() => setEditingClient(null)}
-        />
+        <EditClientModal client={editingClient} onSave={handleSaveClient} onDelete={handleDeleteClient} onClose={() => setEditingClient(null)} />
       )}
     </div>
   );
@@ -1209,11 +1202,12 @@ const ClientApp = ({ user, onLogout }) => {
   const lastWeight = weights[weights.length - 1];
   const startWeight = weights[0];
 
-  const handleSaveJournal = async (payload, confirmed) => {
+  // ── KEY FIX: single save handler that creates or updates ──────────────────
+  const handleSaveJournal = async (payload) => {
     if (todayEntry) {
       await updateEntry(todayEntry.id, payload);
     } else {
-      await addEntry(payload);
+      await addEntry({ ...payload, client_id: clientId });
     }
   };
 
@@ -1225,32 +1219,29 @@ const ClientApp = ({ user, onLogout }) => {
     reader.onload = async ev => { await addProgressPhoto(ev.target.result, newPhotoNote); setNewPhotoNote(""); alert("✅ Photo ajoutée !"); };
     reader.readAsDataURL(file);
   };
-
   const handleEnableNotifs = async () => {
     const granted = await requestNotifications();
-    if (granted) { setNotifEnabled(true); }
-    else { alert("Pour activer les notifications :\nRéglages → Notifications → Process Lab → Autoriser"); }
+    if (granted) setNotifEnabled(true);
+    else alert("Pour activer : Réglages → Notifications → Process Lab → Autoriser");
   };
 
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => setActiveWorkout(null)} clientId={clientId} />;
 
-  // Show journal form
+  // ── Journal screen — wait for data then show form ─────────────────────────
   if (screen === "journal") {
-  if (loading) return (
-    <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>
-  );
-  return (
-    <JournalForm
-      existing={todayEntry}
-      onSave={handleSaveJournal}
-      onBack={() => setScreen("home")}
-      clientId={clientId}
-    />
-  );
-}
+    if (loading || !clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
+    return (
+      <JournalForm
+        existing={todayEntry || null}
+        onSave={handleSaveJournal}
+        onBack={() => setScreen("home")}
+      />
+    );
+  }
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
 
+  // ── HOME ──────────────────────────────────────────────────────────────────
   if (screen === "home") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1277,31 +1268,20 @@ const ClientApp = ({ user, onLogout }) => {
         <Card style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>JOURNAL DU JOUR</div>
           {!todayEntry && (
-            <><p style={{ color: C.textMuted, fontSize: 13, marginBottom: 12, marginTop: 0 }}>Tu n'as pas encore commencé ton journal.</p><Btn onClick={() => setScreen("journal")}>Commencer mon journal →</Btn></>
+            <><p style={{ color: C.textMuted, fontSize: 13, marginBottom: 12, marginTop: 0 }}>Tu n'as pas encore rempli ton journal.</p><Btn onClick={() => setScreen("journal")}>Commencer mon journal →</Btn></>
           )}
-          {todayEntry && !todayEntry.confirmed && (
+          {todayEntry && (
             <div>
-              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 26 }}>{feelings[(todayEntry.feeling || 3) - 1]}</span>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
+                <span style={{ fontSize: 30 }}>{feelings[(todayEntry.feeling || 3) - 1]}</span>
                 <div>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 2 }}>
-                    <Badge color={C.blue}>📝 Brouillon</Badge>
+                  <div style={{ fontWeight: 700, marginBottom: 2 }}>Rempli aujourd'hui ✅</div>
+                  <div style={{ fontSize: 12, color: C.textMuted }}>
+                    {(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration || "—"}L · {todayEntry.sleep_hours || "—"}h sommeil
                   </div>
-                  <div style={{ fontSize: 12, color: C.textMuted }}>{(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration}L · {todayEntry.sleep_hours}h</div>
                 </div>
               </div>
-              <Btn onClick={() => setScreen("journal")} style={{ fontSize: 14 }}>✏️ Modifier / Confirmer mon journal</Btn>
-            </div>
-          )}
-          {todayEntry && todayEntry.confirmed && (
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <span style={{ fontSize: 30 }}>{feelings[(todayEntry.feeling || 3) - 1]}</span>
-              <div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 2 }}>
-                  <Badge color={C.green}>✅ Confirmé</Badge>
-                </div>
-                <div style={{ fontSize: 12, color: C.textMuted }}>{(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration}L · {todayEntry.sleep_hours}h</div>
-              </div>
+              <Btn onClick={() => setScreen("journal")} variant="ghost" style={{ fontSize: 14 }}>✏️ Modifier mon journal</Btn>
             </div>
           )}
         </Card>
@@ -1407,13 +1387,7 @@ const ClientApp = ({ user, onLogout }) => {
       <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon historique</h2>
       {loading ? <Spinner /> : entries.map((e, i) => (
         <Card key={i} style={{ marginBottom: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}</span>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {e.confirmed ? <Badge color={C.green}>✅</Badge> : <Badge color={C.blue}>📝</Badge>}
-              <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
-            </div>
-          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 700, fontSize: 14 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}</span><span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
             <div style={{ background: "#111", borderRadius: 8, padding: 8, textAlign: "center" }}><div style={{ fontSize: 9, color: C.textMuted }}>PAS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 13 }}>{(e.steps || 0).toLocaleString()}</div></div>
             <div style={{ background: "#111", borderRadius: 8, padding: 8, textAlign: "center" }}><div style={{ fontSize: 9, color: C.textMuted }}>SÉANCE</div><div style={{ fontWeight: 800, fontSize: 13, color: sessionColor(e.session_status) }}>{e.session_status === "done" ? "✅" : e.session_status === "rest" ? "😴" : "❌"}</div></div>
