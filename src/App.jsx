@@ -1236,12 +1236,16 @@ const ClientApp = ({ user, onLogout }) => {
 
   // Show journal form
   if (screen === "journal") return (
-    <JournalForm
-      existing={todayEntry}
-      onSave={handleSaveJournal}
-      onBack={() => setScreen("home")}
-      clientId={clientId}
-    />
+    loading ? (
+      <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>
+    ) : (
+      <JournalForm
+        existing={todayEntry}
+        onSave={handleSaveJournal}
+        onBack={() => setScreen("home")}
+        clientId={clientId}
+      />
+    )
   );
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
