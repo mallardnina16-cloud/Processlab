@@ -11,7 +11,7 @@ const C = {
   black: "#0a0a0a", white: "#ffffff", pink: "#E8879C",
   surface: "#141414", card: "#1a1a1a", border: "#2a2a2a",
   muted: "#555555", textMuted: "#888888", green: "#4ade80", red: "#f87171",
-  purple: "#a78bfa", orange: "#fb923c", blue: "#60a5fa",
+  purple: "#a78bfa", orange: "#fb923c", blue: "#60a5fa", yellow: "#fbbf24",
 };
 
 const Logo = ({ size = 22 }) => (
@@ -30,8 +30,8 @@ const Card = ({ children, style = {}, onClick }) => (
 
 const Btn = ({ children, onClick, variant = "primary", disabled, small, style = {} }) => (
   <button onClick={onClick} disabled={disabled} style={{
-    background: variant === "primary" ? C.pink : variant === "danger" ? C.red + "22" : variant === "ghost" ? "transparent" : "#222",
-    color: variant === "primary" ? C.black : variant === "danger" ? C.red : C.white,
+    background: variant === "primary" ? C.pink : variant === "danger" ? C.red + "22" : variant === "ghost" ? "transparent" : variant === "green" ? C.green : "#222",
+    color: variant === "primary" ? C.black : variant === "danger" ? C.red : variant === "green" ? C.black : C.white,
     border: variant === "ghost" ? `1px solid ${C.border}` : variant === "danger" ? `1px solid ${C.red}44` : "none",
     borderRadius: small ? 8 : 12, padding: small ? "7px 14px" : "13px 20px",
     fontWeight: 800, fontSize: small ? 13 : 15, cursor: disabled ? "not-allowed" : "pointer",
@@ -94,20 +94,21 @@ const feelingLabels = ["Très difficile", "Difficile", "Neutre", "Bien", "Excell
 const today = new Date().toISOString().slice(0, 10);
 const daysUntil = d => Math.ceil((new Date(d) - new Date(today)) / 86400000);
 
-// Format date correctly
 const formatDate = (dateStr) => {
-  if (!dateStr) return "";
-  // Handle both ISO format and text format
+  if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+};
+
+const addDays = (dateStr, days) => {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 };
 
 const requestNotifications = async () => {
-  if (!("Notification" in window)) {
-    alert("Ajoute l'app à ton écran d'accueil depuis Safari pour activer les notifications.");
-    return false;
-  }
+  if (!("Notification" in window)) return false;
   if (Notification.permission === "granted") return true;
   const perm = await Notification.requestPermission();
   if (perm === "granted") {
@@ -134,8 +135,7 @@ const LoginScreen = ({ onLogin }) => {
     setLoading(true); setError("");
     const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
     if (err) { setError("Email ou mot de passe incorrect."); setLoading(false); return; }
-    onLogin(data.user);
-    setLoading(false);
+    onLogin(data.user); setLoading(false);
   };
 
   return (
@@ -171,7 +171,12 @@ const useClients = () => {
     const { data } = await supabase.from("clients").insert([client]).select().single();
     if (data) setClients(c => [...c, data]); return data;
   };
-  return { clients, loading, addClient, refresh: fetch };
+  const updateClient = async (id, patch) => {
+    const { data } = await supabase.from("clients").update(patch).eq("id", id).select().single();
+    if (data) setClients(c => c.map(x => x.id === id ? data : x));
+    return data;
+  };
+  return { clients, loading, addClient, updateClient, refresh: fetch };
 };
 
 const useWorkouts = () => {
@@ -215,27 +220,26 @@ const useClientData = (clientId) => {
   const [measurements, setMeasurements] = useState([]);
   const [assignedWorkouts, setAssignedWorkouts] = useState([]);
   const [progressPhotos, setProgressPhotos] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const fetch = async () => {
     if (!clientId) return;
     setLoading(true);
-    const [e, w, m, cw, pp] = await Promise.all([
+    const [e, w, m, cw, pp, pay] = await Promise.all([
       supabase.from("entries").select("*").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("weights").select("*").eq("client_id", clientId).order("date"),
       supabase.from("measurements").select("*").eq("client_id", clientId).order("date"),
       supabase.from("client_workouts").select("*, workouts(*, exercises(*))").eq("client_id", clientId),
       supabase.from("progress_photos").select("*").eq("client_id", clientId).order("date", { ascending: false }),
+      supabase.from("payments").select("*").eq("client_id", clientId).order("paid_date", { ascending: false }),
     ]);
     setEntries(e.data || []);
     setWeights(w.data || []);
     setMeasurements(m.data || []);
-    setAssignedWorkouts((cw.data || []).map(x => ({
-      workout_id: x.workout_id,
-      scheduled_date: x.scheduled_date,
-      workout: x.workouts,
-    })));
+    setAssignedWorkouts((cw.data || []).map(x => ({ workout_id: x.workout_id, scheduled_date: x.scheduled_date, workout: x.workouts })));
     setProgressPhotos(pp.data || []);
+    setPayments(pay.data || []);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
@@ -274,8 +278,17 @@ const useClientData = (clientId) => {
     const { data } = await supabase.from("progress_photos").insert([{ client_id: clientId, photo, note, date: today }]).select().single();
     if (data) setProgressPhotos(pp => [data, ...pp]);
   };
+  const addPayment = async (amount, paidDate, note) => {
+    const nextDue = addDays(paidDate, 28);
+    const { data } = await supabase.from("payments").insert([{ client_id: clientId, amount, paid_date: paidDate, next_due_date: nextDue, note }]).select().single();
+    if (data) {
+      setPayments(p => [data, ...p]);
+      await supabase.from("clients").update({ next_payment: nextDue }).eq("id", clientId);
+    }
+    return data;
+  };
 
-  return { entries, weights, measurements, assignedWorkouts, progressPhotos, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, refresh: fetch };
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, refresh: fetch };
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -421,14 +434,11 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
     const nextIdx = currentEx + 1;
     if (nextIdx < workout.exercises.length) {
       setTimeout(() => { setCurrentEx(nextIdx); startRest(ex.rest); }, 400);
-    } else {
-      setTimeout(() => setDone(true), 600);
-    }
+    } else { setTimeout(() => setDone(true), 600); }
   };
 
   const saveAndFinish = async () => {
     if (clientId) {
-      // Build exercise logs with names
       const logsWithNames = {};
       workout.exercises.forEach(e => {
         logsWithNames[e.id] = {
@@ -440,12 +450,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
         };
       });
       await supabase.from("session_logs").insert([{
-        client_id: clientId,
-        workout_id: workout.id,
-        workout_name: workout.name,
-        date: today,
-        exercise_logs: JSON.stringify(logsWithNames),
-        note: globalNote,
+        client_id: clientId, workout_id: workout.id, workout_name: workout.name,
+        date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote,
       }]);
     }
     onFinish();
@@ -553,6 +559,44 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+// PERF CARD
+// ══════════════════════════════════════════════════════════════════════════════
+const PerfCard = ({ log }) => {
+  let exLogs = {};
+  try { exLogs = JSON.parse(log.exercise_logs || "{}"); } catch {}
+  return (
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{log.workout_name}</div>
+          <div style={{ fontSize: 12, color: C.textMuted }}>{formatDate(log.date)}</div>
+        </div>
+        <Badge color={C.green}>✅ Réalisée</Badge>
+      </div>
+      {Object.values(exLogs).length > 0 && (
+        <div style={{ marginBottom: log.note ? 14 : 0 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>DÉTAIL DES EXERCICES</div>
+          {Object.values(exLogs).map((exLog, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name || "Exercice"}</div>
+                {exLog.suggested_weight && <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>}
+              </div>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                {exLog.weight && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div></div>}
+                {exLog.reps && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div><div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div></div>}
+                {!exLog.weight && !exLog.reps && <div style={{ fontSize: 11, color: C.muted }}>Non renseigné</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {log.note && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {log.note}</div>}
+    </Card>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ENTRY CARD
 // ══════════════════════════════════════════════════════════════════════════════
 const EntryCard = ({ e }) => (
@@ -574,69 +618,32 @@ const EntryCard = ({ e }) => (
 );
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PERF CARD - detailed exercise display
+// PAYMENT HISTORY (shared component)
 // ══════════════════════════════════════════════════════════════════════════════
-const PerfCard = ({ log }) => {
-  let exLogs = {};
-  try { exLogs = JSON.parse(log.exercise_logs || "{}"); } catch {}
-
-  return (
-    <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+const PaymentHistory = ({ payments }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    {payments.length === 0 && <p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucun paiement enregistré.</p>}
+    {payments.map((p, i) => (
+      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "#111", borderRadius: 12 }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{log.workout_name}</div>
-          <div style={{ fontSize: 12, color: C.textMuted }}>{new Date(log.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: C.green }}>✅ {p.amount} €</div>
+          <div style={{ fontSize: 12, color: C.textMuted }}>Reçu le {formatDate(p.paid_date)}</div>
+          {p.note && <div style={{ fontSize: 12, color: C.textMuted }}>{p.note}</div>}
         </div>
-        <Badge color={C.green}>✅ Réalisée</Badge>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 11, color: C.textMuted }}>Prochain</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.yellow }}>{formatDate(p.next_due_date)}</div>
+        </div>
       </div>
-
-      {/* Exercise details */}
-      {Object.values(exLogs).length > 0 && (
-        <div style={{ marginBottom: log.note ? 14 : 0 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>DÉTAIL DES EXERCICES</div>
-          {Object.values(exLogs).map((exLog, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name || "Exercice"}</div>
-                {exLog.suggested_weight && (
-                  <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                {exLog.weight ? (
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div>
-                    <div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 11, color: C.muted }}>—</div>
-                )}
-                {exLog.reps ? (
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div>
-                    <div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {log.note && (
-        <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>
-          💬 {log.note}
-        </div>
-      )}
-    </Card>
-  );
-};
+    ))}
+  </div>
+);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // COACH APP
 // ══════════════════════════════════════════════════════════════════════════════
 const CoachApp = ({ user, onLogout }) => {
-  const { clients, loading: loadingClients, addClient } = useClients();
+  const { clients, loading: loadingClients, addClient, updateClient } = useClients();
   const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout } = useWorkouts();
   const [selected, setSelected] = useState(null);
   const [mainTab, setMainTab] = useState("dashboard");
@@ -644,13 +651,18 @@ const CoachApp = ({ user, onLogout }) => {
   const [editingWorkout, setEditingWorkout] = useState(null);
   const [buildingWorkout, setBuildingWorkout] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
-  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "" });
+  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
   const [addingClient, setAddingClient] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [sessionLogs, setSessionLogs] = useState([]);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(today);
+  const [paymentNote, setPaymentNote] = useState("");
+  const [addingPayment, setAddingPayment] = useState(false);
 
   const client = clients.find(c => c.id === selected);
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate } = useClientData(selected);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5; });
 
   useEffect(() => {
@@ -666,11 +678,23 @@ const CoachApp = ({ user, onLogout }) => {
     if (authErr) { alert("Erreur : " + authErr.message); setAddingClient(false); return; }
     const userId = authData.user?.id;
     const avatar = newClientForm.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, streak: 0, today_done: false, user_id: userId });
+    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, streak: 0, today_done: false, user_id: userId });
     setAddingClient(false);
     setShowAddClient(false);
-    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "" });
+    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
     alert(`✅ Compte créé !\n\nEnvoie ces infos à ${newClientForm.name} :\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
+  };
+
+  const handleAddPayment = async () => {
+    if (!paymentAmount || !paymentDate) return alert("Remplis le montant et la date.");
+    setAddingPayment(true);
+    await addPayment(parseFloat(paymentAmount), paymentDate, paymentNote);
+    setAddingPayment(false);
+    setShowPaymentForm(false);
+    setPaymentAmount("");
+    setPaymentDate(today);
+    setPaymentNote("");
+    alert(`✅ Paiement de ${paymentAmount}€ enregistré !`);
   };
 
   const handleSendMessage = async () => {
@@ -714,7 +738,7 @@ const CoachApp = ({ user, onLogout }) => {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
-                <div style={{ fontSize: 10, color: daysUntil(c.next_payment) <= 3 ? "#fbbf24" : C.textMuted }}>{daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}</div>
+                <div style={{ fontSize: 10, color: daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>{daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}</div>
               </div>
             </div>
           ))}
@@ -725,9 +749,14 @@ const CoachApp = ({ user, onLogout }) => {
             <div>
               <h1 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 20px" }}>Tableau de bord 👋</h1>
               {paymentAlerts.length > 0 && (
-                <div style={{ background: "#fbbf2415", border: "1px solid #fbbf2444", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, color: "#fbbf24", marginBottom: 8, fontSize: 13 }}>⚠️ Paiements à venir</div>
-                  {paymentAlerts.map(c => <div key={c.id} style={{ fontSize: 13 }}>{c.name} — {formatDate(c.next_payment)} (J-{daysUntil(c.next_payment)})</div>)}
+                <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, color: C.yellow, marginBottom: 8, fontSize: 13 }}>⚠️ Paiements à venir</div>
+                  {paymentAlerts.map(c => (
+                    <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+                      <span style={{ fontSize: 13 }}>{c.name} — {formatDate(c.next_payment)}</span>
+                      <Badge color={C.yellow}>J-{daysUntil(c.next_payment)}</Badge>
+                    </div>
+                  ))}
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
@@ -785,11 +814,12 @@ const CoachApp = ({ user, onLogout }) => {
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <Badge>🔥 {client.streak}j</Badge>
                     {client.goal && <Badge color={C.purple}>{client.goal}</Badge>}
-                    {client.next_payment && <Badge color="#fbbf24">💳 J-{daysUntil(client.next_payment)}</Badge>}
+                    {client.next_payment && <Badge color={C.yellow}>💳 J-{daysUntil(client.next_payment)}</Badge>}
                   </div>
                 </div>
               </div>
-              <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["body", "📏 Corps"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
+
+              <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
 
               {clientTab === "journal" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -799,7 +829,6 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "seances" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 4 }}>Assigne une séance et définis une date prévue.</div>
                   {workouts.map(w => {
                     const assigned = assignedWorkouts.find(a => a.workout_id === w.id);
                     return (
@@ -807,7 +836,7 @@ const CoachApp = ({ user, onLogout }) => {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: assigned ? 14 : 0 }}>
                           <div>
                             <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
-                            <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices · {w.exercises?.reduce((a, e) => a + e.sets, 0) || 0} séries</div>
+                            <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div>
                           </div>
                           <button onClick={() => toggleWorkout(w.id)} style={{ padding: "8px 16px", borderRadius: 100, fontWeight: 700, fontSize: 12, cursor: "pointer", background: assigned ? C.green + "22" : C.pink + "22", border: `1.5px solid ${assigned ? C.green : C.pink}`, color: assigned ? C.green : C.pink, flexShrink: 0 }}>
                             {assigned ? "✓ Assignée" : "+ Assigner"}
@@ -816,17 +845,8 @@ const CoachApp = ({ user, onLogout }) => {
                         {assigned && (
                           <div>
                             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>📅 Date prévue</div>
-                            <input
-                              type="date"
-                              value={assigned.scheduled_date || ""}
-                              onChange={e => updateScheduledDate(w.id, e.target.value)}
-                              style={{ ...inputSt, fontSize: 14 }}
-                            />
-                            {assigned.scheduled_date && (
-                              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
-                                Prévue le {new Date(assigned.scheduled_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-                              </div>
-                            )}
+                            <input type="date" value={assigned.scheduled_date || ""} onChange={e => updateScheduledDate(w.id, e.target.value)} style={{ ...inputSt, fontSize: 14 }} />
+                            {assigned.scheduled_date && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>Prévue le {new Date(assigned.scheduled_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</div>}
                           </div>
                         )}
                       </Card>
@@ -837,10 +857,7 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "perf" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {sessionLogs.length === 0
-                    ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card>
-                    : sessionLogs.map((log, i) => <PerfCard key={i} log={log} />)
-                  }
+                  {sessionLogs.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card> : sessionLogs.map((log, i) => <PerfCard key={i} log={log} />)}
                 </div>
               )}
 
@@ -874,6 +891,49 @@ const CoachApp = ({ user, onLogout }) => {
                 </div>
               )}
 
+              {clientTab === "paiements" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Infos contrat */}
+                  <Card>
+                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>📋 CONTRAT</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+                      <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>DÉBUT</div><div style={{ fontWeight: 700, fontSize: 13 }}>{formatDate(client.start_date)}</div></div>
+                      <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>SÉANCES/SEMAINE</div><div style={{ fontWeight: 700, fontSize: 13 }}>{client.sessions_per_week || 3}x</div></div>
+                      <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>MONTANT</div><div style={{ fontWeight: 700, fontSize: 18, color: C.green }}>{client.monthly_amount || "—"} €</div></div>
+                      <div style={{ background: daysUntil(client.next_payment) <= 3 ? C.yellow + "15" : "#111", borderRadius: 10, padding: 12, border: daysUntil(client.next_payment) <= 3 ? `1px solid ${C.yellow}44` : "none" }}>
+                        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>PROCHAIN PAIEMENT</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: daysUntil(client.next_payment) <= 3 ? C.yellow : C.white }}>{formatDate(client.next_payment)}</div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Enregistrer paiement */}
+                  {!showPaymentForm ? (
+                    <Btn variant="green" onClick={() => setShowPaymentForm(true)}>✅ Enregistrer un paiement reçu</Btn>
+                  ) : (
+                    <Card style={{ borderColor: C.green + "44" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 16 }}>✅ Nouveau paiement</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <Inp label="Montant (€)" type="number" placeholder={client.monthly_amount || "150"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
+                        <Inp label="Date de réception" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
+                        <Inp label="Note (optionnel)" placeholder="Virement, espèces..." value={paymentNote} onChange={e => setPaymentNote(e.target.value)} />
+                      </div>
+                      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                        <Btn variant="secondary" onClick={() => setShowPaymentForm(false)} style={{ flex: 1 }}>Annuler</Btn>
+                        <Btn variant="green" onClick={handleAddPayment} disabled={addingPayment} style={{ flex: 2 }}>{addingPayment ? "Enregistrement..." : "Confirmer ✅"}</Btn>
+                      </div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 10, textAlign: "center" }}>⚡ Le prochain paiement sera automatiquement fixé à J+28</div>
+                    </Card>
+                  )}
+
+                  {/* Historique */}
+                  <Card>
+                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div>
+                    <PaymentHistory payments={payments} />
+                  </Card>
+                </div>
+              )}
+
               {clientTab === "message" && (
                 <Card>
                   <TA label="Message pour la cliente" value={msgText} onChange={e => setMsgText(e.target.value)} placeholder={`Bravo ${client.name.split(" ")[0]} 💪`} style={{ minHeight: 120 }} />
@@ -895,8 +955,10 @@ const CoachApp = ({ user, onLogout }) => {
               <Inp label="Email" type="email" placeholder="camille@email.com" value={newClientForm.email} onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })} />
               <Inp label="Mot de passe temporaire" type="text" placeholder="ex: Processlab2025!" value={newClientForm.password} onChange={e => setNewClientForm({ ...newClientForm, password: e.target.value })} />
               <Inp label="Objectif" placeholder="Perte de poids..." value={newClientForm.goal} onChange={e => setNewClientForm({ ...newClientForm, goal: e.target.value })} />
+              <Inp label="Séances par semaine" type="number" min="1" max="7" placeholder="3" value={newClientForm.sessions_per_week} onChange={e => setNewClientForm({ ...newClientForm, sessions_per_week: e.target.value })} />
+              <Inp label="Montant toutes les 4 semaines (€)" type="number" placeholder="150" value={newClientForm.monthly_amount} onChange={e => setNewClientForm({ ...newClientForm, monthly_amount: e.target.value })} />
               <Inp label="Date de début" type="date" value={newClientForm.start_date} onChange={e => setNewClientForm({ ...newClientForm, start_date: e.target.value })} />
-              <Inp label="Prochain paiement" type="date" value={newClientForm.next_payment} onChange={e => setNewClientForm({ ...newClientForm, next_payment: e.target.value })} />
+              <Inp label="Premier paiement dû le" type="date" value={newClientForm.next_payment} onChange={e => setNewClientForm({ ...newClientForm, next_payment: e.target.value })} />
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <Btn variant="secondary" onClick={() => setShowAddClient(false)} style={{ flex: 1 }}>Annuler</Btn>
@@ -914,6 +976,7 @@ const CoachApp = ({ user, onLogout }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 const ClientApp = ({ user, onLogout }) => {
   const [clientInfo, setClientInfo] = useState(null);
+  const [clientId, setClientId] = useState(null);
   const [screen, setScreen] = useState("home");
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [bodyTab, setBodyTab] = useState("weight");
@@ -937,11 +1000,11 @@ const ClientApp = ({ user, onLogout }) => {
 
   useEffect(() => {
     supabase.from("clients").select("*").eq("user_id", user.id).single().then(({ data }) => {
-      if (data) setClientInfo(data);
+      if (data) { setClientInfo(data); setClientId(data.id); }
     });
   }, [user.id]);
 
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, loading, addEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientInfo?.id);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientId);
   const { workouts } = useWorkouts();
 
   const myWorkouts = workouts.filter(w => assignedWorkouts.find(a => a.workout_id === w.id));
@@ -972,13 +1035,14 @@ const ClientApp = ({ user, onLogout }) => {
   };
   const handleEnableNotifs = async () => {
     const granted = await requestNotifications();
-    if (granted) { setNotifEnabled(true); alert("✅ Rappels activés ! Tu recevras une notification à 20h chaque soir."); }
-    else { alert("Pour activer les notifications :\nRéglages → Process Lab → Notifications → Autoriser"); }
+    if (granted) { setNotifEnabled(true); alert("✅ Rappels activés à 20h !"); }
+    else { alert("Pour activer : Réglages → Process Lab → Notifications → Autoriser"); }
   };
 
-  if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => setActiveWorkout(null)} clientId={clientInfo?.id} />;
+  if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => setActiveWorkout(null)} clientId={clientId} />;
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
 
+  // HOME
   if (screen === "home") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -994,10 +1058,7 @@ const ClientApp = ({ user, onLogout }) => {
 
         {!notifEnabled && (
           <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div>
-              <div style={{ fontSize: 12, color: C.textMuted }}>Rappel journal chaque soir à 20h</div>
-            </div>
+            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div><div style={{ fontSize: 12, color: C.textMuted }}>Rappel journal à 20h</div></div>
             <button onClick={handleEnableNotifs} style={{ background: C.orange, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Activer</button>
           </div>
         )}
@@ -1028,11 +1089,7 @@ const ClientApp = ({ user, onLogout }) => {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
                     <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div>
-                    {scheduledDate && (
-                      <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>
-                        {isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}
-                      </div>
-                    )}
+                    {scheduledDate && <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>{isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>}
                   </div>
                   <div style={{ color: C.orange, fontWeight: 700, fontSize: 13 }}>▶</div>
                 </Card>
@@ -1041,15 +1098,64 @@ const ClientApp = ({ user, onLogout }) => {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
           <Card onClick={() => setScreen("body")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>POIDS</div><div style={{ fontSize: 22, fontWeight: 900, color: C.pink }}>{lastWeight ? `${lastWeight.value} kg` : "—"}</div>{startWeight && lastWeight && startWeight.value !== lastWeight.value && <div style={{ fontSize: 11, color: C.green }}>-{(startWeight.value - lastWeight.value).toFixed(1)} kg</div>}</Card>
           <Card onClick={() => setScreen("history")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>ENTRÉES</div><div style={{ fontSize: 22, fontWeight: 900, color: C.purple }}>{entries.length}</div><div style={{ fontSize: 11, color: C.textMuted }}>jours</div></Card>
         </div>
-        <Btn variant="ghost" onClick={() => setScreen("history")}>📋 Voir mon historique</Btn>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn variant="ghost" onClick={() => setScreen("history")} style={{ flex: 1 }}>📋 Historique</Btn>
+          <Btn variant="ghost" onClick={() => setScreen("contrat")} style={{ flex: 1 }}>📄 Mon contrat</Btn>
+        </div>
       </div>
     </div>
   );
 
+  // CONTRAT & PAIEMENTS (vue cliente)
+  if (screen === "contrat") return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
+      <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
+      <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon contrat 📄</h2>
+
+      {/* Infos contrat */}
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>MON ACCOMPAGNEMENT</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {[
+            { label: "Date de début", val: formatDate(clientInfo.start_date), icon: "📅" },
+            { label: "Séances par semaine", val: `${clientInfo.sessions_per_week || 3} séances`, icon: "💪" },
+            { label: "Montant toutes les 4 semaines", val: `${clientInfo.monthly_amount || "—"} €`, icon: "💶" },
+            { label: "Prochain paiement", val: formatDate(clientInfo.next_payment), icon: "💳", highlight: daysUntil(clientInfo.next_payment) <= 5 },
+          ].map(item => (
+            <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: item.highlight ? C.yellow + "15" : "#111", borderRadius: 10, border: item.highlight ? `1px solid ${C.yellow}44` : "none" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 18 }}>{item.icon}</span>
+                <span style={{ fontSize: 13, color: C.textMuted }}>{item.label}</span>
+              </div>
+              <span style={{ fontWeight: 700, fontSize: 14, color: item.highlight ? C.yellow : C.white }}>{item.val}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Prochain paiement */}
+      {daysUntil(clientInfo.next_payment) <= 7 && (
+        <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div>
+          <div style={{ fontSize: 13, color: C.white }}>
+            Ton prochain paiement de <strong>{clientInfo.monthly_amount} €</strong> est dû le <strong>{formatDate(clientInfo.next_payment)}</strong> (dans {daysUntil(clientInfo.next_payment)} jours).
+          </div>
+        </div>
+      )}
+
+      {/* Historique paiements */}
+      <Card>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div>
+        <PaymentHistory payments={payments} />
+      </Card>
+    </div>
+  );
+
+  // JOURNAL
   if (screen === "journal") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
@@ -1095,6 +1201,7 @@ const ClientApp = ({ user, onLogout }) => {
     </div>
   );
 
+  // BODY
   if (screen === "body") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
@@ -1120,7 +1227,7 @@ const ClientApp = ({ user, onLogout }) => {
             <input type="text" placeholder="Note : ex: Semaine 4, de face" value={newPhotoNote} onChange={e => setNewPhotoNote(e.target.value)} style={{ ...inputSt, marginBottom: 10 }} />
             <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer" }}>
               <span style={{ fontSize: 20 }}>📸</span>
-              <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter une photo de progression</div><div style={{ fontSize: 11, color: C.textMuted }}>De face, de profil, de dos...</div></div>
+              <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Photo de progression</div><div style={{ fontSize: 11, color: C.textMuted }}>De face, de profil, de dos...</div></div>
               <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleAddProgressPhoto} />
             </label>
           </Card>
@@ -1138,12 +1245,12 @@ const ClientApp = ({ user, onLogout }) => {
               </div>
             </Card>
           )}
-          {progressPhotos.length === 0 && <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune photo pour l'instant.</p>}
         </div>
       )}
     </div>
   );
 
+  // HISTORY
   if (screen === "history") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
