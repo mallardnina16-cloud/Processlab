@@ -6,21 +6,20 @@
     <title>Process Lab</title>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#E8879C" />
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "824e4665-2a07-44fa-82dd-65975907f90d",
+          notifyButton: { enable: false },
+          allowLocalhostAsSecureOrigin: true,
+        });
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(reg => {
-          if (reg.active) reg.active.postMessage({ type: 'SCHEDULE_NOTIF' });
-          reg.addEventListener('updatefound', () => {
-            reg.installing?.addEventListener('statechange', e => {
-              if (e.target.state === 'activated') e.target.postMessage({ type: 'SCHEDULE_NOTIF' });
-            });
-          });
-        });
-      }
-    </script>
   </body>
 </html>
