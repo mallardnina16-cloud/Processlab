@@ -175,7 +175,8 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
     sessions_per_week: client.sessions_per_week || 3,
     monthly_amount: client.monthly_amount || "",
     start_date: client.start_date || "", next_payment: client.next_payment || "",
-    newPassword: "",
+    calories_target: client.calories_target || "",
+    protein_target: client.protein_target || "",
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -184,7 +185,7 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
   const handleSave = async () => {
     setSaving(true);
     const avatar = form.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment });
+    await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment, calories_target: parseInt(form.calories_target) || 0, protein_target: parseInt(form.protein_target) || 0 });
     setSaving(false); onClose();
   };
 
@@ -209,6 +210,13 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
           <Inp label="Montant toutes les 4 semaines (€)" type="number" value={form.monthly_amount} onChange={e => setForm({ ...form, monthly_amount: e.target.value })} />
           <Inp label="Date de début" type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
           <Inp label="Prochain paiement" type="date" value={form.next_payment} onChange={e => setForm({ ...form, next_payment: e.target.value })} />
+          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10, letterSpacing: "0.08em" }}>🍽️ OBJECTIFS NUTRITIONNELS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Inp label="Calories / jour" type="number" placeholder="ex: 1800" value={form.calories_target} onChange={e => setForm({ ...form, calories_target: e.target.value })} />
+              <Inp label="Protéines / jour (g)" type="number" placeholder="ex: 100" value={form.protein_target} onChange={e => setForm({ ...form, protein_target: e.target.value })} />
+            </div>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
           <Btn variant="secondary" onClick={onClose} style={{ flex: 1 }}>Annuler</Btn>
@@ -341,7 +349,7 @@ const useClientData = (clientId) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // JOURNAL FORM — always pre-fills from existing entry
 // ══════════════════════════════════════════════════════════════════════════════
-const JournalForm = ({ existing, onSave, onBack }) => {
+const JournalForm = ({ existing, onSave, onBack, proteinTarget = 0 }) => {
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
   const [mealNote, setMealNote] = useState("");
@@ -353,6 +361,7 @@ const JournalForm = ({ existing, onSave, onBack }) => {
   const [nap, setNap] = useState(null);
   const [hadDifficulty, setHadDifficulty] = useState(null);
   const [difficultyNote, setDifficultyNote] = useState("");
+  const [proteinEstimate, setProteinEstimate] = useState("");
   const [saving, setSaving] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
@@ -370,6 +379,7 @@ const JournalForm = ({ existing, onSave, onBack }) => {
       setNap(existing.nap ?? null);
       setHadDifficulty(existing.had_difficulty ?? null);
       setDifficultyNote(existing.difficulty_note || "");
+      setProteinEstimate(existing.protein_estimate || "");
       setInitialized(true);
     }
     if (!existing && !initialized) {
@@ -400,6 +410,7 @@ const JournalForm = ({ existing, onSave, onBack }) => {
       nap: nap || false,
       had_difficulty: hadDifficulty || false,
       difficulty_note: difficultyNote,
+      protein_estimate: proteinEstimate,
     });
     setSaving(false);
     onBack();
@@ -518,6 +529,29 @@ const JournalForm = ({ existing, onSave, onBack }) => {
             <TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />
           )}
         </div>
+
+        {/* Protein estimate */}
+        {proteinTarget > 0 && (
+          <div>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>🥩 Objectif protéines</div>
+            <div style={{ background: C.green + "12", border: `1px solid ${C.green}33`, borderRadius: 12, padding: "12px 14px", marginBottom: 12, fontSize: 13 }}>
+              Tu vises <span style={{ color: C.green, fontWeight: 800 }}>{proteinTarget}g de protéines</span> aujourd'hui. Comment estimes-tu ta journée ?
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Pense à : viande, poisson, œufs, fromage blanc, légumineuses...</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                { value: "low", label: `😬 Moins de la moitié (<${Math.round(proteinTarget * 0.5)}g)`, color: C.red },
+                { value: "medium", label: `😐 La moitié environ (${Math.round(proteinTarget * 0.5)}-${Math.round(proteinTarget * 0.75)}g)`, color: C.orange },
+                { value: "good", label: `🙂 Presque l'objectif (${Math.round(proteinTarget * 0.75)}-${Math.round(proteinTarget * 0.9)}g)`, color: C.yellow },
+                { value: "great", label: `💪 Objectif atteint ! (${Math.round(proteinTarget * 0.9)}g+)`, color: C.green },
+              ].map(opt => (
+                <button key={opt.value} onClick={() => setProteinEstimate(opt.value)} style={{ padding: "12px 14px", borderRadius: 12, border: `2px solid ${proteinEstimate === opt.value ? opt.color : C.border}`, background: proteinEstimate === opt.value ? opt.color + "22" : "#111", color: proteinEstimate === opt.value ? opt.color : C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", textAlign: "left" }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Single save button */}
         <Btn onClick={handleSave} disabled={saving} style={{ marginBottom: 30 }}>
@@ -1030,6 +1064,18 @@ const EntryDetail = ({ entry, onBack }) => (
       </div>
     )}
 
+    {entry.protein_estimate && (
+      <div style={{ background: C.green + "12", border: `1px solid ${C.green}33`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 8 }}>🥩 PROTÉINES</div>
+        <div style={{ fontSize: 14 }}>{{
+          low: "😬 Moins de la moitié de l'objectif",
+          medium: "😐 Environ la moitié de l'objectif",
+          good: "🙂 Presque l'objectif atteint",
+          great: "💪 Objectif atteint !",
+        }[entry.protein_estimate] || entry.protein_estimate}</div>
+      </div>
+    )}
+
     {entry.coach_message && (
       <div style={{ background: C.pink + "15", border: `1px solid ${C.pink}44`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
         <div style={{ fontSize: 11, color: C.pink, fontWeight: 700, marginBottom: 8 }}>💬 MESSAGE DE TON COACH</div>
@@ -1104,7 +1150,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [buildingWorkout, setBuildingWorkout] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
+  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "" });
   const [addingClient, setAddingClient] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [sessionLogs, setSessionLogs] = useState([]);
@@ -1132,9 +1178,9 @@ const CoachApp = ({ user, onLogout }) => {
     if (authErr) { alert("Erreur : " + authErr.message); setAddingClient(false); return; }
     const userId = authData.user?.id;
     const avatar = newClientForm.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, streak: 0, today_done: false, user_id: userId });
+    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, calories_target: parseInt(newClientForm.calories_target) || 0, protein_target: parseInt(newClientForm.protein_target) || 0, streak: 0, today_done: false, user_id: userId });
     setAddingClient(false); setShowAddClient(false);
-    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
+    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "" });
     alert(`✅ Compte créé !\n\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
   };
 
@@ -1392,6 +1438,13 @@ const CoachApp = ({ user, onLogout }) => {
               <Inp label="Montant toutes les 4 semaines (€)" type="number" placeholder="150" value={newClientForm.monthly_amount} onChange={e => setNewClientForm({ ...newClientForm, monthly_amount: e.target.value })} />
               <Inp label="Date de début" type="date" value={newClientForm.start_date} onChange={e => setNewClientForm({ ...newClientForm, start_date: e.target.value })} />
               <Inp label="Premier paiement dû le" type="date" value={newClientForm.next_payment} onChange={e => setNewClientForm({ ...newClientForm, next_payment: e.target.value })} />
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🍽️ OBJECTIFS NUTRITIONNELS (optionnel)</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <Inp label="Calories / jour" type="number" placeholder="ex: 1800" value={newClientForm.calories_target} onChange={e => setNewClientForm({ ...newClientForm, calories_target: e.target.value })} />
+                  <Inp label="Protéines / jour (g)" type="number" placeholder="ex: 100" value={newClientForm.protein_target} onChange={e => setNewClientForm({ ...newClientForm, protein_target: e.target.value })} />
+                </div>
+              </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <Btn variant="secondary" onClick={() => setShowAddClient(false)} style={{ flex: 1 }}>Annuler</Btn>
@@ -1473,6 +1526,7 @@ const ClientApp = ({ user, onLogout }) => {
         existing={todayEntry || null}
         onSave={handleSaveJournal}
         onBack={() => setScreen("home")}
+        proteinTarget={clientInfo?.protein_target || 0}
       />
     );
   }
@@ -1574,6 +1628,34 @@ const ClientApp = ({ user, onLogout }) => {
           ))}
         </div>
       </Card>
+
+      {/* Nutrition targets */}
+      {(clientInfo.calories_target > 0 || clientInfo.protein_target > 0) && (
+        <Card style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>🍽️ MES OBJECTIFS NUTRITIONNELS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {clientInfo.calories_target > 0 && (
+              <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🔥 CALORIES</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: C.orange }}>{clientInfo.calories_target}</div>
+                <div style={{ fontSize: 11, color: C.textMuted }}>kcal / jour</div>
+              </div>
+            )}
+            {clientInfo.protein_target > 0 && (
+              <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥩 PROTÉINES</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: C.green }}>{clientInfo.protein_target}</div>
+                <div style={{ fontSize: 11, color: C.textMuted }}>grammes / jour</div>
+              </div>
+            )}
+          </div>
+          {clientInfo.protein_target > 0 && (
+            <div style={{ marginTop: 12, padding: "10px 14px", background: C.green + "12", borderRadius: 10, fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>
+              💡 Sources de protéines : poulet, poisson, œufs, fromage blanc 0%, thon, légumineuses, tofu...
+            </div>
+          )}
+        </Card>
+      )}
       {daysUntil(clientInfo.next_payment) <= 7 && (
         <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
           <div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div>
