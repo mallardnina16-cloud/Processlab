@@ -264,10 +264,10 @@ const useWorkouts = () => {
   useEffect(() => { fetch(); }, []);
   const saveWorkout = async (workout) => {
     if (workout.id && workouts.find(w => w.id === workout.id)) {
-      await supabase.from("workouts").update({ name: workout.name, description: workout.description }).eq("id", workout.id);
+      await supabase.from("workouts").update({ name: workout.name, description: workout.description, blocks: workout.blocks || [] }).eq("id", workout.id);
       await supabase.from("exercises").delete().eq("workout_id", workout.id);
     } else {
-      const { data } = await supabase.from("workouts").insert([{ name: workout.name, description: workout.description }]).select().single();
+      const { data } = await supabase.from("workouts").insert([{ name: workout.name, description: workout.description, blocks: workout.blocks || [] }]).select().single();
       workout.id = data.id;
     }
     if (workout.exercises?.length) {
@@ -530,32 +530,103 @@ const JournalForm = ({ existing, onSave, onBack }) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// WORKOUT BUILDER
+// WORKOUT BUILDER — supports simple exercises + circuit blocks
 // ══════════════════════════════════════════════════════════════════════════════
+const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
+const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", work_time: 30, rest_time: 30, note: "", suggested_weight: "", weight_type: "haltères" }] });
+
+const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode = false }) => {
+  const handlePhoto = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => onChange({ ...ex, photo: ev.target.result });
+    reader.readAsDataURL(file);
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+        <div style={{ flex: 1 }}><Inp label="Nom de l'exercice" placeholder="ex: Squat..." value={ex.name} onChange={e => onChange({ ...ex, name: e.target.value })} /></div>
+        <button onClick={onDelete} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 36, height: 42, color: C.red, cursor: "pointer", flexShrink: 0 }}>✕</button>
+      </div>
+      {showSets && !intervalMode && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <Inp label="Séries" type="number" min="1" value={ex.sets || 3} onChange={e => onChange({ ...ex, sets: parseInt(e.target.value) || 1 })} />
+          <Inp label="Reps / Durée" placeholder="12 ou 45s" value={ex.reps || ""} onChange={e => onChange({ ...ex, reps: e.target.value })} />
+          <Inp label="Repos (sec)" type="number" value={ex.rest || 60} onChange={e => onChange({ ...ex, rest: parseInt(e.target.value) || 0 })} />
+        </div>
+      )}
+      {!showSets && !intervalMode && (
+        <Inp label="Reps" placeholder="ex: 12 ou 30 sec" value={ex.reps || ""} onChange={e => onChange({ ...ex, reps: e.target.value })} />
+      )}
+      {intervalMode && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <Inp label="Travail (sec)" type="number" value={ex.work_time || 30} onChange={e => onChange({ ...ex, work_time: parseInt(e.target.value) || 30 })} />
+          <Inp label="Repos (sec)" type="number" value={ex.rest_time || 30} onChange={e => onChange({ ...ex, rest_time: parseInt(e.target.value) || 30 })} />
+        </div>
+      )}
+      <div>
+        <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>⚖️ Poids suggéré</label>
+        <div style={{ display: "flex", gap: 10 }}>
+          <input type="text" placeholder="ex: 10" value={ex.suggested_weight || ""} onChange={e => onChange({ ...ex, suggested_weight: e.target.value })} style={{ ...inputSt, flex: 1 }} />
+          <select value={ex.weight_type || "haltères"} onChange={e => onChange({ ...ex, weight_type: e.target.value })} style={{ ...inputSt, width: "auto", flex: 1 }}>
+            <option value="haltères">kg haltères</option>
+            <option value="disques">kg disques</option>
+            <option value="barre">kg barre</option>
+            <option value="poids du corps">poids du corps</option>
+            <option value="élastique">élastique</option>
+            <option value="machine">machine (kg)</option>
+          </select>
+        </div>
+      </div>
+      <TA label="Consigne" placeholder="Ex: descends bien..." value={ex.note || ""} onChange={e => onChange({ ...ex, note: e.target.value })} style={{ minHeight: 48 }} />
+      {showSets && (
+        <div>
+          {ex.photo ? (
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <img src={ex.photo} alt="" style={{ width: 100, height: 75, objectFit: "cover", borderRadius: 10 }} />
+              <button onClick={() => onChange({ ...ex, photo: null })} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button>
+            </div>
+          ) : (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#111", border: `1px dashed ${C.border}`, borderRadius: 10, cursor: "pointer", width: "fit-content" }}>
+              <span>🖼️</span><span style={{ fontSize: 13, color: C.textMuted }}>Photo</span>
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
+            </label>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
   const [name, setName] = useState(workout?.name || "");
   const [desc, setDesc] = useState(workout?.description || "");
-  const [exercises, setExercises] = useState(workout?.exercises || []);
+  const initBlocks = () => {
+    if (workout?.blocks && workout.blocks.length > 0) return workout.blocks;
+    if (workout?.exercises && workout.exercises.length > 0) return workout.exercises.map(e => ({ ...e, type: e.type || "exercise" }));
+    return [];
+  };
+  const [blocks, setBlocks] = useState(initBlocks);
   const [saving, setSaving] = useState(false);
 
-  const addEx = () => setExercises([...exercises, { id: Date.now().toString(), name: "", sets: 3, reps: "12", rest: 60, note: "", photo: null, suggested_weight: "", weight_type: "haltères" }]);
-  const updEx = (id, patch) => setExercises(exercises.map(e => e.id === id ? { ...e, ...patch } : e));
-  const delEx = id => setExercises(exercises.filter(e => e.id !== id));
-  const moveEx = (id, dir) => {
-    const i = exercises.findIndex(e => e.id === id);
-    if ((dir === -1 && i === 0) || (dir === 1 && i === exercises.length - 1)) return;
-    const arr = [...exercises]; [arr[i], arr[i + dir]] = [arr[i + dir], arr[i]]; setExercises(arr);
+  const addSimple = () => setBlocks(b => [...b, newSimpleEx()]);
+  const addCircuit = () => setBlocks(b => [...b, { ...newCircuit(), id: Date.now().toString() }]);
+  const delBlock = id => setBlocks(b => b.filter(x => x.id !== id));
+  const updBlock = (id, patch) => setBlocks(b => b.map(x => x.id === id ? { ...x, ...patch } : x));
+  const moveBlock = (id, dir) => {
+    const i = blocks.findIndex(x => x.id === id);
+    if ((dir === -1 && i === 0) || (dir === 1 && i === blocks.length - 1)) return;
+    const arr = [...blocks]; [arr[i], arr[i + dir]] = [arr[i + dir], arr[i]]; setBlocks(arr);
   };
-  const handlePhoto = (id, e) => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => updEx(id, { photo: ev.target.result });
-    reader.readAsDataURL(file);
-  };
+  const updCircuitEx = (cid, eid, patch) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.map(e => e.id === eid ? { ...e, ...patch } : e) } : x));
+  const addCircuitEx = cid => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "12", work_time: 30, rest_time: 30, note: "", suggested_weight: "", weight_type: "haltères" }] } : x));
+  const delCircuitEx = (cid, eid) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.filter(e => e.id !== eid) } : x));
+
   const handleSave = async () => {
     if (!name.trim()) return alert("Donne un nom à la séance");
     setSaving(true);
-    await onSave({ id: workout?.id, name, description: desc, exercises });
+    const allEx = blocks.flatMap(b => b.type === "circuit" ? b.exercises.map(e => ({ ...e, type: "exercise", sets: b.rounds, rest: b.rest_between_rounds })) : [b]);
+    await onSave({ id: workout?.id, name, description: desc, exercises: allEx, blocks });
     setSaving(false);
   };
 
@@ -571,60 +642,71 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
           <TA label="Description" placeholder="Objectif, durée..." value={desc} onChange={e => setDesc(e.target.value)} style={{ minHeight: 56 }} />
         </div>
       </Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{exercises.length} exercice{exercises.length !== 1 ? "s" : ""}</span>
-        <Btn small onClick={addEx} style={{ width: "auto" }}>+ Ajouter un exercice</Btn>
-      </div>
-      {exercises.map((ex, idx) => (
-        <Card key={ex.id}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.pink + "22", border: `1.5px solid ${C.pink}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: C.pink }}>{idx + 1}</div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => moveEx(ex.id, -1)} style={{ background: "#222", border: "none", borderRadius: 6, width: 28, height: 28, color: C.textMuted, cursor: "pointer" }}>↑</button>
-              <button onClick={() => moveEx(ex.id, 1)} style={{ background: "#222", border: "none", borderRadius: 6, width: 28, height: 28, color: C.textMuted, cursor: "pointer" }}>↓</button>
-              <button onClick={() => delEx(ex.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 28, height: 28, color: C.red, cursor: "pointer" }}>✕</button>
-            </div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Inp label="Nom de l'exercice" placeholder="ex: Squat..." value={ex.name} onChange={e => updEx(ex.id, { name: e.target.value })} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-              <Inp label="Séries" type="number" min="1" value={ex.sets} onChange={e => updEx(ex.id, { sets: parseInt(e.target.value) || 1 })} />
-              <Inp label="Reps / Durée" placeholder="12 ou 45s" value={ex.reps} onChange={e => updEx(ex.id, { reps: e.target.value })} />
-              <Inp label="Repos (sec)" type="number" value={ex.rest} onChange={e => updEx(ex.id, { rest: parseInt(e.target.value) || 0 })} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>⚖️ Poids suggéré</label>
-              <div style={{ display: "flex", gap: 10 }}>
-                <input type="text" placeholder="ex: 10" value={ex.suggested_weight || ""} onChange={e => updEx(ex.id, { suggested_weight: e.target.value })} style={{ ...inputSt, flex: 1 }} />
-                <select value={ex.weight_type || "haltères"} onChange={e => updEx(ex.id, { weight_type: e.target.value })} style={{ ...inputSt, width: "auto", flex: 1 }}>
-                  <option value="haltères">kg haltères</option>
-                  <option value="disques">kg disques</option>
-                  <option value="barre">kg barre</option>
-                  <option value="poids du corps">poids du corps</option>
-                  <option value="élastique">élastique</option>
-                  <option value="machine">machine (kg)</option>
-                </select>
+
+      {blocks.map((block, idx) => (
+        block.type === "exercise" ? (
+          <Card key={block.id}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", background: C.pink + "22", border: `1.5px solid ${C.pink}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: C.pink }}>{idx + 1}</div>
+                <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 700 }}>EXERCICE</span>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => moveBlock(block.id, -1)} style={{ background: "#222", border: "none", borderRadius: 6, width: 26, height: 26, color: C.textMuted, cursor: "pointer" }}>↑</button>
+                <button onClick={() => moveBlock(block.id, 1)} style={{ background: "#222", border: "none", borderRadius: 6, width: 26, height: 26, color: C.textMuted, cursor: "pointer" }}>↓</button>
+                <button onClick={() => delBlock(block.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 26, height: 26, color: C.red, cursor: "pointer" }}>✕</button>
               </div>
             </div>
-            <TA label="Consigne" placeholder="Ex: descends bien..." value={ex.note} onChange={e => updEx(ex.id, { note: e.target.value })} style={{ minHeight: 56 }} />
-            <div>
-              <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Photo</label>
-              {ex.photo ? (
-                <div style={{ position: "relative", display: "inline-block" }}>
-                  <img src={ex.photo} alt="" style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 10 }} />
-                  <button onClick={() => updEx(ex.id, { photo: null })} style={{ position: "absolute", top: -8, right: -8, background: C.red, border: "none", borderRadius: "50%", width: 20, height: 20, color: "white", fontSize: 11, cursor: "pointer" }}>✕</button>
-                </div>
-              ) : (
-                <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#111", border: `1px dashed ${C.border}`, borderRadius: 10, cursor: "pointer" }}>
-                  <span>🖼️</span><span style={{ fontSize: 13, color: C.textMuted }}>Ajouter une photo</span>
-                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => handlePhoto(ex.id, e)} />
-                </label>
-              )}
+            <ExerciseFields ex={block} onChange={patch => updBlock(block.id, patch)} onDelete={() => delBlock(block.id)} showSets={true} />
+          </Card>
+        ) : (
+          <Card key={block.id} style={{ borderColor: C.purple + "55", background: C.purple + "08" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", background: C.purple + "22", border: `1.5px solid ${C.purple}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: C.purple }}>{idx + 1}</div>
+                <span style={{ fontSize: 11, color: C.purple, fontWeight: 700 }}>🔄 CIRCUIT</span>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => moveBlock(block.id, -1)} style={{ background: "#222", border: "none", borderRadius: 6, width: 26, height: 26, color: C.textMuted, cursor: "pointer" }}>↑</button>
+                <button onClick={() => moveBlock(block.id, 1)} style={{ background: "#222", border: "none", borderRadius: 6, width: 26, height: 26, color: C.textMuted, cursor: "pointer" }}>↓</button>
+                <button onClick={() => delBlock(block.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 26, height: 26, color: C.red, cursor: "pointer" }}>✕</button>
+              </div>
             </div>
-          </div>
-        </Card>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <Inp label="Nombre de tours" type="number" min="1" value={block.rounds || 3} onChange={e => updBlock(block.id, { rounds: parseInt(e.target.value) || 1 })} />
+              <Inp label="Repos entre tours (sec)" type="number" value={block.rest_between_rounds || 120} onChange={e => updBlock(block.id, { rest_between_rounds: parseInt(e.target.value) || 60 })} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 14px", background: block.interval_mode ? C.orange + "15" : "#111", borderRadius: 10, border: `1px solid ${block.interval_mode ? C.orange + "44" : C.border}` }}>
+              <button onClick={() => updBlock(block.id, { interval_mode: !block.interval_mode })} style={{ width: 44, height: 24, borderRadius: 12, background: block.interval_mode ? C.orange : "#333", border: "none", cursor: "pointer", position: "relative" }}>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: C.white, position: "absolute", top: 3, left: block.interval_mode ? 23 : 3, transition: "all .2s" }} />
+              </button>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: block.interval_mode ? C.orange : C.white }}>⚡ Mode Interval Training</div>
+                <div style={{ fontSize: 11, color: C.textMuted }}>Timer travail / repos pour chaque exo</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {block.exercises.map((ex, ei) => (
+                <div key={ex.id} style={{ background: "#111", borderRadius: 12, padding: 14, border: `1px solid ${C.purple}33` }}>
+                  <div style={{ fontSize: 11, color: C.purple, fontWeight: 700, marginBottom: 10 }}>Exo {ei + 1}</div>
+                  <ExerciseFields ex={ex} onChange={patch => updCircuitEx(block.id, ex.id, patch)} onDelete={() => delCircuitEx(block.id, ex.id)} showSets={false} intervalMode={block.interval_mode} />
+                </div>
+              ))}
+              <button onClick={() => addCircuitEx(block.id)} style={{ padding: "10px", borderRadius: 10, border: `1.5px dashed ${C.purple}55`, background: "transparent", color: C.purple, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                + Ajouter un exercice au circuit
+              </button>
+            </div>
+          </Card>
+        )
       ))}
-      {exercises.length === 0 && <div style={{ textAlign: "center", padding: "30px 0", color: C.textMuted }}>Clique sur "+ Ajouter un exercice" pour commencer</div>}
+
+      {blocks.length === 0 && <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted }}>Ajoute des exercices ou un circuit ci-dessous</div>}
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={addSimple} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.pink}55`, background: "transparent", color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Exercice simple</button>
+        <button onClick={addCircuit} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.purple}55`, background: "transparent", color: C.purple, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🔄 + Circuit</button>
+      </div>
+
       <div style={{ display: "flex", gap: 10, paddingBottom: 30 }}>
         <Btn variant="secondary" onClick={onCancel} style={{ flex: 1 }}>Annuler</Btn>
         <Btn onClick={handleSave} disabled={saving} style={{ flex: 2 }}>{saving ? "Enregistrement..." : "💾 Enregistrer"}</Btn>
@@ -634,52 +716,76 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// WORKOUT PLAYER
+// WORKOUT PLAYER — supports simple exercises + circuit blocks
 // ══════════════════════════════════════════════════════════════════════════════
 const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
-  const [currentEx, setCurrentEx] = useState(0);
-  const [completedSets, setCompletedSets] = useState({});
+  const blocks = (workout.blocks && workout.blocks.length > 0) ? workout.blocks : workout.exercises.map(e => ({ ...e, type: e.type || "exercise" }));
+  const [blockIdx, setBlockIdx] = useState(0);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(0);
+  const [restLabel, setRestLabel] = useState("REPOS");
   const [done, setDone] = useState(false);
   const [exLogs, setExLogs] = useState({});
-  const [showLog, setShowLog] = useState(false);
   const [globalNote, setGlobalNote] = useState("");
+  const [simpleSets, setSimpleSets] = useState(0);
+  const [showSimpleLog, setShowSimpleLog] = useState(false);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [circuitExIdx, setCircuitExIdx] = useState(0);
+  const [intervalPhase, setIntervalPhase] = useState("work");
   const timerRef = useRef(null);
 
-  const ex = workout.exercises[currentEx];
-  const doneSets = completedSets[ex?.id] || 0;
-  const totalExDone = workout.exercises.filter(e => (completedSets[e.id] || 0) >= e.sets).length;
+  const currentBlock = blocks[blockIdx];
+  const allExercises = blocks.flatMap(b => b.type === "circuit" ? b.exercises : [b]);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
+  useEffect(() => { setSimpleSets(0); setShowSimpleLog(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work"); }, [blockIdx]);
 
-  const startRest = secs => {
-    setResting(true); setRestTime(secs);
+  const startTimer = (secs, label, onEnd) => {
+    clearInterval(timerRef.current);
+    setResting(true); setRestTime(secs); setRestLabel(label);
     timerRef.current = setInterval(() => {
-      setRestTime(t => { if (t <= 1) { clearInterval(timerRef.current); setResting(false); return 0; } return t - 1; });
+      setRestTime(t => { if (t <= 1) { clearInterval(timerRef.current); setResting(false); onEnd(); return 0; } return t - 1; });
     }, 1000);
   };
+  const skipTimer = () => { clearInterval(timerRef.current); setResting(false); };
 
-  const completeSet = () => {
-    const newDone = doneSets + 1;
-    setCompletedSets({ ...completedSets, [ex.id]: newDone });
-    if (newDone < ex.sets) { startRest(ex.rest); }
-    else { setShowLog(true); }
+  const goNextBlock = () => {
+    const next = blockIdx + 1;
+    if (next < blocks.length) { setBlockIdx(next); }
+    else { setDone(true); }
   };
 
-  const confirmExercise = () => {
-    setShowLog(false);
-    const nextIdx = currentEx + 1;
-    if (nextIdx < workout.exercises.length) { setTimeout(() => { setCurrentEx(nextIdx); startRest(ex.rest); }, 400); }
-    else { setTimeout(() => setDone(true), 600); }
+  const completeSimpleSet = () => {
+    const nd = simpleSets + 1; setSimpleSets(nd);
+    if (nd < currentBlock.sets) startTimer(currentBlock.rest || 60, "REPOS", () => {});
+    else setShowSimpleLog(true);
+  };
+
+  const circuitEx = currentBlock?.type === "circuit" ? currentBlock.exercises[circuitExIdx] : null;
+
+  const advanceCircuit = () => {
+    setIntervalPhase("work");
+    const nextEx = circuitExIdx + 1;
+    if (nextEx < currentBlock.exercises.length) { setCircuitExIdx(nextEx); }
+    else {
+      const nextRound = currentRound + 1;
+      if (nextRound <= currentBlock.rounds) { setCurrentRound(nextRound); setCircuitExIdx(0); startTimer(currentBlock.rest_between_rounds || 120, "REPOS ENTRE TOURS", () => {}); }
+      else { goNextBlock(); }
+    }
+  };
+
+  const startIntervalWork = () => {
+    setIntervalPhase("work");
+    startTimer(circuitEx.work_time || 30, "⚡ TRAVAIL", () => {
+      setIntervalPhase("rest");
+      startTimer(circuitEx.rest_time || 30, "😴 REPOS", () => { advanceCircuit(); });
+    });
   };
 
   const saveAndFinish = async () => {
     if (clientId) {
       const logsWithNames = {};
-      workout.exercises.forEach(e => {
-        logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, weight: exLogs[e.id]?.weight || "", reps: exLogs[e.id]?.reps || "" };
-      });
+      allExercises.forEach(e => { logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, weight: exLogs[e.id]?.weight || "", reps: exLogs[e.id]?.reps || "" }; });
       await supabase.from("session_logs").insert([{ client_id: clientId, workout_id: workout.id, workout_name: workout.name, date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote }]);
     }
     onFinish();
@@ -690,27 +796,18 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
       <div style={{ textAlign: "center", paddingTop: 40, marginBottom: 32 }}>
         <div style={{ fontSize: 72, marginBottom: 16 }}>🏆</div>
         <h1 style={{ fontSize: 26, fontWeight: 900, marginBottom: 8 }}>Séance terminée !</h1>
-        <p style={{ color: C.textMuted }}>{workout.name} · {workout.exercises.length} exercices</p>
+        <p style={{ color: C.textMuted }}>{workout.name}</p>
       </div>
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📝 NOTE SUR LA SÉANCE</div>
-        <TA placeholder="Comment c'était ?" value={globalNote} onChange={e => setGlobalNote(e.target.value)} style={{ minHeight: 100 }} />
-      </Card>
+      <Card style={{ marginBottom: 16 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📝 NOTE SUR LA SÉANCE</div><TA placeholder="Comment c'était ?" value={globalNote} onChange={e => setGlobalNote(e.target.value)} style={{ minHeight: 100 }} /></Card>
       <Card style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 16 }}>MES PERFORMANCES</div>
-        {workout.exercises.map(ex => (
-          <div key={ex.id} style={{ marginBottom: 18, paddingBottom: 18, borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 15 }}>{ex.name}</div>
-            {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 8 }}>⚖️ Suggéré : {ex.suggested_weight} {ex.weight_type}</div>}
+        {allExercises.map(ex => (
+          <div key={ex.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ fontWeight: 700, marginBottom: 6 }}>{ex.name || "—"}</div>
+            {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 6 }}>⚖️ {ex.suggested_weight} {ex.weight_type}</div>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div>
-                <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>POIDS UTILISÉ</div>
-                <input type="text" placeholder="ex: 10 kg" value={exLogs[ex.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>REPS RÉELLES</div>
-                <input type="text" placeholder={`Prévu: ${ex.reps}`} value={exLogs[ex.id]?.reps || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], reps: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} />
-              </div>
+              <div><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>POIDS</div><input type="text" placeholder="ex: 10 kg" value={exLogs[ex.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} /></div>
+              <div><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>REPS</div><input type="text" placeholder={ex.reps || "—"} value={exLogs[ex.id]?.reps || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], reps: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} /></div>
             </div>
           </div>
         ))}
@@ -719,67 +816,120 @@ const WorkoutPlayer = ({ workout, onFinish, clientId }) => {
     </div>
   );
 
-  if (!ex) return null;
+  if (!currentBlock) return null;
 
-  return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+  const TimerBar = () => resting ? (
+    <div style={{ background: C.surface, border: `1px solid ${restLabel.includes("TRAVAIL") ? C.green : C.orange}44`, borderRadius: 20, padding: 28, marginBottom: 20, textAlign: "center" }}>
+      <div style={{ fontSize: 13, color: restLabel.includes("TRAVAIL") ? C.green : C.orange, fontWeight: 700, marginBottom: 8 }}>{restLabel}</div>
+      <div style={{ fontSize: 72, fontWeight: 900, color: restLabel.includes("TRAVAIL") ? C.green : C.orange, letterSpacing: "-2px" }}>{restTime}s</div>
+      <Btn small variant="ghost" onClick={skipTimer} style={{ width: "auto", margin: "16px auto 0" }}>Passer →</Btn>
+    </div>
+  ) : null;
+
+  const NavBar = () => (
+    <>
       <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button onClick={onFinish} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, padding: 0 }}>✕ Quitter</button>
         <span style={{ fontWeight: 700, fontSize: 14 }}>{workout.name}</span>
-        <span style={{ fontSize: 13, color: C.pink, fontWeight: 700 }}>{currentEx + 1}/{workout.exercises.length}</span>
+        <span style={{ fontSize: 13, color: C.pink, fontWeight: 700 }}>{blockIdx + 1}/{blocks.length}</span>
       </div>
-      <div style={{ height: 3, background: C.border }}><div style={{ height: "100%", background: C.pink, width: `${(totalExDone / workout.exercises.length) * 100}%`, transition: "width .4s" }} /></div>
+      <div style={{ height: 3, background: C.border }}><div style={{ height: "100%", background: C.pink, width: `${(blockIdx / blocks.length) * 100}%`, transition: "width .4s" }} /></div>
+    </>
+  );
+
+  if (currentBlock.type === "exercise") return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+      <NavBar />
       <div style={{ padding: 20 }}>
-        {resting && (
-          <div style={{ background: C.surface, border: `1px solid ${C.orange}44`, borderRadius: 20, padding: 28, marginBottom: 20, textAlign: "center" }}>
-            <div style={{ fontSize: 13, color: C.orange, fontWeight: 700, marginBottom: 8 }}>TEMPS DE REPOS</div>
-            <div style={{ fontSize: 72, fontWeight: 900, color: C.orange, letterSpacing: "-2px" }}>{restTime}s</div>
-            <Btn small variant="ghost" onClick={() => { clearInterval(timerRef.current); setResting(false); }} style={{ width: "auto", margin: "16px auto 0" }}>Passer →</Btn>
-          </div>
-        )}
-        {showLog && (
-          <Card style={{ marginBottom: 20, borderColor: C.green + "44" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ {ex.name} terminé !</div>
-            {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 10 }}>⚖️ Suggéré : {ex.suggested_weight} {ex.weight_type}</div>}
+        <TimerBar />
+        {showSimpleLog ? (
+          <Card style={{ borderColor: C.green + "44" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ {currentBlock.name} terminé !</div>
+            {currentBlock.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 10 }}>⚖️ {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-              <div>
-                <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>POIDS UTILISÉ</div>
-                <input type="text" placeholder="ex: 10 kg" value={exLogs[ex.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>REPS RÉELLES</div>
-                <input type="text" placeholder={ex.reps} value={exLogs[ex.id]?.reps || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], reps: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} />
-              </div>
+              <div><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>POIDS</div><input type="text" placeholder="ex: 10 kg" value={exLogs[currentBlock.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [currentBlock.id]: { ...exLogs[currentBlock.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} /></div>
+              <div><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>REPS</div><input type="text" placeholder={currentBlock.reps} value={exLogs[currentBlock.id]?.reps || ""} onChange={e => setExLogs({ ...exLogs, [currentBlock.id]: { ...exLogs[currentBlock.id], reps: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} /></div>
             </div>
-            <Btn onClick={confirmExercise} style={{ fontSize: 14 }}>Continuer →</Btn>
+            <Btn onClick={() => { setShowSimpleLog(false); goNextBlock(); }}>Continuer →</Btn>
           </Card>
-        )}
-        {!showLog && (
+        ) : (
           <div>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>EXERCICE {currentEx + 1}</div>
-            <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{ex.name}</h2>
-            {ex.photo && <img src={ex.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
-            {ex.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {ex.suggested_weight} {ex.weight_type}</div>}
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>EXERCICE</div>
+            <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{currentBlock.name}</h2>
+            {currentBlock.photo && <img src={currentBlock.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
+            {currentBlock.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
-              {[{ l: "SÉRIES", v: `${doneSets}/${ex.sets}`, c: C.pink }, { l: "REPS", v: ex.reps, c: C.white }, { l: "REPOS", v: `${ex.rest}s`, c: C.orange }].map(s => (
+              {[{ l: "SÉRIES", v: `${simpleSets}/${currentBlock.sets}`, c: C.pink }, { l: "REPS", v: currentBlock.reps, c: C.white }, { l: "REPOS", v: `${currentBlock.rest}s`, c: C.orange }].map(s => (
                 <div key={s.l} style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
                   <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: s.c }}>{s.v}</div>
                 </div>
               ))}
             </div>
-            {ex.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, lineHeight: 1.5 }}>💡 {ex.note}</div>}
+            {currentBlock.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, lineHeight: 1.5 }}>💡 {currentBlock.note}</div>}
             <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-              {Array.from({ length: ex.sets }, (_, i) => (
-                <div key={i} style={{ width: 36, height: 36, borderRadius: "50%", background: i < doneSets ? C.green : i === doneSets ? C.pink + "22" : "#111", border: `2px solid ${i < doneSets ? C.green : i === doneSets ? C.pink : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: i < doneSets ? C.black : i === doneSets ? C.pink : C.textMuted }}>{i < doneSets ? "✓" : i + 1}</div>
+              {Array.from({ length: currentBlock.sets }, (_, i) => (
+                <div key={i} style={{ width: 36, height: 36, borderRadius: "50%", background: i < simpleSets ? C.green : i === simpleSets ? C.pink + "22" : "#111", border: `2px solid ${i < simpleSets ? C.green : i === simpleSets ? C.pink : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: i < simpleSets ? C.black : i === simpleSets ? C.pink : C.textMuted }}>{i < simpleSets ? "✓" : i + 1}</div>
               ))}
             </div>
-            {!resting && doneSets < ex.sets && <Btn onClick={completeSet} style={{ fontSize: 17 }}>✅ Série {doneSets + 1} terminée !</Btn>}
+            {!resting && <Btn onClick={completeSimpleSet} style={{ fontSize: 17 }}>✅ Série {simpleSets + 1} terminée !</Btn>}
           </div>
         )}
       </div>
     </div>
   );
+
+  if (currentBlock.type === "circuit") return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+      <NavBar />
+      <div style={{ padding: 20 }}>
+        <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 12, padding: "10px 14px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 13, color: C.purple, fontWeight: 700 }}>🔄 Circuit</span>
+          <span style={{ fontSize: 20, fontWeight: 900, color: C.purple }}>Tour {currentRound}/{currentBlock.rounds}</span>
+          <span style={{ fontSize: 12, color: C.textMuted }}>{circuitExIdx + 1}/{currentBlock.exercises.length} exos</span>
+        </div>
+        <TimerBar />
+        {!resting && circuitEx && (
+          <div>
+            <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{circuitEx.name}</h2>
+            {circuitEx.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
+            {currentBlock.interval_mode ? (
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                  <div style={{ background: C.green + "15", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: `1px solid ${C.green}44` }}>
+                    <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>⚡ TRAVAIL</div>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: C.green }}>{circuitEx.work_time}s</div>
+                  </div>
+                  <div style={{ background: C.orange + "15", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: `1px solid ${C.orange}44` }}>
+                    <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>😴 REPOS</div>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: C.orange }}>{circuitEx.rest_time}s</div>
+                  </div>
+                </div>
+                {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14 }}>💡 {circuitEx.note}</div>}
+                <Btn onClick={startIntervalWork} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Démarrer</Btn>
+              </div>
+            ) : (
+              <div>
+                <div style={{ background: "#111", borderRadius: 12, padding: "14px", textAlign: "center", marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>REPS</div>
+                  <div style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{circuitEx.reps}</div>
+                </div>
+                {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14 }}>💡 {circuitEx.note}</div>}
+                <Btn onClick={advanceCircuit} style={{ fontSize: 17, background: C.purple, color: C.white }}>✅ Exo suivant →</Btn>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 6, marginTop: 20 }}>
+              {currentBlock.exercises.map((e, i) => (
+                <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: i < circuitExIdx ? C.green : i === circuitExIdx ? C.purple : C.border }} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return null;
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
