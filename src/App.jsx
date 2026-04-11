@@ -1339,7 +1339,25 @@ const CoachApp = ({ user, onLogout }) => {
                         {assigned && (
                           <div>
                             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>📅 Date prévue</div>
-                            <input type="date" value={assigned.scheduled_date || ""} onChange={e => updateScheduledDate(w.id, e.target.value)} style={{ ...inputSt, fontSize: 14 }} />
+                            <div style={{ display: "flex", gap: 8 }}>
+                              {[
+                                { label: "Jour", values: Array.from({length:31},(_,i)=>String(i+1).padStart(2,'0')), part: 2 },
+                                { label: "Mois", values: ["01","02","03","04","05","06","07","08","09","10","11","12"], part: 1 },
+                                { label: "Année", values: ["2025","2026","2027"], part: 0 },
+                              ].map(({ label, values, part }) => {
+                                const parts = (assigned.scheduled_date || "--").split("-");
+                                return (
+                                  <select key={label} value={parts[part] || ""} onChange={e => {
+                                    const p = (assigned.scheduled_date || `${new Date().getFullYear()}-01-01`).split("-");
+                                    p[part] = e.target.value;
+                                    updateScheduledDate(w.id, p.join("-"));
+                                  }} style={{ ...inputSt, flex: 1, fontSize: 13, padding: "10px 6px" }}>
+                                    <option value="">{label}</option>
+                                    {values.map(v => <option key={v} value={v}>{v}</option>)}
+                                  </select>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
                       </Card>
