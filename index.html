@@ -6,6 +6,19 @@
     <title>Process Lab</title>
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#E8879C" />
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "824e4665-2a07-44fa-82dd-65975907f90d",
+          serviceWorkerParam: { scope: "/" },
+          serviceWorkerPath: "OneSignalSDKWorker.js",
+          notifyButton: { enable: false },
+          allowLocalhostAsSecureOrigin: false,
+        });
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
