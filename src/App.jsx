@@ -298,6 +298,13 @@ const useClientData = (clientId) => {
 
   const fetch = async () => {
     if (!clientId) return;
+    // Clear immediately to avoid showing stale data from previous client
+    setEntries([]);
+    setWeights([]);
+    setMeasurements([]);
+    setAssignedWorkouts([]);
+    setProgressPhotos([]);
+    setPayments([]);
     setLoading(true);
     const [e, w, m, cw, pp, pay] = await Promise.all([
       supabase.from("entries").select("*").eq("client_id", clientId).order("date", { ascending: false }),
@@ -1326,7 +1333,7 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "seances" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {workouts.map(w => {
+                  {loadingData ? <Spinner /> : workouts.map(w => {
                     const assigned = assignedWorkouts.find(a => a.workout_id === w.id);
                     return (
                       <Card key={w.id} style={{ borderColor: assigned ? C.green + "44" : C.border }}>
@@ -1368,12 +1375,13 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "perf" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {sessionLogs.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card> : sessionLogs.map((log, i) => <PerfCard key={i} log={log} />)}
+                  {loadingData ? <Spinner /> : sessionLogs.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card> : sessionLogs.map((log, i) => <PerfCard key={i} log={log} />)}
                 </div>
               )}
 
               {clientTab === "body" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {loadingData ? <Spinner /> : (<>
                   {weights.length > 1 && (
                     <Card>
                       <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>POIDS</div>
@@ -1393,6 +1401,7 @@ const CoachApp = ({ user, onLogout }) => {
                     </Card>
                   )}
                   {weights.length <= 1 && progressPhotos.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de données.</p></Card>}
+                  </>)}
                 </div>
               )}
 
