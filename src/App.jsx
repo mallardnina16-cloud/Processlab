@@ -356,7 +356,7 @@ const useClientData = (clientId) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // JOURNAL FORM — always pre-fills from existing entry
 // ══════════════════════════════════════════════════════════════════════════════
-const JournalForm = ({ existing, onSave, onBack, proteinTarget = 0 }) => {
+const JournalForm = ({ existing, onSave, onBack, proteinTarget = 0, clientId }) => {
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
   const [mealNote, setMealNote] = useState("");
@@ -394,12 +394,45 @@ const JournalForm = ({ existing, onSave, onBack, proteinTarget = 0 }) => {
     }
   }, [existing]);
 
-  const handlePhoto = e => {
-    Array.from(e.target.files).forEach(file => {
-      const r = new FileReader();
-      r.onload = ev => setPhotos(p => [...p, ev.target.result]);
-      r.readAsDataURL(file);
+  const compressAndUpload = async (file) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = async () => {
+        const MAX = 800;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        canvas.toBlob(async (blob) => {
+          URL.revokeObjectURL(url);
+          const fileName = `${clientId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+          const { data, error } = await supabase.storage.from("photos").upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
+          if (error) {
+            // Fallback to base64 if upload fails
+            const reader = new FileReader();
+            reader.onload = ev => resolve(ev.target.result);
+            reader.readAsDataURL(blob);
+          } else {
+            const { data: urlData } = supabase.storage.from("photos").getPublicUrl(fileName);
+            resolve(urlData.publicUrl);
+          }
+        }, "image/jpeg", 0.75);
+      };
+      img.src = url;
     });
+  };
+
+  const handlePhoto = async (e) => {
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+      const result = await compressAndUpload(file);
+      setPhotos(p => [...p, result]);
+    }
   };
 
   const handleSave = async () => {
@@ -1554,6 +1587,7 @@ const ClientApp = ({ user, onLogout }) => {
         onSave={handleSaveJournal}
         onBack={() => setScreen("home")}
         proteinTarget={clientInfo?.protein_target || 0}
+        clientId={clientId}
       />
     );
   }
