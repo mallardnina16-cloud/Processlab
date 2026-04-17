@@ -653,21 +653,19 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
         </div>
       </div>
       <TA label="Consigne" placeholder="Ex: descends bien..." value={ex.note || ""} onChange={e => onChange({ ...ex, note: e.target.value })} style={{ minHeight: 48 }} />
-      {showSets && (
-        <div>
-          {ex.photo ? (
-            <div style={{ position: "relative", display: "inline-block" }}>
-              <img src={ex.photo} alt="" style={{ width: 100, height: 75, objectFit: "cover", borderRadius: 10 }} />
-              <button onClick={() => onChange({ ...ex, photo: null })} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button>
-            </div>
-          ) : (
-            <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#111", border: `1px dashed ${C.border}`, borderRadius: 10, cursor: "pointer", width: "fit-content" }}>
-              <span>🖼️</span><span style={{ fontSize: 13, color: C.textMuted }}>Photo</span>
-              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
-            </label>
-          )}
-        </div>
-      )}
+      <div>
+        {ex.photo ? (
+          <div style={{ position: "relative", display: "inline-block" }}>
+            <img src={ex.photo} alt="" style={{ width: 100, height: 75, objectFit: "cover", borderRadius: 10 }} />
+            <button onClick={() => onChange({ ...ex, photo: null })} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button>
+          </div>
+        ) : (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#111", border: `1px dashed ${C.border}`, borderRadius: 10, cursor: "pointer", width: "fit-content" }}>
+            <span>🖼️</span><span style={{ fontSize: 13, color: C.textMuted }}>Photo du mouvement</span>
+            <input type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhoto} />
+          </label>
+        )}
+      </div>
     </div>
   );
 };
