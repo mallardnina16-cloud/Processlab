@@ -458,7 +458,6 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
     setSaving(false);
     onBack();
   };
-  );
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
