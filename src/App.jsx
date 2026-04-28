@@ -814,6 +814,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const [globalNote, setGlobalNote] = useState("");
   const [simpleSets, setSimpleSets] = useState(0);
   const [showSimpleLog, setShowSimpleLog] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [currentRound, setCurrentRound] = useState(1);
   const [circuitExIdx, setCircuitExIdx] = useState(0);
   const [intervalPhase, setIntervalPhase] = useState("work");
@@ -826,6 +827,12 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const lastLog = sessionLogs.find(l => l.workout_id === workout.id);
   const lastExLogs = (() => { try { return JSON.parse(lastLog?.exercise_logs || "{}"); } catch { return {}; } })();
   const getLastPerf = (exName) => Object.values(lastExLogs).find(l => l.name === exName);
+
+  const getAllPerfs = (exName) => sessionLogs
+    .filter(l => l.workout_id === workout.id)
+    .map(l => { try { const logs = JSON.parse(l.exercise_logs || "{}"); return { date: l.date, ...Object.values(logs).find(e => e.name === exName) }; } catch { return null; } })
+    .filter(l => l && (l.weight || l.reps))
+    .slice(0, 5);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
   useEffect(() => { setSimpleSets(0); setShowSimpleLog(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work"); }, [blockIdx]);
@@ -949,6 +956,29 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
             {currentBlock.photo && <img src={currentBlock.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
             {currentBlock.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
             {(() => { const lp = getLastPerf(currentBlock.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
+            {/* History toggle */}
+            {getAllPerfs(currentBlock.name).length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <button onClick={() => setShowHistory(!showHistory)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", color: C.textMuted, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                  📊 {showHistory ? "Masquer" : "Voir"} mon historique ({getAllPerfs(currentBlock.name).length} séances)
+                </button>
+                {showHistory && (
+                  <div style={{ marginTop: 10, background: "#111", borderRadius: 12, padding: 12 }}>
+                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>HISTORIQUE — {currentBlock.name}</div>
+                    {getAllPerfs(currentBlock.name).map((p, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < getAllPerfs(currentBlock.name).length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <span style={{ fontSize: 12, color: C.textMuted }}>{formatDate(p.date)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>
+                          {p.weight && <span style={{ color: C.pink }}>{p.weight}</span>}
+                          {p.weight && p.reps && <span style={{ color: C.textMuted }}> · </span>}
+                          {p.reps && <span style={{ color: C.purple }}>{p.reps} reps</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
               {[{ l: "SÉRIES", v: `${simpleSets}/${currentBlock.sets}`, c: C.pink }, { l: "REPS", v: currentBlock.reps, c: C.white }, { l: "REPOS", v: `${currentBlock.rest}s`, c: C.orange }].map(s => (
                 <div key={s.l} style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
@@ -985,6 +1015,27 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
             <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{circuitEx.name}</h2>
             {circuitEx.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
             {(() => { const lp = getLastPerf(circuitEx.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
+            {getAllPerfs(circuitEx.name).length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <button onClick={() => setShowHistory(!showHistory)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", color: C.textMuted, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                  📊 {showHistory ? "Masquer" : "Voir"} historique
+                </button>
+                {showHistory && (
+                  <div style={{ marginTop: 10, background: "#111", borderRadius: 12, padding: 12 }}>
+                    {getAllPerfs(circuitEx.name).map((p, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < getAllPerfs(circuitEx.name).length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <span style={{ fontSize: 12, color: C.textMuted }}>{formatDate(p.date)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>
+                          {p.weight && <span style={{ color: C.pink }}>{p.weight}</span>}
+                          {p.weight && p.reps && <span style={{ color: C.textMuted }}> · </span>}
+                          {p.reps && <span style={{ color: C.purple }}>{p.reps} reps</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {currentBlock.interval_mode ? (
               <div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
@@ -1027,31 +1078,43 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // PERF CARD
 // ══════════════════════════════════════════════════════════════════════════════
-const PerfCard = ({ log }) => {
+const PerfCard = ({ log, workout }) => {
   let exLogs = {};
   try { exLogs = JSON.parse(log.exercise_logs || "{}"); } catch {}
+
+  // Try to match exercise names from workout if log doesn't have them
+  const enrichedLogs = Object.entries(exLogs).map(([key, exLog]) => {
+    let name = exLog.name;
+    if (!name && workout) {
+      const allEx = (workout.blocks || []).flatMap(b => b.type === "circuit" ? b.exercises : [b]);
+      const match = allEx.find(e => e.id === key) || workout.exercises?.find(e => e.id === key);
+      name = match?.name || "—";
+    }
+    return { ...exLog, name: name || "—" };
+  });
+
   return (
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
         <div><div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{log.workout_name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{formatDate(log.date)}</div></div>
         <Badge color={C.green}>✅ Réalisée</Badge>
       </div>
-      {Object.values(exLogs).length > 0 && (
+      {enrichedLogs.length > 0 && (
         <div style={{ marginBottom: log.note ? 14 : 0 }}>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>DÉTAIL DES EXERCICES</div>
-          {Object.values(exLogs).map((exLog, i) => (
+          {enrichedLogs.filter(l => l.weight || l.reps).map((exLog, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name || "Exercice"}</div>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name}</div>
                 {exLog.suggested_weight && <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>}
               </div>
               <div style={{ display: "flex", gap: 12 }}>
                 {exLog.weight && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div></div>}
                 {exLog.reps && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div><div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div></div>}
-                {!exLog.weight && !exLog.reps && <div style={{ fontSize: 11, color: C.muted }}>—</div>}
               </div>
             </div>
           ))}
+          {enrichedLogs.filter(l => l.weight || l.reps).length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucune performance saisie</div>}
         </div>
       )}
       {log.note && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {log.note}</div>}
@@ -1426,7 +1489,7 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "perf" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {loadingData ? <Spinner /> : sessionLogs.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card> : sessionLogs.map((log, i) => <PerfCard key={i} log={log} />)}
+                  {loadingData ? <Spinner /> : sessionLogs.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card> : sessionLogs.map((log, i) => <PerfCard key={i} log={log} workout={workouts.find(w => w.id === log.workout_id)} />)}
                 </div>
               )}
 
@@ -1630,7 +1693,7 @@ const ClientApp = ({ user, onLogout }) => {
         <button onClick={() => setViewingWorkoutPerfs(null)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
         <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>{viewingWorkoutPerfs.name}</h2>
         <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 20 }}>{logs.length} séance{logs.length > 1 ? "s" : ""} réalisée{logs.length > 1 ? "s" : ""}</p>
-        {logs.map((log, i) => <div key={i} style={{ marginBottom: 14 }}><PerfCard log={log} /></div>)}
+        {logs.map((log, i) => <div key={i} style={{ marginBottom: 14 }}><PerfCard log={log} workout={viewingWorkoutPerfs} /></div>)}
       </div>
     );
   }
@@ -1668,7 +1731,7 @@ const ClientApp = ({ user, onLogout }) => {
       <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>HISTORIQUE COMPLET</div>
       {sessionLogs.length === 0 ? (
         <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de séance enregistrée.</p></Card>
-      ) : sessionLogs.map((log, i) => <div key={i} style={{ marginBottom: 12 }}><PerfCard log={log} /></div>)}
+      ) : sessionLogs.map((log, i) => <div key={i} style={{ marginBottom: 12 }}><PerfCard key={i} log={log} workout={myWorkouts.find(w => w.id === log.workout_id)} /></div>)}
     </div>
   );
 
