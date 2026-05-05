@@ -532,10 +532,10 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
           </div>
         </div>
 
-        {/* Meals + Photos */}
+        {/* Photos repas */}
         <div>
-          <TA label="Mes repas du jour" placeholder="Décris ce que tu as mangé..." value={mealNote} onChange={e => setMealNote(e.target.value)} />
-          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer", marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>📷 Photos repas</div>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer" }}>
             <span style={{ fontSize: 20 }}>📷</span>
             <div>
               <div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter des photos repas</div>
@@ -547,7 +547,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
             <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
               {photos.map((p, i) => (
                 <div key={i} style={{ position: "relative" }}>
-                  <img src={p} alt="" style={{ width: 68, height: 68, objectFit: "cover", borderRadius: 10 }} />
+                  <img src={p} alt="" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 10 }} />
                   <button onClick={() => setPhotos(photos.filter((_, j) => j !== i))} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button>
                 </div>
               ))}
@@ -582,29 +582,6 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
             <TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />
           )}
         </div>
-
-        {/* Protein estimate */}
-        {proteinTarget > 0 && (
-          <div>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>🥩 Objectif protéines</div>
-            <div style={{ background: C.green + "12", border: `1px solid ${C.green}33`, borderRadius: 12, padding: "12px 14px", marginBottom: 12, fontSize: 13 }}>
-              Tu vises <span style={{ color: C.green, fontWeight: 800 }}>{proteinTarget}g de protéines</span> aujourd'hui. Comment estimes-tu ta journée ?
-              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Pense à : viande, poisson, œufs, fromage blanc, légumineuses...</div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                { value: "low", label: `😬 Moins de la moitié (<${Math.round(proteinTarget * 0.5)}g)`, color: C.red },
-                { value: "medium", label: `😐 La moitié environ (${Math.round(proteinTarget * 0.5)}-${Math.round(proteinTarget * 0.75)}g)`, color: C.orange },
-                { value: "good", label: `🙂 Presque l'objectif (${Math.round(proteinTarget * 0.75)}-${Math.round(proteinTarget * 0.9)}g)`, color: C.yellow },
-                { value: "great", label: `💪 Objectif atteint ! (${Math.round(proteinTarget * 0.9)}g+)`, color: C.green },
-              ].map(opt => (
-                <button key={opt.value} onClick={() => setProteinEstimate(opt.value)} style={{ padding: "12px 14px", borderRadius: 12, border: `2px solid ${proteinEstimate === opt.value ? opt.color : C.border}`, background: proteinEstimate === opt.value ? opt.color + "22" : "#111", color: proteinEstimate === opt.value ? opt.color : C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", textAlign: "left" }}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Single save button */}
         <Btn onClick={handleSave} disabled={saving} style={{ marginBottom: 30 }}>
@@ -1842,7 +1819,18 @@ const ClientApp = ({ user, onLogout }) => {
           </div>
         )}
 
-        {coachMsg && <Card style={{ marginBottom: 14, borderColor: C.pink + "44", background: C.pink + "08" }}><div style={{ fontSize: 10, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>MESSAGE DE TON COACH</div><div style={{ fontSize: 14, lineHeight: 1.5 }}>{coachMsg}</div></Card>}
+        {coachMsg && (
+          <Card style={{ marginBottom: 14, borderColor: C.pink + "44", background: C.pink + "08" }}>
+            <div style={{ fontSize: 10, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>MESSAGE DE TON COACH</div>
+            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{coachMsg}</div>
+            <button onClick={async () => {
+              const entry = entries.find(e => e.coach_message);
+              if (entry) await updateEntry(entry.id, { coach_message: "" });
+            }} style={{ background: "none", border: `1px solid ${C.pink}55`, borderRadius: 8, padding: "6px 12px", color: C.pink, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              ✓ Marquer comme lu
+            </button>
+          </Card>
+        )}
 
         {/* Journal card */}
         <Card style={{ marginBottom: 14 }}>
@@ -1866,7 +1854,9 @@ const ClientApp = ({ user, onLogout }) => {
           )}
         </Card>
 
-        {myWorkouts.length > 0 && (
+        {loading ? (
+          <div style={{ marginBottom: 14 }}><Spinner /></div>
+        ) : myWorkouts.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>💪 Mes entraînements</div>
             {myWorkouts.map(w => {
@@ -2236,6 +2226,9 @@ const FoodModal = ({ onAdd, onClose }) => {
   const [offLoading, setOL] = useState(false);
   const [selected, setSel] = useState(null);
   const [grams, setGrams] = useState("");
+  const [pieceMode, setPieceMode] = useState(false);
+  const [pieceWeight, setPieceWeight] = useState("");
+  const [pieceCount, setPieceCount] = useState("1");
   const [meal, setMeal] = useState(0);
   const [manual, setManual] = useState({ name: "", kcal: "", prot: "", carb: "", fat: "" });
   const debRef = useRef(null);
@@ -2255,15 +2248,21 @@ const FoodModal = ({ onAdd, onClose }) => {
     }, 700);
   }, [query, tab]);
 
-  const preview = selected && grams ? calcMacros(selected.per100, Number(grams)) : null;
+  // Compute effective grams
+  const effectiveGrams = pieceMode && pieceWeight && pieceCount
+    ? Number(pieceWeight) * Number(pieceCount)
+    : Number(grams);
+
+  const preview = selected && effectiveGrams > 0 ? calcMacros(selected.per100, effectiveGrams) : null;
 
   const handleAdd = () => {
     if (tab === "manual") {
       if (!manual.name || !manual.kcal) return;
       onAdd({ name: manual.name, grams: 100, meal_idx: meal, manual_macros: { kcal: +manual.kcal, prot: +manual.prot || 0, carb: +manual.carb || 0, fat: +manual.fat || 0 }, source: "manual" });
     } else {
-      if (!selected || !grams) return;
-      onAdd({ name: selected.name, food_id: selected.id, grams: Number(grams), meal_idx: meal, per100: selected.per100, source: selected.source || "local" });
+      if (!selected || effectiveGrams <= 0) return;
+      const label = pieceMode ? `${pieceCount} pièce${Number(pieceCount) > 1 ? "s" : ""}` : `${effectiveGrams}g`;
+      onAdd({ name: selected.name, food_id: selected.id, grams: effectiveGrams, meal_idx: meal, per100: selected.per100, source: selected.source || "local", quantity_label: label });
     }
     onClose();
   };
@@ -2319,8 +2318,31 @@ const FoodModal = ({ onAdd, onClose }) => {
                 {selected.brand && <div style={{ color: C.textMuted, fontSize: 11 }}>{selected.brand}</div>}
                 <div style={{ color: C.textMuted, fontSize: 11, marginTop: 2 }}>Pour 100g — {selected.per100.kcal} kcal · 💪 {selected.per100.prot}g</div>
               </div>
-              <label style={{ fontSize: 11, color: C.textMuted, display: "block", marginBottom: 5 }}>QUANTITÉ (g)</label>
-              <input type="number" value={grams} onChange={e => setGrams(e.target.value)} placeholder="Ex : 150" autoFocus style={{ ...inputSt, fontSize: 20, marginBottom: 8 }} />
+              <label style={{ fontSize: 11, color: C.textMuted, display: "block", marginBottom: 5 }}>QUANTITÉ</label>
+              {/* Mode toggle */}
+              <div style={{ display: "flex", background: "#111", borderRadius: 10, padding: 3, marginBottom: 10 }}>
+                <button onClick={() => setPieceMode(false)} style={{ flex: 1, padding: "7px", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "none", background: !pieceMode ? C.pink : "transparent", color: !pieceMode ? C.black : C.textMuted, cursor: "pointer" }}>En grammes</button>
+                <button onClick={() => setPieceMode(true)} style={{ flex: 1, padding: "7px", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "none", background: pieceMode ? C.pink : "transparent", color: pieceMode ? C.black : C.textMuted, cursor: "pointer" }}>À la pièce</button>
+              </div>
+              {!pieceMode ? (
+                <input type="number" value={grams} onChange={e => setGrams(e.target.value)} placeholder="Ex : 150" autoFocus style={{ ...inputSt, fontSize: 20, marginBottom: 8 }} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <label style={{ fontSize: 10, color: C.textMuted, display: "block", marginBottom: 4 }}>POIDS D'UNE PIÈCE (g)</label>
+                    <input type="number" value={pieceWeight} onChange={e => setPieceWeight(e.target.value)} placeholder="Ex: 120 (1 banane ≈ 120g)" autoFocus style={{ ...inputSt, fontSize: 16 }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 10, color: C.textMuted, display: "block", marginBottom: 4 }}>NOMBRE DE PIÈCES</label>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <button onClick={() => setPieceCount(c => String(Math.max(1, Number(c) - 1)))} style={{ width: 36, height: 36, borderRadius: "50%", background: "#222", border: "none", color: C.white, fontSize: 20, cursor: "pointer" }}>−</button>
+                      <input type="number" value={pieceCount} onChange={e => setPieceCount(e.target.value)} style={{ ...inputSt, fontSize: 20, textAlign: "center", flex: 1 }} />
+                      <button onClick={() => setPieceCount(c => String(Number(c) + 1))} style={{ width: 36, height: 36, borderRadius: "50%", background: C.pink, border: "none", color: C.black, fontSize: 20, cursor: "pointer" }}>+</button>
+                    </div>
+                  </div>
+                  {pieceWeight && <div style={{ fontSize: 11, color: C.textMuted, textAlign: "center" }}>= {Number(pieceWeight) * Number(pieceCount || 1)}g au total</div>}
+                </div>
+              )}
               {preview && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
                 {[["⚡", `${preview.kcal} kcal`, C.yellow], ["💪", `${preview.prot}g prot`, C.green], ["🌾", `${preview.carb}g gluc`, C.blue], ["🥑", `${preview.fat}g lip`, C.pink]].map(([ico, val, color]) => (
                   <div key={val} style={{ background: color + "22", border: `1px solid ${color}44`, borderRadius: 8, padding: "4px 8px", fontSize: 11, color, fontWeight: 600 }}>{ico} {val}</div>
@@ -2475,7 +2497,7 @@ const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>{e.name}</div>
-                            <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{e.manual_macros ? "saisie libre" : `${e.grams}g`} · 💪 {m.prot}g · 🌾 {m.carb}g · 🥑 {m.fat}g</div>
+                            <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{e.manual_macros ? "saisie libre" : e.quantity_label || `${e.grams}g`} · 💪 {m.prot}g · 🌾 {m.carb}g · 🥑 {m.fat}g</div>
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ fontWeight: 800, fontSize: 13, color: C.yellow }}>{m.kcal} kcal</span>
