@@ -177,6 +177,8 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
     start_date: client.start_date || "", next_payment: client.next_payment || "",
     calories_target: client.calories_target || "",
     protein_target: client.protein_target || "",
+    carb_target: client.carb_target || "",
+    fat_target: client.fat_target || "",
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -185,7 +187,7 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
   const handleSave = async () => {
     setSaving(true);
     const avatar = form.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment, calories_target: parseInt(form.calories_target) || 0, protein_target: parseInt(form.protein_target) || 0 });
+    await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment, calories_target: parseInt(form.calories_target) || 0, protein_target: parseInt(form.protein_target) || 0, carb_target: parseInt(form.carb_target) || 0, fat_target: parseInt(form.fat_target) || 0 });
     setSaving(false); onClose();
   };
 
@@ -215,6 +217,8 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Inp label="Calories / jour" type="number" placeholder="ex: 1800" value={form.calories_target} onChange={e => setForm({ ...form, calories_target: e.target.value })} />
               <Inp label="Protéines / jour (g)" type="number" placeholder="ex: 100" value={form.protein_target} onChange={e => setForm({ ...form, protein_target: e.target.value })} />
+              <Inp label="Glucides / jour (g)" type="number" placeholder="ex: 180" value={form.carb_target} onChange={e => setForm({ ...form, carb_target: e.target.value })} />
+              <Inp label="Lipides / jour (g)" type="number" placeholder="ex: 60" value={form.fat_target} onChange={e => setForm({ ...form, fat_target: e.target.value })} />
             </div>
           </div>
         </div>
@@ -279,7 +283,7 @@ const useWorkouts = () => {
       workout.id = data.id;
     }
     if (workout.exercises?.length) {
-      await supabase.from("exercises").insert(workout.exercises.map((e, i) => ({ workout_id: workout.id, name: e.name, sets: e.sets, reps: e.reps, rest: e.rest, note: e.note, photo: e.photo, position: i, suggested_weight: e.suggested_weight, weight_type: e.weight_type })));
+      await supabase.from("exercises").insert(workout.exercises.map((e, i) => ({ workout_id: workout.id, name: e.name, sets: e.sets, reps: e.reps, rest: e.rest, note: e.note, photo: e.photo, position: i, suggested_weight: e.suggested_weight, weight_type: e.weight_type, tempo: e.tempo || "" })));
     }
     await fetch();
   };
@@ -596,8 +600,8 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
 // ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT BUILDER — supports simple exercises + circuit blocks
 // ══════════════════════════════════════════════════════════════════════════════
-const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
-const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", work_time: 30, rest_time: 30, note: "", suggested_weight: "", weight_type: "haltères" }] });
+const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
+const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", work_time: 30, rest_time: 30, tempo: "", note: "", suggested_weight: "", weight_type: "haltères" }] });
 
 const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode = false }) => {
   const handlePhoto = e => {
@@ -640,6 +644,13 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
             <option value="élastique">élastique</option>
             <option value="machine">machine (kg)</option>
           </select>
+        </div>
+      </div>
+      <div>
+        <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>⏱️ Tempo (optionnel)</label>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <input type="text" placeholder="ex: 3-1-2-0" value={ex.tempo || ""} onChange={e => onChange({ ...ex, tempo: e.target.value })} style={{ ...inputSt, flex: 1 }} />
+          <span style={{ fontSize: 10, color: C.textMuted, flexShrink: 0, lineHeight: 1.3 }}>desc-bas-<br/>mont-haut</span>
         </div>
       </div>
       <TA label="Consigne" placeholder="Ex: descends bien..." value={ex.note || ""} onChange={e => onChange({ ...ex, note: e.target.value })} style={{ minHeight: 48 }} />
@@ -932,6 +943,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
             <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{currentBlock.name}</h2>
             {currentBlock.photo && <img src={currentBlock.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
             {currentBlock.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
+            {currentBlock.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {currentBlock.tempo} <span style={{ color: C.textMuted, fontSize: 11 }}>(desc – bas – mont – haut)</span></div>}
             {(() => { const lp = getLastPerf(currentBlock.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
             {/* History toggle */}
             {getAllPerfs(currentBlock.name).length > 0 && (
@@ -992,6 +1004,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
             <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{circuitEx.name}</h2>
             {circuitEx.photo && <img src={circuitEx.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
             {circuitEx.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
+            {circuitEx.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {circuitEx.tempo} <span style={{ color: C.textMuted, fontSize: 11 }}>(desc – bas – mont – haut)</span></div>}
             {(() => { const lp = getLastPerf(circuitEx.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
             {getAllPerfs(circuitEx.name).length > 0 && (
               <div style={{ marginBottom: 14 }}>
@@ -1249,7 +1262,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [buildingWorkout, setBuildingWorkout] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "" });
+  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "", carb_target: "", fat_target: "" });
   const [addingClient, setAddingClient] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [sessionLogs, setSessionLogs] = useState([]);
@@ -1281,9 +1294,9 @@ const CoachApp = ({ user, onLogout }) => {
     if (authErr) { alert("Erreur : " + authErr.message); setAddingClient(false); return; }
     const userId = authData.user?.id;
     const avatar = newClientForm.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, calories_target: parseInt(newClientForm.calories_target) || 0, protein_target: parseInt(newClientForm.protein_target) || 0, streak: 0, today_done: false, user_id: userId });
+    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, calories_target: parseInt(newClientForm.calories_target) || 0, protein_target: parseInt(newClientForm.protein_target) || 0, carb_target: parseInt(newClientForm.carb_target) || 0, fat_target: parseInt(newClientForm.fat_target) || 0, streak: 0, today_done: false, user_id: userId });
     setAddingClient(false); setShowAddClient(false);
-    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "" });
+    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "", carb_target: "", fat_target: "" });
     alert(`✅ Compte créé !\n\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
   };
 
@@ -1645,6 +1658,8 @@ const CoachApp = ({ user, onLogout }) => {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <Inp label="Calories / jour" type="number" placeholder="ex: 1800" value={newClientForm.calories_target} onChange={e => setNewClientForm({ ...newClientForm, calories_target: e.target.value })} />
                   <Inp label="Protéines / jour (g)" type="number" placeholder="ex: 100" value={newClientForm.protein_target} onChange={e => setNewClientForm({ ...newClientForm, protein_target: e.target.value })} />
+                  <Inp label="Glucides / jour (g)" type="number" placeholder="ex: 180" value={newClientForm.carb_target} onChange={e => setNewClientForm({ ...newClientForm, carb_target: e.target.value })} />
+                  <Inp label="Lipides / jour (g)" type="number" placeholder="ex: 60" value={newClientForm.fat_target} onChange={e => setNewClientForm({ ...newClientForm, fat_target: e.target.value })} />
                 </div>
               </div>
             </div>
@@ -1932,17 +1947,26 @@ const ClientApp = ({ user, onLogout }) => {
             )}
             {clientInfo.protein_target > 0 && (
               <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}>
-                <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥩 PROTÉINES</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: C.green }}>{clientInfo.protein_target}</div>
-                <div style={{ fontSize: 11, color: C.textMuted }}>grammes / jour</div>
+                <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💪 PROTÉINES</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: C.green }}>{clientInfo.protein_target}g</div>
+                <div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div>
+              </div>
+            )}
+            {clientInfo.carb_target > 0 && (
+              <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🌾 GLUCIDES</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{clientInfo.carb_target}g</div>
+                <div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div>
+              </div>
+            )}
+            {clientInfo.fat_target > 0 && (
+              <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥑 LIPIDES</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: C.pink }}>{clientInfo.fat_target}g</div>
+                <div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div>
               </div>
             )}
           </div>
-          {clientInfo.protein_target > 0 && (
-            <div style={{ marginTop: 12, padding: "10px 14px", background: C.green + "12", borderRadius: 10, fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>
-              💡 Sources de protéines : poulet, poisson, œufs, fromage blanc 0%, thon, légumineuses, tofu...
-            </div>
-          )}
         </Card>
       )}
       {daysUntil(clientInfo.next_payment) <= 7 && (
@@ -2042,8 +2066,8 @@ const LOCAL_DB = [
   {id:"l28",name:"Bar cuit",unit:"g",per100:{kcal:97,prot:19,carb:0,fat:2}},
   {id:"l29",name:"Thon mi-cuit",unit:"g",per100:{kcal:124,prot:24,carb:0,fat:3}},
   // OEUFS
-  {id:"l30",name:"Oeuf entier cuit",unit:"g",per100:{kcal:155,prot:13,carb:1,fat:11}},
-  {id:"l31",name:"Blanc d oeuf cuit",unit:"g",per100:{kcal:52,prot:11,carb:1,fat:0}},
+  {id:"l30",name:"Oeuf entier cuit",unit:"g",piece_weight:60,per100:{kcal:155,prot:13,carb:1,fat:11}},
+  {id:"l31",name:"Blanc d oeuf cuit",unit:"g",piece_weight:35,per100:{kcal:52,prot:11,carb:1,fat:0}},
   {id:"l32",name:"Omelette nature",unit:"g",per100:{kcal:154,prot:11,carb:0,fat:12}},
   // LAITIERS
   {id:"l33",name:"Fromage blanc 0%",unit:"g",per100:{kcal:46,prot:8,carb:4,fat:0}},
@@ -2119,23 +2143,23 @@ const LOCAL_DB = [
   {id:"l99",name:"Chou rouge cru",unit:"g",per100:{kcal:31,prot:1,carb:7,fat:0}},
   {id:"l100",name:"Fenouil cru",unit:"g",per100:{kcal:31,prot:1,carb:7,fat:0}},
   // FRUITS
-  {id:"l101",name:"Banane",unit:"g",per100:{kcal:89,prot:1,carb:23,fat:0}},
-  {id:"l102",name:"Pomme",unit:"g",per100:{kcal:52,prot:0,carb:14,fat:0}},
-  {id:"l103",name:"Orange",unit:"g",per100:{kcal:47,prot:1,carb:12,fat:0}},
+  {id:"l101",name:"Banane",unit:"g",piece_weight:120,per100:{kcal:89,prot:1,carb:23,fat:0}},
+  {id:"l102",name:"Pomme",unit:"g",piece_weight:150,per100:{kcal:52,prot:0,carb:14,fat:0}},
+  {id:"l103",name:"Orange",unit:"g",piece_weight:180,per100:{kcal:47,prot:1,carb:12,fat:0}},
   {id:"l104",name:"Fraises",unit:"g",per100:{kcal:32,prot:1,carb:8,fat:0}},
   {id:"l105",name:"Myrtilles",unit:"g",per100:{kcal:57,prot:1,carb:14,fat:0}},
   {id:"l106",name:"Framboises",unit:"g",per100:{kcal:52,prot:1,carb:12,fat:1}},
   {id:"l107",name:"Mangue",unit:"g",per100:{kcal:60,prot:1,carb:15,fat:0}},
   {id:"l108",name:"Ananas",unit:"g",per100:{kcal:50,prot:1,carb:13,fat:0}},
-  {id:"l109",name:"Kiwi",unit:"g",per100:{kcal:61,prot:1,carb:15,fat:1}},
+  {id:"l109",name:"Kiwi",unit:"g",piece_weight:70,per100:{kcal:61,prot:1,carb:15,fat:1}},
   {id:"l110",name:"Raisin",unit:"g",per100:{kcal:69,prot:1,carb:18,fat:0}},
   {id:"l111",name:"Poire",unit:"g",per100:{kcal:57,prot:0,carb:15,fat:0}},
   {id:"l112",name:"Peche",unit:"g",per100:{kcal:39,prot:1,carb:10,fat:0}},
   {id:"l113",name:"Melon",unit:"g",per100:{kcal:34,prot:1,carb:8,fat:0}},
   {id:"l114",name:"Pasteque",unit:"g",per100:{kcal:30,prot:1,carb:8,fat:0}},
   {id:"l115",name:"Cerise",unit:"g",per100:{kcal:63,prot:1,carb:16,fat:0}},
-  {id:"l116",name:"Abricot",unit:"g",per100:{kcal:48,prot:1,carb:11,fat:0}},
-  {id:"l117",name:"Prune",unit:"g",per100:{kcal:46,prot:1,carb:11,fat:0}},
+  {id:"l116",name:"Abricot",unit:"g",piece_weight:40,per100:{kcal:48,prot:1,carb:11,fat:0}},
+  {id:"l117",name:"Prune",unit:"g",piece_weight:50,per100:{kcal:46,prot:1,carb:11,fat:0}},
   // MATIERES GRASSES
   {id:"l118",name:"Huile d olive",unit:"g",per100:{kcal:884,prot:0,carb:0,fat:100}},
   {id:"l119",name:"Huile de coco",unit:"g",per100:{kcal:862,prot:0,carb:0,fat:100}},
@@ -2174,7 +2198,7 @@ const LOCAL_DB = [
   {id:"l147",name:"Confiture allegee",unit:"g",per100:{kcal:120,prot:0,carb:30,fat:0}},
   {id:"l148",name:"Sirop d erable",unit:"g",per100:{kcal:260,prot:0,carb:67,fat:0}},
   {id:"l149",name:"Compote pommes sans sucre",unit:"g",per100:{kcal:47,prot:0,carb:12,fat:0}},
-  {id:"l150",name:"Barre proteinee",unit:"g",per100:{kcal:380,prot:30,carb:40,fat:10}},
+  {id:"l150",name:"Barre proteinee",unit:"g",piece_weight:60,per100:{kcal:380,prot:30,carb:40,fat:10}},
   {id:"l151",name:"Yaourt aux fruits allege",unit:"g",per100:{kcal:74,prot:4,carb:13,fat:1}},
   {id:"l152",name:"Creme fraiche allegee",unit:"g",per100:{kcal:113,prot:3,carb:4,fat:10}},
   {id:"l153",name:"Creme fraiche entiere",unit:"g",per100:{kcal:292,prot:2,carb:3,fat:30}},
@@ -2226,12 +2250,16 @@ const FoodModal = ({ onAdd, onClose }) => {
   const [offLoading, setOL] = useState(false);
   const [selected, setSel] = useState(null);
   const [grams, setGrams] = useState("");
-  const [pieceMode, setPieceMode] = useState(false);
-  const [pieceWeight, setPieceWeight] = useState("");
   const [pieceCount, setPieceCount] = useState("1");
   const [meal, setMeal] = useState(0);
   const [manual, setManual] = useState({ name: "", kcal: "", prot: "", carb: "", fat: "" });
   const debRef = useRef(null);
+
+  // Auto piece mode if food has piece_weight
+  const isPiece = selected && selected.piece_weight;
+  const effectiveGrams = isPiece
+    ? (selected.piece_weight * Number(pieceCount || 1))
+    : Number(grams);
 
   useEffect(() => {
     if (tab !== "search") return;
@@ -2248,11 +2276,6 @@ const FoodModal = ({ onAdd, onClose }) => {
     }, 700);
   }, [query, tab]);
 
-  // Compute effective grams
-  const effectiveGrams = pieceMode && pieceWeight && pieceCount
-    ? Number(pieceWeight) * Number(pieceCount)
-    : Number(grams);
-
   const preview = selected && effectiveGrams > 0 ? calcMacros(selected.per100, effectiveGrams) : null;
 
   const handleAdd = () => {
@@ -2261,7 +2284,9 @@ const FoodModal = ({ onAdd, onClose }) => {
       onAdd({ name: manual.name, grams: 100, meal_idx: meal, manual_macros: { kcal: +manual.kcal, prot: +manual.prot || 0, carb: +manual.carb || 0, fat: +manual.fat || 0 }, source: "manual" });
     } else {
       if (!selected || effectiveGrams <= 0) return;
-      const label = pieceMode ? `${pieceCount} pièce${Number(pieceCount) > 1 ? "s" : ""}` : `${effectiveGrams}g`;
+      const label = isPiece
+        ? `${pieceCount} pièce${Number(pieceCount) > 1 ? "s" : ""}`
+        : `${effectiveGrams}g`;
       onAdd({ name: selected.name, food_id: selected.id, grams: effectiveGrams, meal_idx: meal, per100: selected.per100, source: selected.source || "local", quantity_label: label });
     }
     onClose();
@@ -2318,30 +2343,20 @@ const FoodModal = ({ onAdd, onClose }) => {
                 {selected.brand && <div style={{ color: C.textMuted, fontSize: 11 }}>{selected.brand}</div>}
                 <div style={{ color: C.textMuted, fontSize: 11, marginTop: 2 }}>Pour 100g — {selected.per100.kcal} kcal · 💪 {selected.per100.prot}g</div>
               </div>
-              <label style={{ fontSize: 11, color: C.textMuted, display: "block", marginBottom: 5 }}>QUANTITÉ</label>
-              {/* Mode toggle */}
-              <div style={{ display: "flex", background: "#111", borderRadius: 10, padding: 3, marginBottom: 10 }}>
-                <button onClick={() => setPieceMode(false)} style={{ flex: 1, padding: "7px", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "none", background: !pieceMode ? C.pink : "transparent", color: !pieceMode ? C.black : C.textMuted, cursor: "pointer" }}>En grammes</button>
-                <button onClick={() => setPieceMode(true)} style={{ flex: 1, padding: "7px", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "none", background: pieceMode ? C.pink : "transparent", color: pieceMode ? C.black : C.textMuted, cursor: "pointer" }}>À la pièce</button>
-              </div>
-              {!pieceMode ? (
-                <input type="number" value={grams} onChange={e => setGrams(e.target.value)} placeholder="Ex : 150" autoFocus style={{ ...inputSt, fontSize: 20, marginBottom: 8 }} />
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
-                  <div>
-                    <label style={{ fontSize: 10, color: C.textMuted, display: "block", marginBottom: 4 }}>POIDS D'UNE PIÈCE (g)</label>
-                    <input type="number" value={pieceWeight} onChange={e => setPieceWeight(e.target.value)} placeholder="Ex: 120 (1 banane ≈ 120g)" autoFocus style={{ ...inputSt, fontSize: 16 }} />
+              <label style={{ fontSize: 11, color: C.textMuted, display: "block", marginBottom: 8 }}>
+                {isPiece ? `NOMBRE DE PIÈCES (≈ ${selected.piece_weight}g / pièce)` : "QUANTITÉ (g)"}
+              </label>
+              {isPiece ? (
+                <div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                    <button onClick={() => setPieceCount(c => String(Math.max(1, Number(c) - 1)))} style={{ width: 44, height: 44, borderRadius: "50%", background: "#222", border: "none", color: C.white, fontSize: 22, cursor: "pointer", flexShrink: 0 }}>−</button>
+                    <input type="number" value={pieceCount} onChange={e => setPieceCount(e.target.value)} style={{ ...inputSt, fontSize: 24, textAlign: "center", fontWeight: 900 }} autoFocus />
+                    <button onClick={() => setPieceCount(c => String(Number(c) + 1))} style={{ width: 44, height: 44, borderRadius: "50%", background: C.pink, border: "none", color: C.black, fontSize: 22, cursor: "pointer", flexShrink: 0 }}>+</button>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 10, color: C.textMuted, display: "block", marginBottom: 4 }}>NOMBRE DE PIÈCES</label>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <button onClick={() => setPieceCount(c => String(Math.max(1, Number(c) - 1)))} style={{ width: 36, height: 36, borderRadius: "50%", background: "#222", border: "none", color: C.white, fontSize: 20, cursor: "pointer" }}>−</button>
-                      <input type="number" value={pieceCount} onChange={e => setPieceCount(e.target.value)} style={{ ...inputSt, fontSize: 20, textAlign: "center", flex: 1 }} />
-                      <button onClick={() => setPieceCount(c => String(Number(c) + 1))} style={{ width: 36, height: 36, borderRadius: "50%", background: C.pink, border: "none", color: C.black, fontSize: 20, cursor: "pointer" }}>+</button>
-                    </div>
-                  </div>
-                  {pieceWeight && <div style={{ fontSize: 11, color: C.textMuted, textAlign: "center" }}>= {Number(pieceWeight) * Number(pieceCount || 1)}g au total</div>}
+                  <div style={{ fontSize: 11, color: C.textMuted, textAlign: "center", marginBottom: 8 }}>= {selected.piece_weight * Number(pieceCount || 1)}g au total</div>
                 </div>
+              ) : (
+                <input type="number" value={grams} onChange={e => setGrams(e.target.value)} placeholder="Ex : 150" autoFocus style={{ ...inputSt, fontSize: 20, marginBottom: 8 }} />
               )}
               {preview && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
                 {[["⚡", `${preview.kcal} kcal`, C.yellow], ["💪", `${preview.prot}g prot`, C.green], ["🌾", `${preview.carb}g gluc`, C.blue], ["🥑", `${preview.fat}g lip`, C.pink]].map(([ico, val, color]) => (
