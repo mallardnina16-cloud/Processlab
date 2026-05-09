@@ -267,9 +267,12 @@ const useWorkouts = () => {
   const [loading, setLoading] = useState(true);
   const fetch = async () => {
     setLoading(true);
-    const { data: ws } = await supabase.from("workouts").select("*").order("created_at");
+    // Fetch workouts and exercises in parallel
+    const [{ data: ws }, { data: exs }] = await Promise.all([
+      supabase.from("workouts").select("*").order("created_at"),
+      supabase.from("exercises").select("*").order("position"),
+    ]);
     if (!ws) { setLoading(false); return; }
-    const { data: exs } = await supabase.from("exercises").select("*").order("position");
     setWorkouts(ws.map(w => ({ ...w, exercises: (exs || []).filter(e => e.workout_id === w.id) })));
     setLoading(false);
   };
@@ -314,7 +317,7 @@ const useClientData = (clientId) => {
       supabase.from("entries").select("*").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("weights").select("*").eq("client_id", clientId).order("date"),
       supabase.from("measurements").select("*").eq("client_id", clientId).order("date"),
-      supabase.from("client_workouts").select("*, workouts(*, exercises(*))").eq("client_id", clientId),
+      supabase.from("client_workouts").select("*, workouts(*, blocks, exercises(*))").eq("client_id", clientId),
       supabase.from("progress_photos").select("*").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("payments").select("*").eq("client_id", clientId).order("paid_date", { ascending: false }),
     ]);
@@ -1709,9 +1712,9 @@ const ClientApp = ({ user, onLogout }) => {
   }, [clientId]);
 
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientId);
-  const { workouts } = useWorkouts();
-
-  const myWorkouts = workouts.filter(w => assignedWorkouts.find(a => a.workout_id === w.id));
+  const { workouts, loading: loadingWorkouts } = useWorkouts();
+  const workoutsReady = !loading && !loadingWorkouts;
+  const myWorkouts = workoutsReady ? workouts.filter(w => assignedWorkouts.find(a => a.workout_id === w.id)) : [];
   const todayEntry = entries.find(e => e.date === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
   const lastWeight = weights[weights.length - 1];
@@ -1869,7 +1872,7 @@ const ClientApp = ({ user, onLogout }) => {
           )}
         </Card>
 
-        {loading ? (
+        {!workoutsReady ? (
           <div style={{ marginBottom: 14 }}><Spinner /></div>
         ) : myWorkouts.length > 0 && (
           <div style={{ marginBottom: 14 }}>
@@ -2246,6 +2249,7 @@ const FoodModal = ({ onAdd, onClose }) => {
   const [tab, setTab] = useState("search");
   const [query, setQuery] = useState("");
   const [localRes, setLR] = useState([]);
+  const [customFoods, setCustomFoods] = useState([]);
   const [offRes, setOR] = useState([]);
   const [offLoading, setOL] = useState(false);
   const [selected, setSel] = useState(null);
@@ -2254,6 +2258,41 @@ const FoodModal = ({ onAdd, onClose }) => {
   const [meal, setMeal] = useState(0);
   const [manual, setManual] = useState({ name: "", kcal: "", prot: "", carb: "", fat: "" });
   const debRef = useRef(null);
+
+  // Load custom foods on mount
+  useEffect(() => {
+    supabase.from("custom_foods").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+      setCustomFoods((data || []).map(f => ({
+        id: "custom_" + f.id,
+        dbId: f.id,
+        name: f.name,
+        brand: f.brand || "",
+        unit: f.unit || "g",
+        piece_weight: f.piece_weight || null,
+        per100: { kcal: f.kcal_100, prot: f.prot_100, carb: f.carb_100, fat: f.fat_100 },
+        source: "custom",
+      })));
+    });
+  }, []);
+
+  const saveToCustomFoods = async (food) => {
+    // Don't save if already in LOCAL_DB or already custom
+    if (food.source === "local" || food.source === "custom") return;
+    // Check if already saved (by name)
+    const exists = customFoods.find(f => f.name.toLowerCase() === food.name.toLowerCase());
+    if (exists) return;
+    await supabase.from("custom_foods").insert([{
+      name: food.name,
+      brand: food.brand || "",
+      unit: food.unit || "g",
+      piece_weight: food.piece_weight || null,
+      kcal_100: food.per100.kcal,
+      prot_100: food.per100.prot,
+      carb_100: food.per100.carb,
+      fat_100: food.per100.fat,
+      source: food.source || "manual",
+    }]);
+  };
 
   // Auto piece mode if food has piece_weight
   const isPiece = selected && selected.piece_weight;
@@ -2265,7 +2304,10 @@ const FoodModal = ({ onAdd, onClose }) => {
     if (tab !== "search") return;
     const q = query.trim().toLowerCase();
     if (q.length < 2) { setLR([]); setOR([]); return; }
-    setLR(LOCAL_DB.filter(f => f.name.toLowerCase().includes(q)).slice(0, 5));
+    // Search local DB + custom foods
+    const localMatches = LOCAL_DB.filter(f => f.name.toLowerCase().includes(q)).slice(0, 4);
+    const customMatches = customFoods.filter(f => f.name.toLowerCase().includes(q) && !localMatches.find(l => l.name.toLowerCase() === f.name.toLowerCase())).slice(0, 4);
+    setLR([...localMatches, ...customMatches]);
     clearTimeout(debRef.current); setOL(true);
     debRef.current = setTimeout(async () => {
       try {
@@ -2274,16 +2316,27 @@ const FoodModal = ({ onAdd, onClose }) => {
         setOR((data.products || []).filter(p => p.product_name_fr || p.product_name).map(parseOFF).filter(p => p.per100.kcal > 0).slice(0, 7));
       } catch { setOR([]); } finally { setOL(false); }
     }, 700);
-  }, [query, tab]);
+  }, [query, tab, customFoods]);
 
   const preview = selected && effectiveGrams > 0 ? calcMacros(selected.per100, effectiveGrams) : null;
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (tab === "manual") {
       if (!manual.name || !manual.kcal) return;
+      // Save manual food to custom_foods
+      const { data } = await supabase.from("custom_foods").insert([{
+        name: manual.name,
+        kcal_100: +manual.kcal,
+        prot_100: +manual.prot || 0,
+        carb_100: +manual.carb || 0,
+        fat_100: +manual.fat || 0,
+        source: "manual",
+      }]).select().single();
       onAdd({ name: manual.name, grams: 100, meal_idx: meal, manual_macros: { kcal: +manual.kcal, prot: +manual.prot || 0, carb: +manual.carb || 0, fat: +manual.fat || 0 }, source: "manual" });
     } else {
       if (!selected || effectiveGrams <= 0) return;
+      // Save OFF food to custom_foods for future use
+      await saveToCustomFoods(selected);
       const label = isPiece
         ? `${pieceCount} pièce${Number(pieceCount) > 1 ? "s" : ""}`
         : `${effectiveGrams}g`;
@@ -2293,15 +2346,18 @@ const FoodModal = ({ onAdd, onClose }) => {
   };
 
   const FoodItem = ({ food }) => (
-    <div onClick={() => { setSel(food); setGrams(""); }} style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: "transparent" }}
+    <div onClick={() => { setSel(food); setGrams(""); setPieceCount("1"); }} style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: "transparent" }}
       onMouseEnter={e => e.currentTarget.style.background = "#222"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
       {food.image && <img src={food.image} alt="" style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 6, background: "#fff", flexShrink: 0 }} onError={e => e.target.style.display = "none"} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: C.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{food.name}</div>
         {food.brand && <div style={{ color: C.textMuted, fontSize: 10 }}>{food.brand}</div>}
-        <div style={{ color: C.textMuted, fontSize: 10 }}>{food.per100.kcal} kcal · 💪 {food.per100.prot}g prot</div>
+        <div style={{ color: C.textMuted, fontSize: 10 }}>{food.per100.kcal} kcal · 💪 {food.per100.prot}g prot{food.piece_weight ? ` · 🔢 ${food.piece_weight}g/pièce` : ""}</div>
       </div>
-      <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 6, fontWeight: 700, background: food.source === "off" ? C.blue + "22" : C.purple + "22", color: food.source === "off" ? C.blue : C.purple }}>{food.source === "off" ? "OFF" : "BASE"}</span>
+      <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 6, fontWeight: 700, flexShrink: 0,
+        background: food.source === "off" ? C.blue + "22" : food.source === "custom" ? C.green + "22" : C.purple + "22",
+        color: food.source === "off" ? C.blue : food.source === "custom" ? C.green : C.purple
+      }}>{food.source === "off" ? "OFF" : food.source === "custom" ? "PERSO" : "BASE"}</span>
     </div>
   );
 
@@ -2330,7 +2386,10 @@ const FoodModal = ({ onAdd, onClose }) => {
           {tab === "search" && !selected && (
             <>
               <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Poulet, skyr, oeufs…" style={{ ...inputSt, marginBottom: 10 }} autoFocus />
-              {localRes.length > 0 && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 9, color: C.textMuted, letterSpacing: 1, marginBottom: 6 }}>BASE LOCALE</div><div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{localRes.map(f => <FoodItem key={f.id} food={f} />)}</div></div>}
+              {localRes.length > 0 && <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 9, color: C.textMuted, letterSpacing: 1, marginBottom: 6, textTransform: "uppercase" }}>Base d'aliments</div>
+                <div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{localRes.map(f => <FoodItem key={f.id} food={f} />)}</div>
+              </div>}
               {query.length >= 2 && <div style={{ marginBottom: 14 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><div style={{ fontSize: 9, color: C.textMuted, letterSpacing: 1 }}>OPEN FOOD FACTS</div>{offLoading && <div style={{ width: 12, height: 12, border: `2px solid ${C.border}`, borderTopColor: C.blue, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />}</div>{offRes.length > 0 ? <div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{offRes.map(f => <FoodItem key={f.id} food={f} />)}</div> : !offLoading && <div style={{ color: C.textMuted, fontSize: 12, textAlign: "center", padding: "8px 0" }}>Aucun résultat</div>}</div>}
               {query.length < 2 && <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted, fontSize: 12 }}><div style={{ fontSize: 26, marginBottom: 6 }}>🔍</div>Tape au moins 2 lettres</div>}
             </>
