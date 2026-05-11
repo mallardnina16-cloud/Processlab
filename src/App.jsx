@@ -1712,9 +1712,12 @@ const ClientApp = ({ user, onLogout }) => {
   }, [clientId]);
 
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientId);
-  const { workouts, loading: loadingWorkouts } = useWorkouts();
-  const workoutsReady = !loading && !loadingWorkouts;
-  const myWorkouts = workoutsReady ? workouts.filter(w => assignedWorkouts.find(a => a.workout_id === w.id)) : [];
+
+  // myWorkouts comes directly from assignedWorkouts — no second hook needed
+  const myWorkouts = assignedWorkouts
+    .filter(a => a.workout)
+    .map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
+
   const todayEntry = entries.find(e => e.date === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
   const lastWeight = weights[weights.length - 1];
@@ -1872,14 +1875,13 @@ const ClientApp = ({ user, onLogout }) => {
           )}
         </Card>
 
-        {!workoutsReady ? (
+        {loading ? (
           <div style={{ marginBottom: 14 }}><Spinner /></div>
         ) : myWorkouts.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>💪 Mes entraînements</div>
             {myWorkouts.map(w => {
-              const assignment = assignedWorkouts.find(a => a.workout_id === w.id);
-              const scheduledDate = assignment?.scheduled_date;
+              const scheduledDate = w.scheduledDate;
               const isToday = scheduledDate === today;
               const isPast = scheduledDate && scheduledDate < today;
               const myLogs = sessionLogs.filter(l => l.workout_id === w.id);
