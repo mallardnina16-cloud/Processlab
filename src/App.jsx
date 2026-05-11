@@ -674,6 +674,186 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
   );
 };
 
+// ══════════════════════════════════════════════════════════════════════════════
+// EXERCISE CATALOGUE — with GIFs from ExerciseDB free API
+// ══════════════════════════════════════════════════════════════════════════════
+const MUSCLE_GROUPS = [
+  { id: "all", label: "Tous" },
+  { id: "glutes", label: "Fessiers" },
+  { id: "hamstrings", label: "Ischio-jambiers" },
+  { id: "quadriceps", label: "Quadriceps" },
+  { id: "back", label: "Dos" },
+  { id: "chest", label: "Pectoraux" },
+  { id: "shoulders", label: "Épaules" },
+  { id: "upper arms", label: "Bras" },
+  { id: "lower arms", label: "Avant-bras" },
+  { id: "abs", label: "Abdos" },
+  { id: "calves", label: "Mollets" },
+  { id: "adductors", label: "Adducteurs" },
+];
+
+const EQUIPMENT_GROUPS = [
+  { id: "all", label: "Tout" },
+  { id: "body weight", label: "Poids du corps" },
+  { id: "dumbbell", label: "Haltères" },
+  { id: "barbell", label: "Barre" },
+  { id: "cable", label: "Câble" },
+  { id: "machine", label: "Machine" },
+  { id: "band", label: "Élastique" },
+  { id: "kettlebell", label: "Kettlebell" },
+  { id: "leverage machine", label: "Appareil guidé" },
+];
+
+const ExerciseCatalogue = ({ onSelect, onClose }) => {
+  const [exercises, setExercises] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [query, setQuery] = useState("");
+  const [muscle, setMuscle] = useState("all");
+  const [equipment, setEquipment] = useState("all");
+  const [selectedEx, setSelectedEx] = useState(null);
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 20;
+
+  useEffect(() => {
+    setLoading(true);
+    setError(false);
+    setPage(0);
+    const buildUrl = () => {
+      if (muscle !== "all") return `https://exercisedb.dev/api/v1/exercises/target/${encodeURIComponent(muscle)}?limit=200&offset=0`;
+      if (equipment !== "all") return `https://exercisedb.dev/api/v1/exercises/equipment/${encodeURIComponent(equipment)}?limit=200&offset=0`;
+      return `https://exercisedb.dev/api/v1/exercises?limit=200&offset=0`;
+    };
+    fetch(buildUrl())
+      .then(r => r.json())
+      .then(data => { setExercises(Array.isArray(data) ? data : data.data || []); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, [muscle, equipment]);
+
+  const filtered = exercises.filter(e =>
+    query.length < 2 || e.name.toLowerCase().includes(query.toLowerCase())
+  );
+  const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+
+  const handleSelect = (ex) => {
+    onSelect({
+      name: ex.name.charAt(0).toUpperCase() + ex.name.slice(1),
+      photo: ex.gifUrl || null,
+      note: ex.instructions ? ex.instructions.slice(0, 2).join(" ") : "",
+    });
+    onClose();
+  };
+
+  if (selectedEx) return (
+    <div style={{ position: "fixed", inset: 0, background: C.black, zIndex: 400, overflowY: "auto", padding: 20, fontFamily: "'Helvetica Neue', Arial, sans-serif", color: C.white }}>
+      <button onClick={() => setSelectedEx(null)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 16, padding: 0 }}>← Retour</button>
+      <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 4, textTransform: "capitalize" }}>{selectedEx.name}</h2>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+        <span style={{ background: C.pink + "22", color: C.pink, borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>💪 {selectedEx.target}</span>
+        <span style={{ background: C.blue + "22", color: C.blue, borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>🏋️ {selectedEx.equipment}</span>
+      </div>
+      {selectedEx.gifUrl && (
+        <div style={{ borderRadius: 16, overflow: "hidden", marginBottom: 16, background: "#fff", textAlign: "center" }}>
+          <img src={selectedEx.gifUrl} alt={selectedEx.name} style={{ width: "100%", maxHeight: 300, objectFit: "contain" }} />
+        </div>
+      )}
+      {selectedEx.secondaryMuscles?.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>MUSCLES SECONDAIRES</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {selectedEx.secondaryMuscles.map(m => <span key={m} style={{ background: C.purple + "22", color: C.purple, borderRadius: 99, padding: "2px 8px", fontSize: 11 }}>{m}</span>)}
+          </div>
+        </div>
+      )}
+      {selectedEx.instructions?.length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>INSTRUCTIONS</div>
+          {selectedEx.instructions.map((inst, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+              <span style={{ width: 20, height: 20, borderRadius: "50%", background: C.pink + "22", color: C.pink, fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+              <span style={{ fontSize: 13, lineHeight: 1.5, color: C.textMuted }}>{inst}</span>
+            </div>
+          ))}
+        </Card>
+      )}
+      <Btn onClick={() => handleSelect(selectedEx)} style={{ marginBottom: 20 }}>
+        ✅ Ajouter cet exercice à la séance
+      </Btn>
+    </div>
+  );
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: C.black, zIndex: 400, display: "flex", flexDirection: "column", fontFamily: "'Helvetica Neue', Arial, sans-serif", color: C.white }}>
+      {/* Header */}
+      <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>📚 Catalogue d'exercices</h2>
+          <button onClick={onClose} style={{ background: "#222", border: "none", color: C.textMuted, fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: "50%" }}>✕</button>
+        </div>
+        {/* Search */}
+        <input value={query} onChange={e => { setQuery(e.target.value); setPage(0); }} placeholder="Rechercher un exercice..." style={{ ...inputSt, marginBottom: 10 }} />
+        {/* Muscle filter */}
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 6 }}>
+          {MUSCLE_GROUPS.map(g => (
+            <button key={g.id} onClick={() => { setMuscle(g.id); setEquipment("all"); setPage(0); }} style={{ padding: "5px 12px", borderRadius: 99, border: `1.5px solid ${muscle === g.id ? C.pink : C.border}`, background: muscle === g.id ? C.pink + "22" : "transparent", color: muscle === g.id ? C.pink : C.textMuted, fontWeight: muscle === g.id ? 700 : 400, fontSize: 11, cursor: "pointer", flexShrink: 0 }}>{g.label}</button>
+          ))}
+        </div>
+        {/* Equipment filter */}
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+          {EQUIPMENT_GROUPS.map(g => (
+            <button key={g.id} onClick={() => { setEquipment(g.id); setMuscle("all"); setPage(0); }} style={{ padding: "5px 12px", borderRadius: 99, border: `1.5px solid ${equipment === g.id ? C.blue : C.border}`, background: equipment === g.id ? C.blue + "22" : "transparent", color: equipment === g.id ? C.blue : C.textMuted, fontWeight: equipment === g.id ? 700 : 400, fontSize: 11, cursor: "pointer", flexShrink: 0 }}>{g.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Results */}
+      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        {loading ? <Spinner /> : error ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: C.textMuted }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>⚠️</div>
+            <div style={{ fontSize: 14, marginBottom: 6 }}>Impossible de charger les exercices</div>
+            <div style={{ fontSize: 12 }}>Vérifie ta connexion internet</div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 0", color: C.textMuted }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+            <div>Aucun exercice trouvé</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 12 }}>{filtered.length} exercice{filtered.length > 1 ? "s" : ""}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {paginated.map(ex => (
+                <div key={ex.id} onClick={() => setSelectedEx(ex)} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", cursor: "pointer" }}>
+                  <div style={{ background: "#fff", height: 130, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                    <img src={ex.gifUrl} alt={ex.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
+                  </div>
+                  <div style={{ padding: "10px 10px 12px" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3, marginBottom: 6, textTransform: "capitalize" }}>{ex.name}</div>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      <span style={{ background: C.pink + "22", color: C.pink, borderRadius: 99, padding: "2px 7px", fontSize: 9, fontWeight: 700 }}>{ex.target}</span>
+                      <span style={{ background: "#222", color: C.textMuted, borderRadius: 99, padding: "2px 7px", fontSize: 9 }}>{ex.equipment}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 20, paddingBottom: 20 }}>
+                <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} style={{ padding: "8px 16px", borderRadius: 10, background: "#222", border: "none", color: page === 0 ? C.border : C.white, cursor: page === 0 ? "default" : "pointer" }}>← Préc.</button>
+                <span style={{ padding: "8px 16px", color: C.textMuted, fontSize: 13 }}>{page + 1} / {totalPages}</span>
+                <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1} style={{ padding: "8px 16px", borderRadius: 10, background: "#222", border: "none", color: page === totalPages - 1 ? C.border : C.white, cursor: page === totalPages - 1 ? "default" : "pointer" }}>Suiv. →</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
   const [name, setName] = useState(workout?.name || "");
   const [desc, setDesc] = useState(workout?.description || "");
@@ -684,6 +864,8 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
   };
   const [blocks, setBlocks] = useState(initBlocks);
   const [saving, setSaving] = useState(false);
+  const [showCatalogue, setShowCatalogue] = useState(false);
+  const [catalogueTarget, setCatalogueTarget] = useState(null); // { blockId, exId } or null for new block
 
   const addSimple = () => setBlocks(b => [...b, newSimpleEx()]);
   const addCircuit = () => setBlocks(b => [...b, { ...newCircuit(), id: Date.now().toString() }]);
@@ -706,8 +888,21 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
     setSaving(false);
   };
 
+  const handleCatalogueSelect = (exData) => {
+    if (catalogueTarget?.blockId) {
+      // Adding to circuit
+      updCircuitEx(catalogueTarget.blockId, catalogueTarget.exId, { name: exData.name, photo: exData.photo, note: exData.note });
+    } else {
+      // Adding as new simple exercise
+      const newEx = { ...newSimpleEx(), name: exData.name, photo: exData.photo, note: exData.note };
+      setBlocks(b => [...b, newEx]);
+    }
+    setCatalogueTarget(null);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {showCatalogue && <ExerciseCatalogue onSelect={handleCatalogueSelect} onClose={() => { setShowCatalogue(false); setCatalogueTarget(null); }} />}
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <button onClick={onCancel} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20, padding: 0 }}>←</button>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>{workout ? "Modifier" : "Nouvelle séance"}</h2>
@@ -778,9 +973,14 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
 
       {blocks.length === 0 && <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted }}>Ajoute des exercices ou un circuit ci-dessous</div>}
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={addSimple} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.pink}55`, background: "transparent", color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Exercice simple</button>
-        <button onClick={addCircuit} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.purple}55`, background: "transparent", color: C.purple, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🔄 + Circuit</button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button onClick={() => { setShowCatalogue(true); setCatalogueTarget(null); }} style={{ width: "100%", padding: "13px", borderRadius: 12, border: `1.5px solid ${C.pink}`, background: C.pink + "15", color: C.pink, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+          📚 Choisir dans le catalogue (avec GIFs)
+        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={addSimple} style={{ flex: 1, padding: "10px", borderRadius: 12, border: `1.5px dashed ${C.pink}55`, background: "transparent", color: C.textMuted, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>+ Exercice manuel</button>
+          <button onClick={addCircuit} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.purple}55`, background: "transparent", color: C.purple, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🔄 + Circuit</button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 10, paddingBottom: 30 }}>
