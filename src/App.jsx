@@ -674,9 +674,78 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
   );
 };
 
-// ══════════════════════════════════════════════════════════════════════════════
-// EXERCISE CATALOGUE — with GIFs from ExerciseDB free API
-// ══════════════════════════════════════════════════════════════════════════════
+// Base d'exercices embarquée - GIFs hébergés sur ExerciseDB GitHub
+const EXERCISE_DB = [
+  // FESSIERS
+  {id:"e1",name:"Hip Thrust",target:"glutes",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/RILlXhOKbxZGLO",instructions:["Assieds-toi dos contre un banc, barre sur les hanches","Pousse les hanches vers le haut en contractant les fessiers","Redescends lentement"]},
+  {id:"e2",name:"Glute Bridge",target:"glutes",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/YLQfUkVVmrj3Nt",instructions:["Allongé sur le dos, pieds à plat","Pousse les hanches vers le haut","Contracte les fessiers en haut"]},
+  {id:"e3",name:"Romanian Deadlift",target:"glutes",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/A1jJhVHKUCCCBD",instructions:["Debout, barre en main","Descends la barre le long des jambes en gardant le dos droit","Pousse les hanches vers l'arrière"]},
+  {id:"e4",name:"Sumo Squat",target:"glutes",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/K4IFXAJLcK8T95",instructions:["Pieds écartés, orteils vers l'extérieur","Descends en gardant le buste droit","Pousse sur les talons pour remonter"]},
+  {id:"e5",name:"Cable Kickback",target:"glutes",equipment:"cable",gifUrl:"https://v2.exercisedb.io/image/0pkFYnfKHGhEPN",instructions:["Attache la cheville au câble","Pousse la jambe vers l'arrière","Contrôle le retour"]},
+  {id:"e6",name:"Step Up",target:"glutes",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/PFNW5JFdLqW7tL",instructions:["Monte sur une box avec un pied","Pousse sur le talon pour monter","Redescends lentement"]},
+  {id:"e7",name:"Donkey Kick",target:"glutes",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/OGYfMBbpYm4bEE",instructions:["À quatre pattes","Pousse un genou vers le haut et l'arrière","Contracte le fessier en haut"]},
+  {id:"e8",name:"Fire Hydrant",target:"glutes",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/M9e4rrYcNqBrCs",instructions:["À quatre pattes","Lève la jambe sur le côté à 90°","Contrôle le retour"]},
+  // ISCHIO-JAMBIERS
+  {id:"e9",name:"Lying Leg Curl",target:"hamstrings",equipment:"machine",gifUrl:"https://v2.exercisedb.io/image/7B0jGt2R4XWKUV",instructions:["Allongé ventre sur la machine","Fléchis les genoux pour ramener les talons","Redescends lentement"]},
+  {id:"e10",name:"Seated Leg Curl",target:"hamstrings",equipment:"machine",gifUrl:"https://v2.exercisedb.io/image/bL3zCNFXkxBCHy",instructions:["Assis sur la machine","Fléchis les genoux","Contrôle le retour"]},
+  {id:"e11",name:"Stiff Leg Deadlift",target:"hamstrings",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/5f1dMQrDOvWibl",instructions:["Barre en main, jambes légèrement fléchies","Descends en gardant le dos droit","Pousse les hanches vers l'arrière"]},
+  {id:"e12",name:"Nordic Curl",target:"hamstrings",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/Ob6oHxA2nkGIHi",instructions:["Genoux au sol, chevilles bloquées","Descends lentement en avant","Utilise les ischio pour freiner"]},
+  // QUADRICEPS
+  {id:"e13",name:"Back Squat",target:"quadriceps",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/iAP1pPV1P36uMI",instructions:["Barre sur les trapèzes","Descends jusqu'à ce que les cuisses soient parallèles","Pousse sur les talons"]},
+  {id:"e14",name:"Leg Press",target:"quadriceps",equipment:"machine",gifUrl:"https://v2.exercisedb.io/image/TkFObOHBGWPuBu",instructions:["Assis sur la machine, pieds à largeur d'épaules","Pousse la plateforme","Contrôle le retour sans verrouiller les genoux"]},
+  {id:"e15",name:"Leg Extension",target:"quadriceps",equipment:"machine",gifUrl:"https://v2.exercisedb.io/image/RMF7e4SMbj88Cc",instructions:["Assis, chevilles sous le coussin","Étends les jambes","Redescends lentement"]},
+  {id:"e16",name:"Bulgarian Split Squat",target:"quadriceps",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/YxgHoHvvY8J6jG",instructions:["Pied arrière sur un banc","Descends le genou arrière vers le sol","Pousse sur le talon avant"]},
+  {id:"e17",name:"Walking Lunge",target:"quadriceps",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/LFDIINDinE0uNo",instructions:["Fente avant en marchant","Genou avant à 90°","Alterne les jambes"]},
+  // DOS
+  {id:"e18",name:"Lat Pulldown",target:"back",equipment:"cable",gifUrl:"https://v2.exercisedb.io/image/Yb0RBQNLVT6LGS",instructions:["Assis à la machine, prise large","Tire la barre vers la poitrine","Contrôle le retour"]},
+  {id:"e19",name:"Seated Cable Row",target:"back",equipment:"cable",gifUrl:"https://v2.exercisedb.io/image/fQYgLKAfFzJGFB",instructions:["Assis, pieds sur les supports","Tire la poignée vers le ventre","Écarte les omoplates"]},
+  {id:"e20",name:"Bent Over Row",target:"back",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/0jMUkfJZFEUUFh",instructions:["Incliné en avant, dos droit","Tire la barre vers le nombril","Serre les omoplates"]},
+  {id:"e21",name:"Pull Up",target:"back",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/YoFP9DXQF1qnG4",instructions:["Suspendu à la barre","Tire jusqu'à ce que le menton dépasse la barre","Redescends lentement"]},
+  {id:"e22",name:"TRX Row",target:"back",equipment:"band",gifUrl:"https://v2.exercisedb.io/image/z0aSHJH4-Tgvb2",instructions:["Sangle TRX en main, corps incliné","Tire le corps vers les mains","Serre les omoplates"]},
+  {id:"e23",name:"Dumbbell Row",target:"back",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/8l3-9m7IcEgjnc",instructions:["Un genou sur un banc","Tire l'haltère vers la hanche","Contrôle le retour"]},
+  // PECTORAUX
+  {id:"e24",name:"Bench Press",target:"chest",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/HjkTv8k7gzDfQL",instructions:["Allongé sur le banc","Descends la barre vers la poitrine","Pousse vers le haut"]},
+  {id:"e25",name:"Incline Dumbbell Press",target:"chest",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/fI-fFAANFQv8nf",instructions:["Banc incliné à 30-45°","Descends les haltères vers les épaules","Pousse vers le haut"]},
+  {id:"e26",name:"Cable Fly",target:"chest",equipment:"cable",gifUrl:"https://v2.exercisedb.io/image/BfKFAMv7kHGAOr",instructions:["Câbles en position haute","Amène les poignées vers le centre","Contrôle l'écartement"]},
+  {id:"e27",name:"Push Up",target:"chest",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/KMjNKwEMHBH-Wf",instructions:["Position planche, mains à largeur d'épaules","Descends la poitrine vers le sol","Pousse pour remonter"]},
+  {id:"e28",name:"Dips",target:"chest",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/1kJ1NFSIkNrQcb",instructions:["Suspendu entre deux barres","Descends en fléchissant les coudes","Pousse pour remonter"]},
+  // ÉPAULES
+  {id:"e29",name:"Overhead Press",target:"shoulders",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/cFnkRkRHmqMrmJ",instructions:["Debout, barre devant les épaules","Pousse la barre au-dessus de la tête","Redescends lentement"]},
+  {id:"e30",name:"Lateral Raise",target:"shoulders",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/SNmHHrTRTPLH2b",instructions:["Haltères sur les côtés","Lève les bras à la hauteur des épaules","Contrôle la descente"]},
+  {id:"e31",name:"Front Raise",target:"shoulders",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/8MBOXXi9oPWkJE",instructions:["Haltères devant les cuisses","Lève les bras devant toi","Contrôle la descente"]},
+  {id:"e32",name:"Face Pull",target:"shoulders",equipment:"cable",gifUrl:"https://v2.exercisedb.io/image/k5LcFnEWLuEmLR",instructions:["Câble à hauteur de visage","Tire vers le visage en écartant les coudes","Contrôle le retour"]},
+  {id:"e33",name:"Arnold Press",target:"shoulders",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/M4B8FMvKa8zWvO",instructions:["Haltères devant les épaules, paumes vers toi","Pivote les poignets en poussant","Redescends en pivotant"]},
+  // BRAS - BICEPS
+  {id:"e34",name:"Barbell Curl",target:"upper arms",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/sBMl3bG8PK3LVX",instructions:["Barre en prise supination","Fléchis les coudes","Contrôle la descente"]},
+  {id:"e35",name:"Dumbbell Curl",target:"upper arms",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/PvNSFy1hSBRZwy",instructions:["Haltères en prise supination","Fléchis les coudes alternativement","Contrôle la descente"]},
+  {id:"e36",name:"Hammer Curl",target:"upper arms",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/KoKSFXzTSLSCMB",instructions:["Haltères en prise neutre","Fléchis les coudes","Contrôle la descente"]},
+  {id:"e37",name:"Cable Curl",target:"upper arms",equipment:"cable",gifUrl:"https://v2.exercisedb.io/image/fS3qC3Xz4dJ3xN",instructions:["Câble bas en prise supination","Fléchis les coudes","Contrôle le retour"]},
+  // BRAS - TRICEPS
+  {id:"e38",name:"Tricep Pushdown",target:"upper arms",equipment:"cable",gifUrl:"https://v2.exercisedb.io/image/6HHBhSziLbDRNX",instructions:["Câble en haut, coudes collés au corps","Étends les avant-bras vers le bas","Contrôle le retour"]},
+  {id:"e39",name:"Skull Crusher",target:"upper arms",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/tWoFhFkH3nYN9a",instructions:["Allongé, barre au-dessus de la tête","Fléchis les coudes vers le front","Étends pour remonter"]},
+  {id:"e40",name:"Overhead Tricep Extension",target:"upper arms",equipment:"dumbbell",gifUrl:"https://v2.exercisedb.io/image/StAOsWGBJknuJO",instructions:["Haltère au-dessus de la tête","Fléchis les coudes derrière la tête","Étends vers le haut"]},
+  // ABDOMINAUX
+  {id:"e41",name:"Plank",target:"abs",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/fG7zAUTm5Q4Tjm",instructions:["Position planche sur les avant-bras","Maintiens le corps aligné","Respire régulièrement"]},
+  {id:"e42",name:"Crunch",target:"abs",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/o6WYvkFJGJcl5r",instructions:["Allongé sur le dos, mains derrière la tête","Soulève les épaules vers les genoux","Contrôle la descente"]},
+  {id:"e43",name:"Leg Raise",target:"abs",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/ycSBBPlsPDr9GA",instructions:["Allongé sur le dos","Lève les jambes tendues à 90°","Redescends lentement"]},
+  {id:"e44",name:"Mountain Climber",target:"abs",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/V5-RCnbYWRJHoe",instructions:["Position planche","Ramène alternativement les genoux vers la poitrine","Garde le dos plat"]},
+  {id:"e45",name:"Russian Twist",target:"abs",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/SQh5ckr46zCFYc",instructions:["Assis, pieds soulevés","Tourne le buste de gauche à droite","Contrôle le mouvement"]},
+  {id:"e46",name:"Cable Crunch",target:"abs",equipment:"cable",gifUrl:"https://v2.exercisedb.io/image/ERHBz4dJlC5g5p",instructions:["À genoux face au câble","Tire le câble vers les genoux","Contrôle le retour"]},
+  // MOLLETS
+  {id:"e47",name:"Standing Calf Raise",target:"calves",equipment:"machine",gifUrl:"https://v2.exercisedb.io/image/w9Jbi0qKEiNLJh",instructions:["Debout sur la machine","Monte sur la pointe des pieds","Descends lentement"]},
+  {id:"e48",name:"Seated Calf Raise",target:"calves",equipment:"machine",gifUrl:"https://v2.exercisedb.io/image/BHkHKE5BoFZBxR",instructions:["Assis, genoux sous les coussins","Monte sur la pointe des pieds","Descends lentement"]},
+  // ADDUCTEURS
+  {id:"e49",name:"Hip Abduction Machine",target:"adductors",equipment:"machine",gifUrl:"https://v2.exercisedb.io/image/6G8V3J5k8wjmRc",instructions:["Assis sur la machine","Écarte les jambes contre la résistance","Contrôle le retour"]},
+  {id:"e50",name:"Sumo Deadlift",target:"adductors",equipment:"barbell",gifUrl:"https://v2.exercisedb.io/image/Hp5Q5B-r0xKFJr",instructions:["Pieds très écartés, orteils vers l'extérieur","Descends en gardant le dos droit","Pousse vers le haut"]},
+  // POIDS DU CORPS FULL BODY
+  {id:"e51",name:"Burpee",target:"abs",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/z1ZRuFNDpDkVJN",instructions:["Debout, descends en squat","Saute en position planche","Fais une pompe puis saute vers le haut"]},
+  {id:"e52",name:"Jump Squat",target:"quadriceps",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/oOXjVcbIrFU08X",instructions:["Pieds à largeur d'épaules","Descends en squat","Explose vers le haut"]},
+  {id:"e53",name:"Glute Bridge Single Leg",target:"glutes",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/lLyIAntdEdEIeO",instructions:["Allongé sur le dos","Une jambe tendue","Pousse la hanche vers le haut"]},
+  {id:"e54",name:"Bear Crawl",target:"abs",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/RoO8O5lVcN5Cim",instructions:["À quatre pattes, genoux soulevés","Avance en déplaçant bras et jambe opposés","Garde le dos plat"]},
+  {id:"e55",name:"Hip Circle",target:"glutes",equipment:"body weight",gifUrl:"https://v2.exercisedb.io/image/mZD-Rh4D4VVBnY",instructions:["Debout, mains sur les hanches","Fais des cercles avec les hanches","Alterne le sens"]},
+];
+
+
 const MUSCLE_GROUPS = [
   { id: "all", label: "Tous" },
   { id: "glutes", label: "Fessiers" },
@@ -705,9 +774,6 @@ const EQUIPMENT_GROUPS = [
 ];
 
 const ExerciseCatalogue = ({ onSelect, onClose }) => {
-  const [exercises, setExercises] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [query, setQuery] = useState("");
   const [muscle, setMuscle] = useState("all");
   const [equipment, setEquipment] = useState("all");
@@ -715,65 +781,21 @@ const ExerciseCatalogue = ({ onSelect, onClose }) => {
   const [page, setPage] = useState(0);
   const PER_PAGE = 20;
 
-  useEffect(() => {
-    setLoading(true);
-    setError(false);
-    setPage(0);
+  const filtered = EXERCISE_DB.filter(e => {
+    const matchMuscle = muscle === "all" || e.target === muscle;
+    const matchEquipment = equipment === "all" || e.equipment === equipment;
+    const matchQuery = query.length < 2 || e.name.toLowerCase().includes(query.toLowerCase());
+    return matchMuscle && matchEquipment && matchQuery;
+  });
 
-    const buildUrl = () => {
-      const base = "https://wger.de/api/v2/exercise/?format=json&language=2&limit=100";
-      if (muscle !== "all") {
-        const muscleMap = { "glutes": 8, "hamstrings": 11, "quadriceps": 10, "back": 12, "chest": 4, "shoulders": 13, "upper arms": 1, "lower arms": 5, "abs": 6, "calves": 7, "adductors": 3 };
-        const id = muscleMap[muscle];
-        return id ? `https://wger.de/api/v2/exercise/?format=json&language=2&limit=100&muscles=${id}` : base;
-      }
-      return base;
-    };
-
-    // Use exercisedb.dev with CORS proxy fallback
-    const urls = [
-      muscle !== "all"
-        ? `https://exercisedb.dev/api/v1/exercises/target/${encodeURIComponent(muscle)}?limit=200`
-        : equipment !== "all"
-          ? `https://exercisedb.dev/api/v1/exercises/equipment/${encodeURIComponent(equipment)}?limit=200`
-          : `https://exercisedb.dev/api/v1/exercises?limit=200`,
-      `https://corsproxy.io/?${encodeURIComponent(muscle !== "all"
-        ? `https://exercisedb.dev/api/v1/exercises/target/${encodeURIComponent(muscle)}?limit=200`
-        : `https://exercisedb.dev/api/v1/exercises?limit=200`)}`,
-    ];
-
-    const tryFetch = async (urlList) => {
-      for (const url of urlList) {
-        try {
-          const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-          if (!r.ok) continue;
-          const data = await r.json();
-          const items = Array.isArray(data) ? data : data.data || data.results || [];
-          if (items.length > 0) {
-            setExercises(items);
-            setLoading(false);
-            return;
-          }
-        } catch {}
-      }
-      setError(true);
-      setLoading(false);
-    };
-
-    tryFetch(urls);
-  }, [muscle, equipment]);
-
-  const filtered = exercises.filter(e =>
-    query.length < 2 || e.name.toLowerCase().includes(query.toLowerCase())
-  );
   const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
 
   const handleSelect = (ex) => {
     onSelect({
-      name: ex.name.charAt(0).toUpperCase() + ex.name.slice(1),
+      name: ex.name,
       photo: ex.gifUrl || null,
-      note: ex.instructions ? ex.instructions.slice(0, 2).join(" ") : "",
+      note: ex.instructions ? ex.instructions[0] : "",
     });
     onClose();
   };
@@ -842,13 +864,7 @@ const ExerciseCatalogue = ({ onSelect, onClose }) => {
 
       {/* Results */}
       <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
-        {loading ? <Spinner /> : error ? (
-          <div style={{ textAlign: "center", padding: "40px 0", color: C.textMuted }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>⚠️</div>
-            <div style={{ fontSize: 14, marginBottom: 6 }}>Impossible de charger les exercices</div>
-            <div style={{ fontSize: 12 }}>Vérifie ta connexion internet</div>
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 0", color: C.textMuted }}>
             <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
             <div>Aucun exercice trouvé</div>
@@ -1514,7 +1530,7 @@ const CoachApp = ({ user, onLogout }) => {
 
   const client = clients.find(c => c.id === selected);
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
-  const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5; });
+  const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return !c.is_paused && d >= 0 && d <= 5; });
 
   useEffect(() => {
     if (selected) {
@@ -1608,7 +1624,7 @@ const CoachApp = ({ user, onLogout }) => {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
-                <div style={{ fontSize: 10, color: daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>{daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}</div>
+                <div style={{ fontSize: 10, color: c.is_paused ? C.blue : daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>{c.is_paused ? "⏸️ En pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}</div>
               </div>
             </div>
           ))}
@@ -1679,10 +1695,28 @@ const CoachApp = ({ user, onLogout }) => {
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <Badge>🔥 {client.streak}j</Badge>
                     {client.goal && <Badge color={C.purple}>{client.goal}</Badge>}
-                    {client.next_payment && <Badge color={C.yellow}>💳 J-{daysUntil(client.next_payment)}</Badge>}
+                    {client.next_payment && !client.is_paused && <Badge color={C.yellow}>💳 J-{daysUntil(client.next_payment)}</Badge>}
+                    {client.is_paused && <Badge color={C.blue}>⏸️ En pause</Badge>}
                   </div>
                 </div>
                 <button onClick={() => setEditingClient(client)} style={{ background: "#222", border: `1px solid ${C.border}`, color: C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>✏️ Modifier</button>
+                <button onClick={async () => {
+                  if (client.is_paused) {
+                    // Reprendre — décaler next_payment du nombre de jours de pause
+                    const pauseDays = Math.ceil((new Date(today) - new Date(client.pause_start)) / 86400000);
+                    const newDate = new Date(client.next_payment);
+                    newDate.setDate(newDate.getDate() + pauseDays);
+                    const newPayment = newDate.toISOString().slice(0, 10);
+                    await supabase.from("clients").update({ is_paused: false, pause_start: null, next_payment: newPayment }).eq("id", client.id);
+                    setClients(cs => cs.map(c => c.id === client.id ? { ...c, is_paused: false, pause_start: null, next_payment: newPayment } : c));
+                  } else {
+                    // Mettre en pause
+                    await supabase.from("clients").update({ is_paused: true, pause_start: today }).eq("id", client.id);
+                    setClients(cs => cs.map(c => c.id === client.id ? { ...c, is_paused: true, pause_start: today } : c));
+                  }
+                }} style={{ background: client.is_paused ? C.green + "22" : C.blue + "22", border: `1px solid ${client.is_paused ? C.green : C.blue}55`, color: client.is_paused ? C.green : C.blue, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>
+                  {client.is_paused ? "▶ Reprendre" : "⏸️ Pause"}
+                </button>
               </div>
 
               <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["nutrition", "🍽️ Nutrition"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
@@ -1837,7 +1871,13 @@ const CoachApp = ({ user, onLogout }) => {
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>DÉBUT</div><div style={{ fontWeight: 700, fontSize: 13 }}>{formatDate(client.start_date)}</div></div>
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>SÉANCES/SEMAINE</div><div style={{ fontWeight: 700, fontSize: 13 }}>{client.sessions_per_week || 3}x</div></div>
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>MONTANT</div><div style={{ fontWeight: 700, fontSize: 18, color: C.green }}>{client.monthly_amount || "—"} €</div></div>
-                      <div style={{ background: daysUntil(client.next_payment) <= 3 ? C.yellow + "15" : "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>PROCHAIN PAIEMENT</div><div style={{ fontWeight: 700, fontSize: 13, color: daysUntil(client.next_payment) <= 3 ? C.yellow : C.white }}>{formatDate(client.next_payment)}</div></div>
+                      <div style={{ background: client.is_paused ? C.blue + "15" : daysUntil(client.next_payment) <= 3 ? C.yellow + "15" : "#111", borderRadius: 10, padding: 12 }}>
+                        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>PROCHAIN PAIEMENT</div>
+                        {client.is_paused
+                          ? <div style={{ fontWeight: 700, fontSize: 13, color: C.blue }}>⏸️ En pause depuis le {formatDate(client.pause_start)}</div>
+                          : <div style={{ fontWeight: 700, fontSize: 13, color: daysUntil(client.next_payment) <= 3 ? C.yellow : C.white }}>{formatDate(client.next_payment)}</div>
+                        }
+                      </div>
                     </div>
                   </Card>
                   {!showPaymentForm ? (
