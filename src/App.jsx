@@ -719,15 +719,48 @@ const ExerciseCatalogue = ({ onSelect, onClose }) => {
     setLoading(true);
     setError(false);
     setPage(0);
+
     const buildUrl = () => {
-      if (muscle !== "all") return `https://exercisedb.dev/api/v1/exercises/target/${encodeURIComponent(muscle)}?limit=200&offset=0`;
-      if (equipment !== "all") return `https://exercisedb.dev/api/v1/exercises/equipment/${encodeURIComponent(equipment)}?limit=200&offset=0`;
-      return `https://exercisedb.dev/api/v1/exercises?limit=200&offset=0`;
+      const base = "https://wger.de/api/v2/exercise/?format=json&language=2&limit=100";
+      if (muscle !== "all") {
+        const muscleMap = { "glutes": 8, "hamstrings": 11, "quadriceps": 10, "back": 12, "chest": 4, "shoulders": 13, "upper arms": 1, "lower arms": 5, "abs": 6, "calves": 7, "adductors": 3 };
+        const id = muscleMap[muscle];
+        return id ? `https://wger.de/api/v2/exercise/?format=json&language=2&limit=100&muscles=${id}` : base;
+      }
+      return base;
     };
-    fetch(buildUrl())
-      .then(r => r.json())
-      .then(data => { setExercises(Array.isArray(data) ? data : data.data || []); setLoading(false); })
-      .catch(() => { setError(true); setLoading(false); });
+
+    // Use exercisedb.dev with CORS proxy fallback
+    const urls = [
+      muscle !== "all"
+        ? `https://exercisedb.dev/api/v1/exercises/target/${encodeURIComponent(muscle)}?limit=200`
+        : equipment !== "all"
+          ? `https://exercisedb.dev/api/v1/exercises/equipment/${encodeURIComponent(equipment)}?limit=200`
+          : `https://exercisedb.dev/api/v1/exercises?limit=200`,
+      `https://corsproxy.io/?${encodeURIComponent(muscle !== "all"
+        ? `https://exercisedb.dev/api/v1/exercises/target/${encodeURIComponent(muscle)}?limit=200`
+        : `https://exercisedb.dev/api/v1/exercises?limit=200`)}`,
+    ];
+
+    const tryFetch = async (urlList) => {
+      for (const url of urlList) {
+        try {
+          const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+          if (!r.ok) continue;
+          const data = await r.json();
+          const items = Array.isArray(data) ? data : data.data || data.results || [];
+          if (items.length > 0) {
+            setExercises(items);
+            setLoading(false);
+            return;
+          }
+        } catch {}
+      }
+      setError(true);
+      setLoading(false);
+    };
+
+    tryFetch(urls);
   }, [muscle, equipment]);
 
   const filtered = exercises.filter(e =>
@@ -1915,8 +1948,8 @@ const ClientApp = ({ user, onLogout }) => {
 
   // myWorkouts comes directly from assignedWorkouts — no second hook needed
   const myWorkouts = assignedWorkouts
-    .filter(a => a.workout)
-    .map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
+    .filter(a => a.workout || a.workouts)
+    .map(a => ({ ...(a.workout || a.workouts), scheduledDate: a.scheduled_date }));
 
   const todayEntry = entries.find(e => e.date === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
