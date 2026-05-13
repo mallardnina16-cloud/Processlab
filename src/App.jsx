@@ -736,7 +736,9 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
     setSaving(false);
   };
 
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <button onClick={onCancel} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20, padding: 0 }}>←</button>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>{workout ? "Modifier" : "Nouvelle séance"}</h2>
       </div>
