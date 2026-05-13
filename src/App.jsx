@@ -1526,6 +1526,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [clientNutritionLogs, setClientNutritionLogs] = useState([]);
   const [showNutritionReport, setShowNutritionReport] = useState(false);
   const [sharedMonths, setSharedMonths] = useState({});
+  const [selectedNutritionDay, setSelectedNutritionDay] = useState(null);
 
   const client = clients.find(c => c.id === selected);
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
@@ -1533,6 +1534,7 @@ const CoachApp = ({ user, onLogout }) => {
 
   useEffect(() => {
     if (selected) {
+      setSelectedNutritionDay(null);
       supabase.from("session_logs").select("*").eq("client_id", selected).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || []));
       supabase.from("nutrition_logs").select("*").eq("client_id", selected).order("created_at").then(({ data }) => setClientNutritionLogs(data || []));
     }
@@ -1815,20 +1817,52 @@ const CoachApp = ({ user, onLogout }) => {
                       </Card>
                     );
                   })()}
-                  {/* Recent history */}
+                  {/* Recent history - clickable */}
                   <Card>
                     <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>HISTORIQUE 7 JOURS</div>
                     {Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().slice(0, 10); }).map(d => {
                       const dayLogs = clientNutritionLogs.filter(l => l.date === d);
                       if (dayLogs.length === 0) return null;
                       const t = sumMacros(dayLogs);
+                      const isOpen = selectedNutritionDay === d;
                       return (
-                        <div key={d} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
-                          <span style={{ fontSize: 12, color: C.textMuted }}>{formatDate(d)}</span>
-                          <div style={{ display: "flex", gap: 12 }}>
-                            <span style={{ fontSize: 12, color: C.yellow, fontWeight: 700 }}>{Math.round(t.kcal)} kcal</span>
-                            <span style={{ fontSize: 12, color: C.green }}>💪 {Math.round(t.prot)}g</span>
+                        <div key={d}>
+                          <div onClick={() => setSelectedNutritionDay(isOpen ? null : d)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 12, color: isOpen ? C.pink : C.white, fontWeight: isOpen ? 700 : 400 }}>{formatDate(d)}</span>
+                              <span style={{ fontSize: 10, color: C.textMuted }}>{dayLogs.length} aliment{dayLogs.length > 1 ? "s" : ""}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                              <span style={{ fontSize: 12, color: C.yellow, fontWeight: 700 }}>{Math.round(t.kcal)} kcal</span>
+                              <span style={{ fontSize: 12, color: C.green }}>💪 {Math.round(t.prot)}g</span>
+                              <span style={{ fontSize: 12, color: C.textMuted }}>{isOpen ? "▲" : "▼"}</span>
+                            </div>
                           </div>
+                          {isOpen && (
+                            <div style={{ padding: "8px 0 4px", display: "flex", flexDirection: "column", gap: 6 }}>
+                              {MEALS.map((label, mi) => {
+                                const mealLogs = dayLogs.filter(l => l.meal_idx === mi);
+                                if (mealLogs.length === 0) return null;
+                                return (
+                                  <div key={mi} style={{ marginBottom: 6 }}>
+                                    <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4, textTransform: "uppercase" }}>{label}</div>
+                                    {mealLogs.map((e, j) => {
+                                      const m = getMacros(e);
+                                      return (
+                                        <div key={j} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: "#111", borderRadius: 8, marginBottom: 4 }}>
+                                          <div>
+                                            <div style={{ fontSize: 12, fontWeight: 600 }}>{e.name}</div>
+                                            <div style={{ fontSize: 10, color: C.textMuted }}>{e.quantity_label || (e.manual_macros ? "saisie libre" : `${e.grams}g`)} · 💪 {m.prot}g · 🌾 {m.carb}g · 🥑 {m.fat}g</div>
+                                          </div>
+                                          <span style={{ fontWeight: 800, fontSize: 12, color: C.yellow, flexShrink: 0, marginLeft: 8 }}>{m.kcal} kcal</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -2310,138 +2344,138 @@ const ClientApp = ({ user, onLogout }) => {
 // NUTRITION — LOCAL FOOD DATABASE
 // ══════════════════════════════════════════════════════════════════════════════
 const LOCAL_DB = [
-  // VOLAILLES
-  {id:"l1",name:"Blanc de poulet cuit",unit:"g",per100:{kcal:110,prot:23,carb:0,fat:2}},
-  {id:"l2",name:"Cuisse de poulet cuite",unit:"g",per100:{kcal:185,prot:20,carb:0,fat:11}},
-  {id:"l3",name:"Blanc de dinde cuit",unit:"g",per100:{kcal:135,prot:29,carb:0,fat:1}},
-  {id:"l4",name:"Dinde hachée cuite",unit:"g",per100:{kcal:149,prot:20,carb:0,fat:7}},
-  {id:"l5",name:"Escalope de dinde",unit:"g",per100:{kcal:104,prot:22,carb:0,fat:1}},
-  {id:"l6",name:"Poulet rôti sans peau",unit:"g",per100:{kcal:165,prot:25,carb:0,fat:7}},
-  // VIANDES
-  {id:"l7",name:"Boeuf haché 5% MG",unit:"g",per100:{kcal:137,prot:20,carb:0,fat:5}},
-  {id:"l8",name:"Boeuf haché 10% MG",unit:"g",per100:{kcal:176,prot:18,carb:0,fat:10}},
-  {id:"l9",name:"Steak de boeuf cuit",unit:"g",per100:{kcal:180,prot:26,carb:0,fat:8}},
-  {id:"l10",name:"Filet de boeuf",unit:"g",per100:{kcal:158,prot:24,carb:0,fat:6}},
-  {id:"l11",name:"Filet de porc cuit",unit:"g",per100:{kcal:143,prot:22,carb:0,fat:6}},
-  {id:"l12",name:"Cotelette de porc",unit:"g",per100:{kcal:195,prot:20,carb:0,fat:12}},
-  {id:"l13",name:"Jambon blanc",unit:"g",per100:{kcal:107,prot:18,carb:1,fat:3}},
+  // VOLAILLES (valeurs cuites, source Ciqual 2020)
+  {id:"l1",name:"Blanc de poulet cuit",unit:"g",per100:{kcal:165,prot:31,carb:0,fat:3.6}},
+  {id:"l2",name:"Cuisse de poulet cuite",unit:"g",per100:{kcal:216,prot:26,carb:0,fat:12}},
+  {id:"l3",name:"Blanc de dinde cuit",unit:"g",per100:{kcal:147,prot:30,carb:0,fat:2.5}},
+  {id:"l4",name:"Dinde hachée cuite",unit:"g",per100:{kcal:170,prot:22,carb:0,fat:9}},
+  {id:"l5",name:"Escalope de dinde",unit:"g",per100:{kcal:112,prot:24,carb:0,fat:1.5}},
+  {id:"l6",name:"Poulet rôti sans peau",unit:"g",per100:{kcal:190,prot:27,carb:0,fat:9}},
+  // VIANDES (source Ciqual 2020)
+  {id:"l7",name:"Boeuf haché 5% MG cuit",unit:"g",per100:{kcal:144,prot:22,carb:0,fat:6}},
+  {id:"l8",name:"Boeuf haché 10% MG cuit",unit:"g",per100:{kcal:192,prot:20,carb:0,fat:12}},
+  {id:"l9",name:"Steak de boeuf cuit",unit:"g",per100:{kcal:185,prot:28,carb:0,fat:8}},
+  {id:"l10",name:"Filet de boeuf cuit",unit:"g",per100:{kcal:175,prot:27,carb:0,fat:7}},
+  {id:"l11",name:"Filet de porc cuit",unit:"g",per100:{kcal:166,prot:25,carb:0,fat:7}},
+  {id:"l12",name:"Cotelette de porc cuite",unit:"g",per100:{kcal:209,prot:22,carb:0,fat:13}},
+  {id:"l13",name:"Jambon blanc",unit:"g",per100:{kcal:107,prot:17,carb:1,fat:3.5}},
   {id:"l14",name:"Jambon de Bayonne",unit:"g",per100:{kcal:196,prot:26,carb:0,fat:10}},
-  {id:"l15",name:"Veau escalope cuit",unit:"g",per100:{kcal:150,prot:25,carb:0,fat:5}},
+  {id:"l15",name:"Veau escalope cuite",unit:"g",per100:{kcal:175,prot:28,carb:0,fat:6}},
   {id:"l16",name:"Agneau gigot cuit",unit:"g",per100:{kcal:218,prot:25,carb:0,fat:13}},
-  // POISSONS
-  {id:"l17",name:"Saumon frais cuit",unit:"g",per100:{kcal:208,prot:20,carb:0,fat:13}},
-  {id:"l18",name:"Saumon fume",unit:"g",per100:{kcal:172,prot:25,carb:0,fat:8}},
-  {id:"l19",name:"Thon boite au naturel",unit:"g",per100:{kcal:116,prot:26,carb:0,fat:1}},
-  {id:"l20",name:"Thon boite a l huile egoutte",unit:"g",per100:{kcal:198,prot:25,carb:0,fat:10}},
-  {id:"l21",name:"Cabillaud cuit",unit:"g",per100:{kcal:82,prot:18,carb:0,fat:1}},
-  {id:"l22",name:"Lieu noir cuit",unit:"g",per100:{kcal:90,prot:19,carb:0,fat:1}},
-  {id:"l23",name:"Truite cuite",unit:"g",per100:{kcal:151,prot:21,carb:0,fat:7}},
-  {id:"l24",name:"Crevettes cuites",unit:"g",per100:{kcal:99,prot:21,carb:1,fat:1}},
-  {id:"l25",name:"Sardines huile egouttees",unit:"g",per100:{kcal:208,prot:25,carb:0,fat:12}},
+  // POISSONS (source Ciqual 2020)
+  {id:"l17",name:"Saumon frais cuit",unit:"g",per100:{kcal:206,prot:22,carb:0,fat:13}},
+  {id:"l18",name:"Saumon fumé",unit:"g",per100:{kcal:160,prot:23,carb:0,fat:8}},
+  {id:"l19",name:"Thon boite au naturel",unit:"g",per100:{kcal:103,prot:23,carb:0,fat:1}},
+  {id:"l20",name:"Thon boite a l huile egoutte",unit:"g",per100:{kcal:184,prot:24,carb:0,fat:10}},
+  {id:"l21",name:"Cabillaud cuit",unit:"g",per100:{kcal:89,prot:20,carb:0,fat:0.8}},
+  {id:"l22",name:"Lieu noir cuit",unit:"g",per100:{kcal:99,prot:21,carb:0,fat:1.2}},
+  {id:"l23",name:"Truite cuite",unit:"g",per100:{kcal:168,prot:23,carb:0,fat:8}},
+  {id:"l24",name:"Crevettes cuites",unit:"g",per100:{kcal:89,prot:19,carb:0,fat:1.2}},
+  {id:"l25",name:"Sardines a l huile egouttees",unit:"g",per100:{kcal:208,prot:25,carb:0,fat:12}},
   {id:"l26",name:"Maquereau fume",unit:"g",per100:{kcal:305,prot:19,carb:0,fat:25}},
-  {id:"l27",name:"Dorade cuite",unit:"g",per100:{kcal:109,prot:20,carb:0,fat:3}},
-  {id:"l28",name:"Bar cuit",unit:"g",per100:{kcal:97,prot:19,carb:0,fat:2}},
-  {id:"l29",name:"Thon mi-cuit",unit:"g",per100:{kcal:124,prot:24,carb:0,fat:3}},
-  // OEUFS
-  {id:"l30",name:"Oeuf entier cuit",unit:"g",piece_weight:60,per100:{kcal:155,prot:13,carb:1,fat:11}},
-  {id:"l31",name:"Blanc d oeuf cuit",unit:"g",piece_weight:35,per100:{kcal:52,prot:11,carb:1,fat:0}},
-  {id:"l32",name:"Omelette nature",unit:"g",per100:{kcal:154,prot:11,carb:0,fat:12}},
-  // LAITIERS
-  {id:"l33",name:"Fromage blanc 0%",unit:"g",per100:{kcal:46,prot:8,carb:4,fat:0}},
-  {id:"l34",name:"Fromage blanc 3%",unit:"g",per100:{kcal:77,prot:7,carb:4,fat:3}},
-  {id:"l35",name:"Skyr nature",unit:"g",per100:{kcal:63,prot:11,carb:4,fat:0}},
-  {id:"l36",name:"Yaourt grec 0%",unit:"g",per100:{kcal:57,prot:10,carb:4,fat:0}},
+  {id:"l27",name:"Dorade cuite",unit:"g",per100:{kcal:121,prot:22,carb:0,fat:3.5}},
+  {id:"l28",name:"Bar cuit",unit:"g",per100:{kcal:124,prot:23,carb:0,fat:3.5}},
+  {id:"l29",name:"Thon mi-cuit",unit:"g",per100:{kcal:144,prot:26,carb:0,fat:4}},
+  // OEUFS (source Ciqual 2020)
+  {id:"l30",name:"Oeuf entier cuit",unit:"g",piece_weight:60,per100:{kcal:147,prot:13,carb:0.7,fat:10}},
+  {id:"l31",name:"Blanc d oeuf cuit",unit:"g",piece_weight:35,per100:{kcal:52,prot:11,carb:0.7,fat:0.2}},
+  {id:"l32",name:"Omelette nature",unit:"g",per100:{kcal:154,prot:11,carb:0.5,fat:12}},
+  // LAITIERS (source Ciqual 2020)
+  {id:"l33",name:"Fromage blanc 0%",unit:"g",per100:{kcal:46,prot:8,carb:4,fat:0.2}},
+  {id:"l34",name:"Fromage blanc 3%",unit:"g",per100:{kcal:72,prot:7,carb:4,fat:3}},
+  {id:"l35",name:"Skyr nature",unit:"g",per100:{kcal:63,prot:11,carb:4,fat:0.2}},
+  {id:"l36",name:"Yaourt grec 0%",unit:"g",per100:{kcal:57,prot:10,carb:4,fat:0.2}},
   {id:"l37",name:"Yaourt grec entier",unit:"g",per100:{kcal:115,prot:9,carb:4,fat:7}},
-  {id:"l38",name:"Yaourt nature entier",unit:"g",per100:{kcal:61,prot:3,carb:5,fat:3}},
-  {id:"l39",name:"Cottage cheese",unit:"g",per100:{kcal:98,prot:11,carb:3,fat:4}},
+  {id:"l38",name:"Yaourt nature entier",unit:"g",per100:{kcal:61,prot:3.5,carb:4.7,fat:3.3}},
+  {id:"l39",name:"Cottage cheese",unit:"g",per100:{kcal:98,prot:11,carb:3.4,fat:4.3}},
   {id:"l40",name:"Ricotta",unit:"g",per100:{kcal:174,prot:11,carb:3,fat:13}},
   {id:"l41",name:"Mozzarella light",unit:"g",per100:{kcal:149,prot:22,carb:2,fat:6}},
   {id:"l42",name:"Mozzarella classique",unit:"g",per100:{kcal:254,prot:18,carb:2,fat:19}},
   {id:"l43",name:"Emmental rape",unit:"g",per100:{kcal:382,prot:29,carb:0,fat:29}},
   {id:"l44",name:"Gruyere",unit:"g",per100:{kcal:413,prot:30,carb:0,fat:32}},
   {id:"l45",name:"Feta",unit:"g",per100:{kcal:264,prot:14,carb:4,fat:21}},
-  {id:"l46",name:"Camembert",unit:"g",per100:{kcal:299,prot:20,carb:0,fat:24}},
-  {id:"l47",name:"Lait demi-ecreme",unit:"ml",per100:{kcal:47,prot:3,carb:5,fat:2}},
-  {id:"l48",name:"Lait ecreme",unit:"ml",per100:{kcal:34,prot:3,carb:5,fat:0}},
-  {id:"l49",name:"Lait entier",unit:"ml",per100:{kcal:64,prot:3,carb:5,fat:3}},
-  {id:"l50",name:"Lait de soja",unit:"ml",per100:{kcal:33,prot:3,carb:2,fat:2}},
-  {id:"l51",name:"Lait d avoine",unit:"ml",per100:{kcal:46,prot:1,carb:8,fat:1}},
+  {id:"l46",name:"Camembert",unit:"g",per100:{kcal:299,prot:20,carb:0.5,fat:24}},
+  {id:"l47",name:"Lait demi-ecreme",unit:"ml",per100:{kcal:46,prot:3.2,carb:4.8,fat:1.6}},
+  {id:"l48",name:"Lait ecreme",unit:"ml",per100:{kcal:33,prot:3.4,carb:4.8,fat:0.1}},
+  {id:"l49",name:"Lait entier",unit:"ml",per100:{kcal:64,prot:3.2,carb:4.8,fat:3.5}},
+  {id:"l50",name:"Lait de soja",unit:"ml",per100:{kcal:39,prot:3.3,carb:2.8,fat:1.8}},
+  {id:"l51",name:"Lait d avoine",unit:"ml",per100:{kcal:47,prot:1,carb:8.5,fat:1.5}},
   // WHEY & COMPLEMENTS
   {id:"l52",name:"Whey proteine vanille",unit:"g",per100:{kcal:380,prot:74,carb:8,fat:5}},
   {id:"l53",name:"Whey isolat",unit:"g",per100:{kcal:360,prot:85,carb:3,fat:1}},
   {id:"l54",name:"Caseine",unit:"g",per100:{kcal:370,prot:78,carb:5,fat:2}},
-  // FECULENTS
-  {id:"l55",name:"Riz blanc cuit",unit:"g",per100:{kcal:130,prot:3,carb:28,fat:0}},
-  {id:"l56",name:"Riz complet cuit",unit:"g",per100:{kcal:111,prot:2,carb:23,fat:1}},
-  {id:"l57",name:"Pates blanches cuites",unit:"g",per100:{kcal:158,prot:5,carb:31,fat:1}},
-  {id:"l58",name:"Pates completes cuites",unit:"g",per100:{kcal:149,prot:5,carb:29,fat:1}},
-  {id:"l59",name:"Quinoa cuit",unit:"g",per100:{kcal:120,prot:4,carb:22,fat:2}},
-  {id:"l60",name:"Patate douce cuite",unit:"g",per100:{kcal:90,prot:2,carb:21,fat:0}},
-  {id:"l61",name:"Pomme de terre cuite",unit:"g",per100:{kcal:87,prot:2,carb:20,fat:0}},
-  {id:"l62",name:"Flocons d avoine",unit:"g",per100:{kcal:370,prot:13,carb:60,fat:7}},
-  {id:"l63",name:"Pain complet",unit:"g",per100:{kcal:246,prot:9,carb:43,fat:4}},
-  {id:"l64",name:"Pain de mie complet",unit:"g",per100:{kcal:236,prot:9,carb:41,fat:3}},
-  {id:"l65",name:"Baguette blanche",unit:"g",per100:{kcal:270,prot:9,carb:55,fat:1}},
-  {id:"l66",name:"Galette de riz souffle",unit:"g",per100:{kcal:385,prot:7,carb:83,fat:1}},
-  {id:"l67",name:"Couscous cuit",unit:"g",per100:{kcal:112,prot:4,carb:23,fat:0}},
-  {id:"l68",name:"Boulgour cuit",unit:"g",per100:{kcal:83,prot:3,carb:19,fat:0}},
-  {id:"l69",name:"Orge perle cuit",unit:"g",per100:{kcal:123,prot:2,carb:28,fat:0}},
-  // LEGUMINEUSES
-  {id:"l70",name:"Lentilles cuites",unit:"g",per100:{kcal:116,prot:9,carb:20,fat:1}},
-  {id:"l71",name:"Lentilles corail cuites",unit:"g",per100:{kcal:100,prot:8,carb:17,fat:0}},
-  {id:"l72",name:"Pois chiches cuits",unit:"g",per100:{kcal:164,prot:9,carb:27,fat:3}},
-  {id:"l73",name:"Haricots rouges cuits",unit:"g",per100:{kcal:127,prot:8,carb:22,fat:1}},
-  {id:"l74",name:"Haricots blancs cuits",unit:"g",per100:{kcal:114,prot:7,carb:20,fat:1}},
-  {id:"l75",name:"Edamame",unit:"g",per100:{kcal:122,prot:11,carb:10,fat:5}},
-  {id:"l76",name:"Tofu ferme",unit:"g",per100:{kcal:76,prot:8,carb:2,fat:4}},
-  {id:"l77",name:"Tofu soyeux",unit:"g",per100:{kcal:55,prot:5,carb:2,fat:3}},
+  // FECULENTS (source Ciqual 2020 - valeurs CUITES)
+  {id:"l55",name:"Riz blanc cuit",unit:"g",per100:{kcal:130,prot:2.7,carb:28,fat:0.3}},
+  {id:"l56",name:"Riz complet cuit",unit:"g",per100:{kcal:111,prot:2.6,carb:23,fat:0.9}},
+  {id:"l57",name:"Pates blanches cuites",unit:"g",per100:{kcal:157,prot:5.8,carb:30,fat:0.9}},
+  {id:"l58",name:"Pates completes cuites",unit:"g",per100:{kcal:149,prot:5.5,carb:28,fat:1.1}},
+  {id:"l59",name:"Quinoa cuit",unit:"g",per100:{kcal:120,prot:4.4,carb:21,fat:1.9}},
+  {id:"l60",name:"Patate douce cuite",unit:"g",per100:{kcal:86,prot:1.6,carb:20,fat:0.1}},
+  {id:"l61",name:"Pomme de terre cuite",unit:"g",per100:{kcal:77,prot:2,carb:17,fat:0.1}},
+  {id:"l62",name:"Flocons d avoine",unit:"g",per100:{kcal:364,prot:13,carb:58,fat:7}},
+  {id:"l63",name:"Pain complet",unit:"g",per100:{kcal:247,prot:9,carb:42,fat:3.5}},
+  {id:"l64",name:"Pain de mie complet",unit:"g",per100:{kcal:255,prot:8.5,carb:44,fat:3.7}},
+  {id:"l65",name:"Baguette blanche",unit:"g",per100:{kcal:270,prot:9,carb:55,fat:1.3}},
+  {id:"l66",name:"Galette de riz souffle",unit:"g",per100:{kcal:385,prot:7,carb:82,fat:1.3}},
+  {id:"l67",name:"Couscous cuit",unit:"g",per100:{kcal:112,prot:3.8,carb:23,fat:0.2}},
+  {id:"l68",name:"Boulgour cuit",unit:"g",per100:{kcal:83,prot:3,carb:18,fat:0.2}},
+  {id:"l69",name:"Orge perle cuit",unit:"g",per100:{kcal:123,prot:2.3,carb:28,fat:0.4}},
+  // LEGUMINEUSES (source Ciqual 2020 - valeurs CUITES)
+  {id:"l70",name:"Lentilles cuites",unit:"g",per100:{kcal:116,prot:9,carb:20,fat:0.4}},
+  {id:"l71",name:"Lentilles corail cuites",unit:"g",per100:{kcal:100,prot:7.6,carb:17,fat:0.4}},
+  {id:"l72",name:"Pois chiches cuits",unit:"g",per100:{kcal:164,prot:8.9,carb:27,fat:2.6}},
+  {id:"l73",name:"Haricots rouges cuits",unit:"g",per100:{kcal:127,prot:8.7,carb:22,fat:0.5}},
+  {id:"l74",name:"Haricots blancs cuits",unit:"g",per100:{kcal:114,prot:7.4,carb:20,fat:0.5}},
+  {id:"l75",name:"Edamame",unit:"g",per100:{kcal:122,prot:11,carb:10,fat:5.2}},
+  {id:"l76",name:"Tofu ferme",unit:"g",per100:{kcal:76,prot:8.1,carb:1.9,fat:4.2}},
+  {id:"l77",name:"Tofu soyeux",unit:"g",per100:{kcal:55,prot:5.3,carb:2.4,fat:3.5}},
   {id:"l78",name:"Tempeh",unit:"g",per100:{kcal:193,prot:19,carb:9,fat:11}},
-  // LEGUMES
-  {id:"l79",name:"Epinards crus",unit:"g",per100:{kcal:23,prot:3,carb:4,fat:0}},
-  {id:"l80",name:"Brocoli cuit",unit:"g",per100:{kcal:35,prot:3,carb:7,fat:0}},
-  {id:"l81",name:"Chou-fleur cuit",unit:"g",per100:{kcal:23,prot:2,carb:5,fat:0}},
-  {id:"l82",name:"Haricots verts cuits",unit:"g",per100:{kcal:31,prot:2,carb:7,fat:0}},
-  {id:"l83",name:"Courgette cuite",unit:"g",per100:{kcal:17,prot:1,carb:3,fat:0}},
-  {id:"l84",name:"Tomate",unit:"g",per100:{kcal:18,prot:1,carb:4,fat:0}},
-  {id:"l85",name:"Concombre",unit:"g",per100:{kcal:15,prot:1,carb:3,fat:0}},
-  {id:"l86",name:"Carotte crue",unit:"g",per100:{kcal:41,prot:1,carb:10,fat:0}},
-  {id:"l87",name:"Poivron rouge",unit:"g",per100:{kcal:31,prot:1,carb:6,fat:0}},
-  {id:"l88",name:"Champignons de Paris crus",unit:"g",per100:{kcal:22,prot:3,carb:3,fat:0}},
-  {id:"l89",name:"Avocat",unit:"g",per100:{kcal:160,prot:2,carb:9,fat:15}},
-  {id:"l90",name:"Salade verte",unit:"g",per100:{kcal:15,prot:1,carb:2,fat:0}},
-  {id:"l91",name:"Celeri branche",unit:"g",per100:{kcal:16,prot:1,carb:3,fat:0}},
-  {id:"l92",name:"Aubergine cuite",unit:"g",per100:{kcal:25,prot:1,carb:6,fat:0}},
-  {id:"l93",name:"Poireau cuit",unit:"g",per100:{kcal:31,prot:2,carb:7,fat:0}},
-  {id:"l94",name:"Asperge cuite",unit:"g",per100:{kcal:20,prot:2,carb:4,fat:0}},
-  {id:"l95",name:"Petits pois cuits",unit:"g",per100:{kcal:84,prot:5,carb:14,fat:0}},
-  {id:"l96",name:"Mais doux en boite",unit:"g",per100:{kcal:89,prot:3,carb:19,fat:1}},
-  {id:"l97",name:"Betterave cuite",unit:"g",per100:{kcal:44,prot:2,carb:10,fat:0}},
-  {id:"l98",name:"Radis",unit:"g",per100:{kcal:16,prot:1,carb:3,fat:0}},
-  {id:"l99",name:"Chou rouge cru",unit:"g",per100:{kcal:31,prot:1,carb:7,fat:0}},
-  {id:"l100",name:"Fenouil cru",unit:"g",per100:{kcal:31,prot:1,carb:7,fat:0}},
-  // FRUITS
-  {id:"l101",name:"Banane",unit:"g",piece_weight:120,per100:{kcal:89,prot:1,carb:23,fat:0}},
-  {id:"l102",name:"Pomme",unit:"g",piece_weight:150,per100:{kcal:52,prot:0,carb:14,fat:0}},
-  {id:"l103",name:"Orange",unit:"g",piece_weight:180,per100:{kcal:47,prot:1,carb:12,fat:0}},
-  {id:"l104",name:"Fraises",unit:"g",per100:{kcal:32,prot:1,carb:8,fat:0}},
-  {id:"l105",name:"Myrtilles",unit:"g",per100:{kcal:57,prot:1,carb:14,fat:0}},
-  {id:"l106",name:"Framboises",unit:"g",per100:{kcal:52,prot:1,carb:12,fat:1}},
-  {id:"l107",name:"Mangue",unit:"g",per100:{kcal:60,prot:1,carb:15,fat:0}},
-  {id:"l108",name:"Ananas",unit:"g",per100:{kcal:50,prot:1,carb:13,fat:0}},
-  {id:"l109",name:"Kiwi",unit:"g",piece_weight:70,per100:{kcal:61,prot:1,carb:15,fat:1}},
-  {id:"l110",name:"Raisin",unit:"g",per100:{kcal:69,prot:1,carb:18,fat:0}},
-  {id:"l111",name:"Poire",unit:"g",per100:{kcal:57,prot:0,carb:15,fat:0}},
-  {id:"l112",name:"Peche",unit:"g",per100:{kcal:39,prot:1,carb:10,fat:0}},
-  {id:"l113",name:"Melon",unit:"g",per100:{kcal:34,prot:1,carb:8,fat:0}},
-  {id:"l114",name:"Pasteque",unit:"g",per100:{kcal:30,prot:1,carb:8,fat:0}},
-  {id:"l115",name:"Cerise",unit:"g",per100:{kcal:63,prot:1,carb:16,fat:0}},
-  {id:"l116",name:"Abricot",unit:"g",piece_weight:40,per100:{kcal:48,prot:1,carb:11,fat:0}},
-  {id:"l117",name:"Prune",unit:"g",piece_weight:50,per100:{kcal:46,prot:1,carb:11,fat:0}},
-  // MATIERES GRASSES
-  {id:"l118",name:"Huile d olive",unit:"g",per100:{kcal:884,prot:0,carb:0,fat:100}},
+  // LEGUMES (source Ciqual 2020)
+  {id:"l79",name:"Epinards crus",unit:"g",per100:{kcal:23,prot:2.8,carb:3.6,fat:0.4}},
+  {id:"l80",name:"Brocoli cuit",unit:"g",per100:{kcal:35,prot:2.8,carb:7,fat:0.4}},
+  {id:"l81",name:"Chou-fleur cuit",unit:"g",per100:{kcal:23,prot:1.8,carb:4.5,fat:0.3}},
+  {id:"l82",name:"Haricots verts cuits",unit:"g",per100:{kcal:31,prot:1.9,carb:6.6,fat:0.2}},
+  {id:"l83",name:"Courgette cuite",unit:"g",per100:{kcal:17,prot:1.2,carb:3.2,fat:0.2}},
+  {id:"l84",name:"Tomate",unit:"g",per100:{kcal:18,prot:0.9,carb:3.5,fat:0.2}},
+  {id:"l85",name:"Concombre",unit:"g",per100:{kcal:15,prot:0.7,carb:3.1,fat:0.1}},
+  {id:"l86",name:"Carotte crue",unit:"g",per100:{kcal:41,prot:0.9,carb:9.6,fat:0.2}},
+  {id:"l87",name:"Poivron rouge",unit:"g",per100:{kcal:31,prot:1,carb:6,fat:0.3}},
+  {id:"l88",name:"Champignons de Paris crus",unit:"g",per100:{kcal:22,prot:3.1,carb:3.3,fat:0.3}},
+  {id:"l89",name:"Avocat",unit:"g",per100:{kcal:160,prot:2,carb:8.5,fat:15}},
+  {id:"l90",name:"Salade verte",unit:"g",per100:{kcal:15,prot:1.4,carb:2.2,fat:0.2}},
+  {id:"l91",name:"Celeri branche",unit:"g",per100:{kcal:16,prot:0.7,carb:3,fat:0.2}},
+  {id:"l92",name:"Aubergine cuite",unit:"g",per100:{kcal:25,prot:0.8,carb:5.5,fat:0.2}},
+  {id:"l93",name:"Poireau cuit",unit:"g",per100:{kcal:31,prot:1.8,carb:6.4,fat:0.3}},
+  {id:"l94",name:"Asperge cuite",unit:"g",per100:{kcal:20,prot:2.2,carb:3.7,fat:0.1}},
+  {id:"l95",name:"Petits pois cuits",unit:"g",per100:{kcal:84,prot:5.4,carb:14,fat:0.4}},
+  {id:"l96",name:"Mais doux en boite",unit:"g",per100:{kcal:89,prot:3.3,carb:19,fat:1.3}},
+  {id:"l97",name:"Betterave cuite",unit:"g",per100:{kcal:44,prot:1.7,carb:9.8,fat:0.1}},
+  {id:"l98",name:"Radis",unit:"g",per100:{kcal:16,prot:0.7,carb:3.4,fat:0.1}},
+  {id:"l99",name:"Chou rouge cru",unit:"g",per100:{kcal:31,prot:1.4,carb:7,fat:0.2}},
+  {id:"l100",name:"Fenouil cru",unit:"g",per100:{kcal:31,prot:1.2,carb:7,fat:0.2}},
+  // FRUITS (source Ciqual 2020)
+  {id:"l101",name:"Banane",unit:"g",piece_weight:120,per100:{kcal:89,prot:1.1,carb:22,fat:0.3}},
+  {id:"l102",name:"Pomme",unit:"g",piece_weight:150,per100:{kcal:52,prot:0.3,carb:13,fat:0.2}},
+  {id:"l103",name:"Orange",unit:"g",piece_weight:180,per100:{kcal:47,prot:0.9,carb:11,fat:0.1}},
+  {id:"l104",name:"Fraises",unit:"g",per100:{kcal:32,prot:0.7,carb:7.7,fat:0.3}},
+  {id:"l105",name:"Myrtilles",unit:"g",per100:{kcal:57,prot:0.7,carb:14,fat:0.3}},
+  {id:"l106",name:"Framboises",unit:"g",per100:{kcal:52,prot:1.2,carb:11,fat:0.7}},
+  {id:"l107",name:"Mangue",unit:"g",per100:{kcal:60,prot:0.8,carb:15,fat:0.4}},
+  {id:"l108",name:"Ananas",unit:"g",per100:{kcal:50,prot:0.5,carb:13,fat:0.1}},
+  {id:"l109",name:"Kiwi",unit:"g",piece_weight:70,per100:{kcal:61,prot:1.1,carb:14,fat:0.5}},
+  {id:"l110",name:"Raisin",unit:"g",per100:{kcal:69,prot:0.7,carb:18,fat:0.2}},
+  {id:"l111",name:"Poire",unit:"g",per100:{kcal:57,prot:0.4,carb:14,fat:0.1}},
+  {id:"l112",name:"Peche",unit:"g",per100:{kcal:39,prot:0.9,carb:9.5,fat:0.3}},
+  {id:"l113",name:"Melon",unit:"g",per100:{kcal:34,prot:0.8,carb:8,fat:0.2}},
+  {id:"l114",name:"Pasteque",unit:"g",per100:{kcal:30,prot:0.6,carb:7.6,fat:0.2}},
+  {id:"l115",name:"Cerise",unit:"g",per100:{kcal:63,prot:1,carb:15,fat:0.2}},
+  {id:"l116",name:"Abricot",unit:"g",piece_weight:40,per100:{kcal:48,prot:1.4,carb:11,fat:0.4}},
+  {id:"l117",name:"Prune",unit:"g",piece_weight:50,per100:{kcal:46,prot:0.7,carb:11,fat:0.3}},
+  // MATIERES GRASSES (source Ciqual 2020)
+  {id:"l118",name:"Huile d olive",unit:"g",per100:{kcal:828,prot:0,carb:0,fat:92}},
   {id:"l119",name:"Huile de coco",unit:"g",per100:{kcal:862,prot:0,carb:0,fat:100}},
-  {id:"l120",name:"Beurre",unit:"g",per100:{kcal:717,prot:1,carb:1,fat:81}},
-  {id:"l121",name:"Beurre de cacahuete",unit:"g",per100:{kcal:588,prot:25,carb:20,fat:50}},
+  {id:"l120",name:"Beurre",unit:"g",per100:{kcal:717,prot:0.6,carb:0.6,fat:81}},
+  {id:"l121",name:"Beurre de cacahuete",unit:"g",per100:{kcal:593,prot:25,carb:20,fat:51}},
   {id:"l122",name:"Beurre d amande",unit:"g",per100:{kcal:614,prot:21,carb:19,fat:56}},
   {id:"l123",name:"Amandes",unit:"g",per100:{kcal:575,prot:21,carb:22,fat:49}},
   {id:"l124",name:"Noix",unit:"g",per100:{kcal:654,prot:15,carb:14,fat:65}},
@@ -2451,34 +2485,34 @@ const LOCAL_DB = [
   {id:"l128",name:"Graines de lin",unit:"g",per100:{kcal:534,prot:18,carb:29,fat:42}},
   {id:"l129",name:"Graines de courge",unit:"g",per100:{kcal:559,prot:30,carb:11,fat:49}},
   {id:"l130",name:"Tahini puree de sesame",unit:"g",per100:{kcal:595,prot:17,carb:21,fat:54}},
-  // SAUCES
-  {id:"l131",name:"Sauce soja",unit:"ml",per100:{kcal:60,prot:10,carb:6,fat:0}},
-  {id:"l132",name:"Ketchup",unit:"g",per100:{kcal:100,prot:1,carb:25,fat:0}},
+  // SAUCES & CONDIMENTS
+  {id:"l131",name:"Sauce soja",unit:"ml",per100:{kcal:60,prot:10,carb:6,fat:0.1}},
+  {id:"l132",name:"Ketchup",unit:"g",per100:{kcal:100,prot:1.5,carb:25,fat:0.1}},
   {id:"l133",name:"Moutarde",unit:"g",per100:{kcal:66,prot:4,carb:6,fat:3}},
-  {id:"l134",name:"Mayonnaise allegee",unit:"g",per100:{kcal:265,prot:1,carb:12,fat:23}},
-  {id:"l135",name:"Hummus",unit:"g",per100:{kcal:166,prot:8,carb:14,fat:10}},
-  {id:"l136",name:"Vinaigrette",unit:"g",per100:{kcal:462,prot:0,carb:5,fat:48}},
-  // CEREALES
+  {id:"l134",name:"Mayonnaise allegee",unit:"g",per100:{kcal:265,prot:1.5,carb:12,fat:23}},
+  {id:"l135",name:"Hummus",unit:"g",per100:{kcal:166,prot:7.9,carb:14,fat:9.6}},
+  {id:"l136",name:"Vinaigrette",unit:"g",per100:{kcal:462,prot:0.1,carb:5,fat:48}},
+  // CEREALES PETIT-DEJ
   {id:"l137",name:"Muesli sans sucre",unit:"g",per100:{kcal:364,prot:10,carb:59,fat:8}},
-  {id:"l138",name:"Corn flakes",unit:"g",per100:{kcal:357,prot:7,carb:84,fat:1}},
-  {id:"l139",name:"Crepe nature",unit:"g",per100:{kcal:200,prot:5,carb:27,fat:8}},
+  {id:"l138",name:"Corn flakes",unit:"g",per100:{kcal:357,prot:7,carb:84,fat:0.9}},
+  {id:"l139",name:"Crepe nature",unit:"g",per100:{kcal:200,prot:5.7,carb:27,fat:8}},
   // BOISSONS
-  {id:"l140",name:"Jus d orange",unit:"ml",per100:{kcal:45,prot:1,carb:10,fat:0}},
-  {id:"l141",name:"Shaker proteine",unit:"ml",per100:{kcal:40,prot:6,carb:3,fat:0}},
+  {id:"l140",name:"Jus d orange",unit:"ml",per100:{kcal:45,prot:0.7,carb:10,fat:0.2}},
+  {id:"l141",name:"Shaker proteine",unit:"ml",per100:{kcal:40,prot:6,carb:3,fat:0.5}},
   // PROTEINES VEGETALES
   {id:"l142",name:"Seitan",unit:"g",per100:{kcal:370,prot:75,carb:14,fat:2}},
   {id:"l143",name:"Proteines soja texturees",unit:"g",per100:{kcal:345,prot:52,carb:30,fat:1}},
-  {id:"l144",name:"Surimi",unit:"g",per100:{kcal:99,prot:8,carb:13,fat:1}},
+  {id:"l144",name:"Surimi",unit:"g",per100:{kcal:99,prot:8.2,carb:13,fat:1.2}},
   // SUCRES & EXTRAS
   {id:"l145",name:"Chocolat noir 70%",unit:"g",per100:{kcal:578,prot:8,carb:45,fat:43}},
-  {id:"l146",name:"Miel",unit:"g",per100:{kcal:304,prot:0,carb:82,fat:0}},
-  {id:"l147",name:"Confiture allegee",unit:"g",per100:{kcal:120,prot:0,carb:30,fat:0}},
-  {id:"l148",name:"Sirop d erable",unit:"g",per100:{kcal:260,prot:0,carb:67,fat:0}},
-  {id:"l149",name:"Compote pommes sans sucre",unit:"g",per100:{kcal:47,prot:0,carb:12,fat:0}},
+  {id:"l146",name:"Miel",unit:"g",per100:{kcal:304,prot:0.3,carb:82,fat:0}},
+  {id:"l147",name:"Confiture allegee",unit:"g",per100:{kcal:120,prot:0.5,carb:30,fat:0.1}},
+  {id:"l148",name:"Sirop d erable",unit:"g",per100:{kcal:260,prot:0,carb:67,fat:0.1}},
+  {id:"l149",name:"Compote pommes sans sucre",unit:"g",per100:{kcal:47,prot:0.3,carb:12,fat:0.1}},
   {id:"l150",name:"Barre proteinee",unit:"g",piece_weight:60,per100:{kcal:380,prot:30,carb:40,fat:10}},
-  {id:"l151",name:"Yaourt aux fruits allege",unit:"g",per100:{kcal:74,prot:4,carb:13,fat:1}},
-  {id:"l152",name:"Creme fraiche allegee",unit:"g",per100:{kcal:113,prot:3,carb:4,fat:10}},
-  {id:"l153",name:"Creme fraiche entiere",unit:"g",per100:{kcal:292,prot:2,carb:3,fat:30}},
+  {id:"l151",name:"Yaourt aux fruits allege",unit:"g",per100:{kcal:74,prot:4.2,carb:13,fat:0.9}},
+  {id:"l152",name:"Creme fraiche allegee",unit:"g",per100:{kcal:113,prot:2.7,carb:4,fat:10}},
+  {id:"l153",name:"Creme fraiche entiere",unit:"g",per100:{kcal:292,prot:2.1,carb:3,fat:30}},
   {id:"l154",name:"Farine de ble",unit:"g",per100:{kcal:340,prot:10,carb:71,fat:1}},
   {id:"l155",name:"Farine d avoine",unit:"g",per100:{kcal:375,prot:13,carb:62,fat:7}},
 ];
