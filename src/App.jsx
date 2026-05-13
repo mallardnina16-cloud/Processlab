@@ -675,74 +675,6 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
 };
 
 // Base d'exercices embarquée - GIFs hébergés sur ExerciseDB GitHub
-const EXERCISE_DB = [
-  // FESSIERS
-  {id:"e1",name:"Hip Thrust",target:"glutes",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Hip_Thrust/0.jpg",instructions:["Assieds-toi dos contre un banc, barre sur les hanches","Pousse les hanches vers le haut en contractant les fessiers","Redescends lentement"]},
-  {id:"e2",name:"Glute Bridge",target:"glutes",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Glute_Bridge/0.jpg",instructions:["Allongé sur le dos, pieds à plat","Pousse les hanches vers le haut","Contracte les fessiers en haut"]},
-  {id:"e3",name:"Romanian Deadlift",target:"glutes",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Romanian_Deadlift/0.jpg",instructions:["Debout, barre en main","Descends la barre le long des jambes","Pousse les hanches vers l'arrière"]},
-  {id:"e4",name:"Sumo Squat",target:"glutes",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Sumo_Squat/0.jpg",instructions:["Pieds écartés, orteils vers l'extérieur","Descends en gardant le buste droit","Pousse sur les talons"]},
-  {id:"e5",name:"Donkey Kick",target:"glutes",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Donkey_Kick/0.jpg",instructions:["À quatre pattes","Pousse un genou vers le haut et l'arrière","Contracte le fessier en haut"]},
-  {id:"e6",name:"Step Up",target:"glutes",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Step_Ups/0.jpg",instructions:["Monte sur une box avec un pied","Pousse sur le talon pour monter","Redescends lentement"]},
-  {id:"e7",name:"Fire Hydrant",target:"glutes",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Fire_Hydrant/0.jpg",instructions:["À quatre pattes","Lève la jambe sur le côté à 90°","Contrôle le retour"]},
-  {id:"e8",name:"Cable Kickback",target:"glutes",equipment:"cable",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Hip_Extension/0.jpg",instructions:["Attache la cheville au câble","Pousse la jambe vers l'arrière","Contrôle le retour"]},
-  {id:"e9",name:"Hip Abduction Machine",target:"glutes",equipment:"machine",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Hip_Abduction/0.jpg",instructions:["Assis sur la machine","Écarte les jambes contre la résistance","Contrôle le retour"]},
-  // ISCHIO-JAMBIERS
-  {id:"e10",name:"Lying Leg Curl",target:"hamstrings",equipment:"machine",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Leg_Curls/0.jpg",instructions:["Allongé ventre sur la machine","Fléchis les genoux","Redescends lentement"]},
-  {id:"e11",name:"Seated Leg Curl",target:"hamstrings",equipment:"machine",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Leg_Curl/0.jpg",instructions:["Assis sur la machine","Fléchis les genoux","Contrôle le retour"]},
-  {id:"e12",name:"Romanian Deadlift (haltères)",target:"hamstrings",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Romanian_Deadlift/0.jpg",instructions:["Haltères en main, jambes légèrement fléchies","Descends en gardant le dos droit","Pousse les hanches vers l'arrière"]},
-  {id:"e13",name:"Good Morning",target:"hamstrings",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Good_Morning/0.jpg",instructions:["Barre sur les trapèzes","Penche le buste en avant","Remonte en contractant les ischio"]},
-  {id:"e14",name:"Nordic Curl",target:"hamstrings",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Nordic_Hamstring_Curl/0.jpg",instructions:["Genoux au sol, chevilles bloquées","Descends lentement en avant","Utilise les ischio pour freiner"]},
-  // QUADRICEPS
-  {id:"e15",name:"Back Squat",target:"quadriceps",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Squat/0.jpg",instructions:["Barre sur les trapèzes","Descends jusqu'à parallèle","Pousse sur les talons"]},
-  {id:"e16",name:"Leg Press",target:"quadriceps",equipment:"machine",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/0.jpg",instructions:["Assis sur la machine","Pousse la plateforme","Contrôle le retour"]},
-  {id:"e17",name:"Leg Extension",target:"quadriceps",equipment:"machine",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Extensions/0.jpg",instructions:["Assis, chevilles sous le coussin","Étends les jambes","Redescends lentement"]},
-  {id:"e18",name:"Bulgarian Split Squat",target:"quadriceps",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bulgarian_Split_Squat/0.jpg",instructions:["Pied arrière sur un banc","Descends le genou arrière vers le sol","Pousse sur le talon avant"]},
-  {id:"e19",name:"Walking Lunge",target:"quadriceps",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Walking_Lunge/0.jpg",instructions:["Fente avant en marchant","Genou avant à 90°","Alterne les jambes"]},
-  {id:"e20",name:"Front Squat",target:"quadriceps",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Front_Squat/0.jpg",instructions:["Barre sur les deltoïdes avant","Descends en gardant les coudes hauts","Pousse vers le haut"]},
-  // DOS
-  {id:"e21",name:"Lat Pulldown",target:"back",equipment:"cable",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Wide-Grip_Lat_Pulldown/0.jpg",instructions:["Assis à la machine, prise large","Tire la barre vers la poitrine","Contrôle le retour"]},
-  {id:"e22",name:"Seated Cable Row",target:"back",equipment:"cable",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Seated_Cable_Rows/0.jpg",instructions:["Assis, pieds sur les supports","Tire la poignée vers le ventre","Écarte les omoplates"]},
-  {id:"e23",name:"Bent Over Row",target:"back",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bent_Over_Row/0.jpg",instructions:["Incliné en avant, dos droit","Tire la barre vers le nombril","Serre les omoplates"]},
-  {id:"e24",name:"Pull Up",target:"back",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pullups/0.jpg",instructions:["Suspendu à la barre","Tire jusqu'à ce que le menton dépasse la barre","Redescends lentement"]},
-  {id:"e25",name:"Dumbbell Row",target:"back",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Two-Dumbbell_Row/0.jpg",instructions:["Un genou sur un banc","Tire l'haltère vers la hanche","Contrôle le retour"]},
-  {id:"e26",name:"Face Pull",target:"back",equipment:"cable",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Face_Pull/0.jpg",instructions:["Câble à hauteur de visage","Tire vers le visage en écartant les coudes","Contrôle le retour"]},
-  // PECTORAUX
-  {id:"e27",name:"Bench Press",target:"chest",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",instructions:["Allongé sur le banc","Descends la barre vers la poitrine","Pousse vers le haut"]},
-  {id:"e28",name:"Incline Dumbbell Press",target:"chest",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Dumbbell_Press/0.jpg",instructions:["Banc incliné à 30-45°","Descends les haltères vers les épaules","Pousse vers le haut"]},
-  {id:"e29",name:"Cable Fly",target:"chest",equipment:"cable",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crossover/0.jpg",instructions:["Câbles en position haute","Amène les poignées vers le centre","Contrôle l'écartement"]},
-  {id:"e30",name:"Push Up",target:"chest",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Push-up/0.jpg",instructions:["Position planche, mains à largeur d'épaules","Descends la poitrine vers le sol","Pousse pour remonter"]},
-  {id:"e31",name:"Dips",target:"chest",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Dips/0.jpg",instructions:["Suspendu entre deux barres","Descends en fléchissant les coudes","Pousse pour remonter"]},
-  // ÉPAULES
-  {id:"e32",name:"Overhead Press",target:"shoulders",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Shoulder_Press/0.jpg",instructions:["Debout, barre devant les épaules","Pousse la barre au-dessus de la tête","Redescends lentement"]},
-  {id:"e33",name:"Lateral Raise",target:"shoulders",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/0.jpg",instructions:["Haltères sur les côtés","Lève les bras à la hauteur des épaules","Contrôle la descente"]},
-  {id:"e34",name:"Front Raise",target:"shoulders",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Front_Raise/0.jpg",instructions:["Haltères devant les cuisses","Lève les bras devant toi","Contrôle la descente"]},
-  {id:"e35",name:"Arnold Press",target:"shoulders",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Arnold_Dumbbell_Press/0.jpg",instructions:["Haltères devant les épaules, paumes vers toi","Pivote les poignets en poussant","Redescends en pivotant"]},
-  {id:"e36",name:"Upright Row",target:"shoulders",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Upright_Row/0.jpg",instructions:["Barre en prise serrée","Tire vers le menton en écartant les coudes","Contrôle la descente"]},
-  // BRAS
-  {id:"e37",name:"Barbell Curl",target:"upper arms",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Curl/0.jpg",instructions:["Barre en prise supination","Fléchis les coudes","Contrôle la descente"]},
-  {id:"e38",name:"Dumbbell Curl",target:"upper arms",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternate_Hammer_Curl/0.jpg",instructions:["Haltères en prise supination","Fléchis les coudes alternativement","Contrôle la descente"]},
-  {id:"e39",name:"Hammer Curl",target:"upper arms",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternate_Hammer_Curl/0.jpg",instructions:["Haltères en prise neutre","Fléchis les coudes","Contrôle la descente"]},
-  {id:"e40",name:"Tricep Pushdown",target:"upper arms",equipment:"cable",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Triceps_Pushdown/0.jpg",instructions:["Câble en haut, coudes collés au corps","Étends les avant-bras vers le bas","Contrôle le retour"]},
-  {id:"e41",name:"Skull Crusher",target:"upper arms",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Skullcrusher/0.jpg",instructions:["Allongé, barre au-dessus de la tête","Fléchis les coudes vers le front","Étends pour remonter"]},
-  {id:"e42",name:"Tricep Extension",target:"upper arms",equipment:"dumbbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Lying_Triceps_Extension/0.jpg",instructions:["Haltère au-dessus de la tête","Fléchis les coudes derrière la tête","Étends vers le haut"]},
-  // ABDOMINAUX
-  {id:"e43",name:"Plank",target:"abs",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pushup_to_Plank/0.jpg",instructions:["Position planche sur les avant-bras","Maintiens le corps aligné","Respire régulièrement"]},
-  {id:"e44",name:"Crunch",target:"abs",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Crunch/0.jpg",instructions:["Allongé sur le dos","Soulève les épaules vers les genoux","Contrôle la descente"]},
-  {id:"e45",name:"Leg Raise",target:"abs",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hanging_Leg_Raise/0.jpg",instructions:["Allongé sur le dos","Lève les jambes tendues à 90°","Redescends lentement"]},
-  {id:"e46",name:"Mountain Climber",target:"abs",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Mountain_Climber/0.jpg",instructions:["Position planche","Ramène alternativement les genoux vers la poitrine","Garde le dos plat"]},
-  {id:"e47",name:"Russian Twist",target:"abs",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Russian_Twist/0.jpg",instructions:["Assis, pieds soulevés","Tourne le buste de gauche à droite","Contrôle le mouvement"]},
-  {id:"e48",name:"Cable Crunch",target:"abs",equipment:"cable",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crunch/0.jpg",instructions:["À genoux face au câble","Tire le câble vers les genoux","Contrôle le retour"]},
-  // MOLLETS
-  {id:"e49",name:"Standing Calf Raise",target:"calves",equipment:"machine",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Calf_Press_On_The_Leg_Press_Machine/0.jpg",instructions:["Debout sur la machine","Monte sur la pointe des pieds","Descends lentement"]},
-  {id:"e50",name:"Seated Calf Raise",target:"calves",equipment:"machine",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Seated_Calf_Raise/0.jpg",instructions:["Assis, genoux sous les coussins","Monte sur la pointe des pieds","Descends lentement"]},
-  // ADDUCTEURS
-  {id:"e51",name:"Hip Adduction Machine",target:"adductors",equipment:"machine",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Adductor/0.jpg",instructions:["Assis sur la machine","Ramène les jambes l'une vers l'autre","Contrôle le retour"]},
-  {id:"e52",name:"Sumo Deadlift",target:"adductors",equipment:"barbell",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Side_Split_Squat/0.jpg",instructions:["Pieds très écartés, orteils vers l'extérieur","Descends en gardant le dos droit","Pousse vers le haut"]},
-  // FULL BODY
-  {id:"e53",name:"Burpee",target:"abs",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Burpees/0.jpg",instructions:["Debout, descends en squat","Saute en position planche","Fais une pompe puis saute vers le haut"]},
-  {id:"e54",name:"Jump Squat",target:"quadriceps",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Jump_Squat/0.jpg",instructions:["Pieds à largeur d'épaules","Descends en squat","Explose vers le haut"]},
-  {id:"e55",name:"Single Leg Glute Bridge",target:"glutes",equipment:"body weight",gifUrl:"https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single-Leg_Hip_Thrust/0.jpg",instructions:["Allongé sur le dos","Une jambe tendue","Pousse la hanche vers le haut"]},
-];
 
 
 const MUSCLE_GROUPS = [
@@ -772,136 +704,6 @@ const EQUIPMENT_GROUPS = [
   { id: "leverage machine", label: "Appareil guidé" },
 ];
 
-const ExerciseCatalogue = ({ onSelect, onClose }) => {
-  const [query, setQuery] = useState("");
-  const [muscle, setMuscle] = useState("all");
-  const [equipment, setEquipment] = useState("all");
-  const [selectedEx, setSelectedEx] = useState(null);
-  const [page, setPage] = useState(0);
-  const PER_PAGE = 20;
-
-  const filtered = EXERCISE_DB.filter(e => {
-    const matchMuscle = muscle === "all" || e.target === muscle;
-    const matchEquipment = equipment === "all" || e.equipment === equipment;
-    const matchQuery = query.length < 2 || e.name.toLowerCase().includes(query.toLowerCase());
-    return matchMuscle && matchEquipment && matchQuery;
-  });
-
-  const paginated = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-
-  const handleSelect = (ex) => {
-    onSelect({
-      name: ex.name,
-      photo: ex.gifUrl || null,
-      note: ex.instructions ? ex.instructions[0] : "",
-    });
-    onClose();
-  };
-
-  if (selectedEx) return (
-    <div style={{ position: "fixed", inset: 0, background: C.black, zIndex: 400, overflowY: "auto", padding: 20, fontFamily: "'Helvetica Neue', Arial, sans-serif", color: C.white }}>
-      <button onClick={() => setSelectedEx(null)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 16, padding: 0 }}>← Retour</button>
-      <h2 style={{ fontSize: 18, fontWeight: 900, marginBottom: 4, textTransform: "capitalize" }}>{selectedEx.name}</h2>
-      <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-        <span style={{ background: C.pink + "22", color: C.pink, borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>💪 {selectedEx.target}</span>
-        <span style={{ background: C.blue + "22", color: C.blue, borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>🏋️ {selectedEx.equipment}</span>
-      </div>
-      {selectedEx.gifUrl && (
-        <div style={{ borderRadius: 16, overflow: "hidden", marginBottom: 16, background: "#fff", textAlign: "center" }}>
-          <img src={selectedEx.gifUrl} alt={selectedEx.name} style={{ width: "100%", maxHeight: 300, objectFit: "contain" }} />
-        </div>
-      )}
-      {selectedEx.secondaryMuscles?.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>MUSCLES SECONDAIRES</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {selectedEx.secondaryMuscles.map(m => <span key={m} style={{ background: C.purple + "22", color: C.purple, borderRadius: 99, padding: "2px 8px", fontSize: 11 }}>{m}</span>)}
-          </div>
-        </div>
-      )}
-      {selectedEx.instructions?.length > 0 && (
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>INSTRUCTIONS</div>
-          {selectedEx.instructions.map((inst, i) => (
-            <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
-              <span style={{ width: 20, height: 20, borderRadius: "50%", background: C.pink + "22", color: C.pink, fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
-              <span style={{ fontSize: 13, lineHeight: 1.5, color: C.textMuted }}>{inst}</span>
-            </div>
-          ))}
-        </Card>
-      )}
-      <Btn onClick={() => handleSelect(selectedEx)} style={{ marginBottom: 20 }}>
-        ✅ Ajouter cet exercice à la séance
-      </Btn>
-    </div>
-  );
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: C.black, zIndex: 400, display: "flex", flexDirection: "column", fontFamily: "'Helvetica Neue', Arial, sans-serif", color: C.white }}>
-      {/* Header */}
-      <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>📚 Catalogue d'exercices</h2>
-          <button onClick={onClose} style={{ background: "#222", border: "none", color: C.textMuted, fontSize: 16, cursor: "pointer", width: 32, height: 32, borderRadius: "50%" }}>✕</button>
-        </div>
-        {/* Search */}
-        <input value={query} onChange={e => { setQuery(e.target.value); setPage(0); }} placeholder="Rechercher un exercice..." style={{ ...inputSt, marginBottom: 10 }} />
-        {/* Muscle filter */}
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, marginBottom: 6 }}>
-          {MUSCLE_GROUPS.map(g => (
-            <button key={g.id} onClick={() => { setMuscle(g.id); setEquipment("all"); setPage(0); }} style={{ padding: "5px 12px", borderRadius: 99, border: `1.5px solid ${muscle === g.id ? C.pink : C.border}`, background: muscle === g.id ? C.pink + "22" : "transparent", color: muscle === g.id ? C.pink : C.textMuted, fontWeight: muscle === g.id ? 700 : 400, fontSize: 11, cursor: "pointer", flexShrink: 0 }}>{g.label}</button>
-          ))}
-        </div>
-        {/* Equipment filter */}
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
-          {EQUIPMENT_GROUPS.map(g => (
-            <button key={g.id} onClick={() => { setEquipment(g.id); setMuscle("all"); setPage(0); }} style={{ padding: "5px 12px", borderRadius: 99, border: `1.5px solid ${equipment === g.id ? C.blue : C.border}`, background: equipment === g.id ? C.blue + "22" : "transparent", color: equipment === g.id ? C.blue : C.textMuted, fontWeight: equipment === g.id ? 700 : 400, fontSize: 11, cursor: "pointer", flexShrink: 0 }}>{g.label}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* Results */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 0", color: C.textMuted }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
-            <div>Aucun exercice trouvé</div>
-          </div>
-        ) : (
-          <>
-            <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 12 }}>{filtered.length} exercice{filtered.length > 1 ? "s" : ""}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {paginated.map(ex => (
-                <div key={ex.id} onClick={() => setSelectedEx(ex)} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden", cursor: "pointer" }}>
-                  <div style={{ background: "#fff", height: 130, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                    <img src={ex.gifUrl} alt={ex.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
-                  </div>
-                  <div style={{ padding: "10px 10px 12px" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3, marginBottom: 6, textTransform: "capitalize" }}>{ex.name}</div>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                      <span style={{ background: C.pink + "22", color: C.pink, borderRadius: 99, padding: "2px 7px", fontSize: 9, fontWeight: 700 }}>{ex.target}</span>
-                      <span style={{ background: "#222", color: C.textMuted, borderRadius: 99, padding: "2px 7px", fontSize: 9 }}>{ex.equipment}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 20, paddingBottom: 20 }}>
-                <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} style={{ padding: "8px 16px", borderRadius: 10, background: "#222", border: "none", color: page === 0 ? C.border : C.white, cursor: page === 0 ? "default" : "pointer" }}>← Préc.</button>
-                <span style={{ padding: "8px 16px", color: C.textMuted, fontSize: 13 }}>{page + 1} / {totalPages}</span>
-                <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1} style={{ padding: "8px 16px", borderRadius: 10, background: "#222", border: "none", color: page === totalPages - 1 ? C.border : C.white, cursor: page === totalPages - 1 ? "default" : "pointer" }}>Suiv. →</button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
 const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
   const [name, setName] = useState(workout?.name || "");
   const [desc, setDesc] = useState(workout?.description || "");
@@ -912,8 +714,6 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
   };
   const [blocks, setBlocks] = useState(initBlocks);
   const [saving, setSaving] = useState(false);
-  const [showCatalogue, setShowCatalogue] = useState(false);
-  const [catalogueTarget, setCatalogueTarget] = useState(null); // { blockId, exId } or null for new block
 
   const addSimple = () => setBlocks(b => [...b, newSimpleEx()]);
   const addCircuit = () => setBlocks(b => [...b, { ...newCircuit(), id: Date.now().toString() }]);
@@ -936,22 +736,7 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
     setSaving(false);
   };
 
-  const handleCatalogueSelect = (exData) => {
-    if (catalogueTarget?.blockId) {
-      // Adding to circuit
-      updCircuitEx(catalogueTarget.blockId, catalogueTarget.exId, { name: exData.name, photo: exData.photo, note: exData.note });
-    } else {
-      // Adding as new simple exercise
-      const newEx = { ...newSimpleEx(), name: exData.name, photo: exData.photo, note: exData.note };
-      setBlocks(b => [...b, newEx]);
-    }
-    setCatalogueTarget(null);
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {showCatalogue && <ExerciseCatalogue onSelect={handleCatalogueSelect} onClose={() => { setShowCatalogue(false); setCatalogueTarget(null); }} />}
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <button onClick={onCancel} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20, padding: 0 }}>←</button>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>{workout ? "Modifier" : "Nouvelle séance"}</h2>
       </div>
@@ -1021,14 +806,9 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
 
       {blocks.length === 0 && <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted }}>Ajoute des exercices ou un circuit ci-dessous</div>}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <button onClick={() => { setShowCatalogue(true); setCatalogueTarget(null); }} style={{ width: "100%", padding: "13px", borderRadius: 12, border: `1.5px solid ${C.pink}`, background: C.pink + "15", color: C.pink, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          📚 Choisir dans le catalogue (avec GIFs)
-        </button>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={addSimple} style={{ flex: 1, padding: "10px", borderRadius: 12, border: `1.5px dashed ${C.pink}55`, background: "transparent", color: C.textMuted, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>+ Exercice manuel</button>
-          <button onClick={addCircuit} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.purple}55`, background: "transparent", color: C.purple, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🔄 + Circuit</button>
-        </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={addSimple} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.pink}55`, background: "transparent", color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Exercice simple</button>
+        <button onClick={addCircuit} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.purple}55`, background: "transparent", color: C.purple, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🔄 + Circuit</button>
       </div>
 
       <div style={{ display: "flex", gap: 10, paddingBottom: 30 }}>
