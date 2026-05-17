@@ -145,9 +145,9 @@ const useMessages = (clientId) => {
       setMessages(data || []);
       setUnread((data || []).filter(m => !m.read && m.sender === "client").length);
     });
-    const sub = supabase.channel("messages:" + clientId)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `client_id=eq.${clientId}` },
-        (payload) => { setMessages(m => [...m, payload.new]); if (payload.new.sender === "client") setUnread(u => u + 1); }
+    const sub = supabase.channel("messages_" + clientId)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => { if (payload.new.client_id === clientId) { setMessages(m => [...m, payload.new]); if (payload.new.sender === "client") setUnread(u => u + 1); } }
       ).subscribe();
     return () => supabase.removeChannel(sub);
   }, [clientId]);
