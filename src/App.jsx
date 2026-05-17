@@ -141,15 +141,15 @@ const useMessages = (clientId) => {
 
   useEffect(() => {
     if (!clientId) return;
-    supabase.from("messages").select("*").eq("client_id", clientId).order("created_at").then(({ data }) => {
-      setMessages(data || []);
-      setUnread((data || []).filter(m => !m.read && m.sender === "client").length);
-    });
-    const sub = supabase.channel("messages_" + clientId)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
-        (payload) => { if (payload.new.client_id === clientId) { setMessages(m => [...m, payload.new]); if (payload.new.sender === "client") setUnread(u => u + 1); } }
-      ).subscribe();
-    return () => supabase.removeChannel(sub);
+    const load = () => {
+      supabase.from("messages").select("*").eq("client_id", clientId).order("created_at").then(({ data }) => {
+        setMessages(data || []);
+        setUnread((data || []).filter(m => !m.read && m.sender === "client").length);
+      });
+    };
+    load();
+    const interval = setInterval(load, 3000);
+    return () => clearInterval(interval);
   }, [clientId]);
 
   const sendMessage = async (clientId, content, sender) => {
@@ -158,12 +158,7 @@ const useMessages = (clientId) => {
   };
 
   const markRead = async (clientId, sender) => {
-    await supabase.from("messages").update({ read: true }).eq("client_id", clientId).eq("sender", sender).eq("read", false);
-    setUnread(0);
-  };
-
-  return { messages, unread, sendMessage, markRead };
-};
+    await supabase.from("messages").update({ read: true }).eq("clie
 
 const ChatScreen = ({ clientId, clientName, sender, onBack }) => {
   const { messages, sendMessage, markRead } = useMessages(clientId);
