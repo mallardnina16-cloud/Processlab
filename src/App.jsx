@@ -107,6 +107,31 @@ const addDays = (dateStr, days) => {
   return d.toISOString().slice(0, 10);
 };
 
+const scheduleNotification = () => {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const now = new Date();
+  const target = new Date();
+  target.setHours(20, 0, 0, 0);
+  if (now >= target) target.setDate(target.getDate() + 1);
+  const delay = target - now;
+  setTimeout(() => {
+    new Notification("process lab. 📋", { body: "N'oublie pas de remplir ton journal du jour !", icon: "/icon.png" });
+    scheduleNotification();
+  }, delay);
+};
+
+const requestNotifications = async () => {
+  if (!("Notification" in window)) { alert("Ajoute l'app à ton écran d'accueil depuis Safari pour activer les notifications."); return false; }
+  if (Notification.permission === "granted") { scheduleNotification(); return true; }
+  const perm = await Notification.requestPermission();
+  if (perm === "granted") {
+    scheduleNotification();
+    new Notification("process lab. ✅", { body: "Rappels activés ! Tu seras notifiée à 20h chaque soir.", icon: "/icon.png" });
+    return true;
+  }
+  return false;
+};
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MESSAGING SYSTEM
 // ══════════════════════════════════════════════════════════════════════════════
@@ -146,8 +171,8 @@ const ChatScreen = ({ clientId, clientName, sender, onBack }) => {
   const bottomRef = useRef(null);
 
   useEffect(() => {
-    markRead(clientId, sender === "coach" ? "client" : "coach");
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (clientId) markRead(clientId, sender === "coach" ? "client" : "coach");
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   }, [messages]);
 
   const handleSend = async () => {
@@ -361,7 +386,12 @@ const useClientData = (clientId) => {
 
   const fetch = async () => {
     if (!clientId) return;
-    setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
+    setEntries([]);
+    setWeights([]);
+    setMeasurements([]);
+    setAssignedWorkouts([]);
+    setProgressPhotos([]);
+    setPayments([]);
     setLoading(true);
     const [e, w, m, cw, pp, pay] = await Promise.all([
       supabase.from("entries").select("*").eq("client_id", clientId).order("date", { ascending: false }),
@@ -371,9 +401,12 @@ const useClientData = (clientId) => {
       supabase.from("progress_photos").select("*").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("payments").select("*").eq("client_id", clientId).order("paid_date", { ascending: false }),
     ]);
-    setEntries(e.data || []); setWeights(w.data || []); setMeasurements(m.data || []);
+    setEntries(e.data || []);
+    setWeights(w.data || []);
+    setMeasurements(m.data || []);
     setAssignedWorkouts((cw.data || []).map(x => ({ workout_id: x.workout_id, scheduled_date: x.scheduled_date, workout: x.workouts })));
-    setProgressPhotos(pp.data || []); setPayments(pay.data || []);
+    setProgressPhotos(pp.data || []);
+    setPayments(pay.data || []);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
@@ -407,7 +440,7 @@ const useClientData = (clientId) => {
   return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment };
 };
 // ══════════════════════════════════════════════════════════════════════════════
-// JOURNAL FORM
+// JOURNAL FORM — allows selecting any past date
 // ══════════════════════════════════════════════════════════════════════════════
 const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) => {
   const [selectedDate, setSelectedDate] = useState(today);
@@ -514,6 +547,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 14px" }}>Mon journal 📋</h2>
+
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>📅 Pour quel jour ?</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -536,6 +570,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
           {existing && <span style={{ color: C.green, marginLeft: 8, fontWeight: 700 }}>· Déjà rempli ✅</span>}
         </div>
       </div>
+
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Comment tu te sens ?</div>
@@ -546,7 +581,9 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
           </div>
           {feeling && <div style={{ textAlign: "center", fontSize: 12, color: C.textMuted, marginTop: 6 }}>{feelingLabels[feeling - 1]}</div>}
         </div>
+
         <Inp label="Nombre de pas" type="number" inputMode="numeric" placeholder="ex: 9500" value={steps} onChange={e => setSteps(e.target.value)} />
+
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>💧 Hydratation (hors thé & café)</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -556,6 +593,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
             })}
           </div>
         </div>
+
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>😴 Heures de sommeil</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
@@ -571,6 +609,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
             ))}
           </div>
         </div>
+
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>📷 Photos repas</div>
           <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer" }}>
@@ -592,6 +631,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
             </div>
           )}
         </div>
+
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Séance du jour</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -605,6 +645,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
             </div>
           )}
         </div>
+
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>⚠️ As-tu rencontré une difficulté ?</div>
           <div style={{ display: "flex", gap: 10, marginBottom: hadDifficulty ? 12 : 0 }}>
@@ -616,6 +657,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
             <TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />
           )}
         </div>
+
         <Btn onClick={handleSave} disabled={saving} style={{ marginBottom: 30 }}>
           {saving ? "Enregistrement..." : existing ? "💾 Mettre à jour" : "💾 Enregistrer mon journal"}
         </Btn>
@@ -624,7 +666,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
   );
 };
 // ══════════════════════════════════════════════════════════════════════════════
-// WORKOUT BUILDER
+// WORKOUT BUILDER — supports simple exercises + circuit blocks
 // ══════════════════════════════════════════════════════════════════════════════
 const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
 const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", work_time: 30, rest_time: 30, tempo: "", note: "", suggested_weight: "", weight_type: "haltères" }] });
@@ -813,8 +855,9 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
     </div>
   );
 };
+
 // ══════════════════════════════════════════════════════════════════════════════
-// WORKOUT PLAYER
+// WORKOUT PLAYER — supports simple exercises + circuit blocks
 // ══════════════════════════════════════════════════════════════════════════════
 const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const blocks = (workout.blocks && workout.blocks.length > 0) ? workout.blocks : workout.exercises.map(e => ({ ...e, type: e.type || "exercise" }));
@@ -967,8 +1010,30 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
             <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{currentBlock.name}</h2>
             {currentBlock.photo && <img src={currentBlock.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
             {currentBlock.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
-            {currentBlock.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {currentBlock.tempo}</div>}
+            {currentBlock.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {currentBlock.tempo} <span style={{ color: C.textMuted, fontSize: 11 }}>(desc – bas – mont – haut)</span></div>}
             {(() => { const lp = getLastPerf(currentBlock.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
+            {getAllPerfs(currentBlock.name).length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <button onClick={() => setShowHistory(!showHistory)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", color: C.textMuted, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                  📊 {showHistory ? "Masquer" : "Voir"} mon historique ({getAllPerfs(currentBlock.name).length} séances)
+                </button>
+                {showHistory && (
+                  <div style={{ marginTop: 10, background: "#111", borderRadius: 12, padding: 12 }}>
+                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>HISTORIQUE — {currentBlock.name}</div>
+                    {getAllPerfs(currentBlock.name).map((p, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < getAllPerfs(currentBlock.name).length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <span style={{ fontSize: 12, color: C.textMuted }}>{formatDate(p.date)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>
+                          {p.weight && <span style={{ color: C.pink }}>{p.weight}</span>}
+                          {p.weight && p.reps && <span style={{ color: C.textMuted }}> · </span>}
+                          {p.reps && <span style={{ color: C.purple }}>{p.reps} reps</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
               {[{ l: "SÉRIES", v: `${simpleSets}/${currentBlock.sets}`, c: C.pink }, { l: "REPS", v: currentBlock.reps, c: C.white }, { l: "REPOS", v: `${currentBlock.rest}s`, c: C.orange }].map(s => (
                 <div key={s.l} style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
@@ -1003,7 +1068,10 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
         {!resting && circuitEx && (
           <div>
             <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{circuitEx.name}</h2>
+            {circuitEx.photo && <img src={circuitEx.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
             {circuitEx.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
+            {circuitEx.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {circuitEx.tempo}</div>}
+            {(() => { const lp = getLastPerf(circuitEx.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
             {currentBlock.interval_mode ? (
               <div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
@@ -1042,13 +1110,13 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
 
   return null;
 };
-
 // ══════════════════════════════════════════════════════════════════════════════
 // PERF CARD
 // ══════════════════════════════════════════════════════════════════════════════
 const PerfCard = ({ log, workout }) => {
   let exLogs = {};
   try { exLogs = JSON.parse(log.exercise_logs || "{}"); } catch {}
+
   const enrichedLogs = Object.entries(exLogs).map(([key, exLog]) => {
     let name = exLog.name;
     if (!name && workout) {
@@ -1058,21 +1126,31 @@ const PerfCard = ({ log, workout }) => {
     }
     return { ...exLog, name: name || "—" };
   });
+
   return (
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
         <div><div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{log.workout_name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{formatDate(log.date)}</div></div>
         <Badge color={C.green}>✅ Réalisée</Badge>
       </div>
-      {enrichedLogs.filter(l => l.weight || l.reps).map((exLog, i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}>
-          <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name}</div></div>
-          <div style={{ display: "flex", gap: 12 }}>
-            {exLog.weight && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div></div>}
-            {exLog.reps && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div><div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div></div>}
-          </div>
+      {enrichedLogs.length > 0 && (
+        <div style={{ marginBottom: log.note ? 14 : 0 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>DÉTAIL DES EXERCICES</div>
+          {enrichedLogs.filter(l => l.weight || l.reps).map((exLog, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name}</div>
+                {exLog.suggested_weight && <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>}
+              </div>
+              <div style={{ display: "flex", gap: 12 }}>
+                {exLog.weight && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div></div>}
+                {exLog.reps && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div><div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div></div>}
+              </div>
+            </div>
+          ))}
+          {enrichedLogs.filter(l => l.weight || l.reps).length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucune performance saisie</div>}
         </div>
-      ))}
+      )}
       {log.note && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {log.note}</div>}
     </Card>
   );
@@ -1088,26 +1166,59 @@ const EntryDetail = ({ entry, onBack }) => (
       <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>{new Date(entry.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</h2>
       <span style={{ fontSize: 36 }}>{feelings[(entry.feeling || 3) - 1]}</span>
     </div>
+    <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 20, fontWeight: 600 }}>{feelingLabels[(entry.feeling || 3) - 1]}</div>
+
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>PAS</div><div style={{ fontSize: 24, fontWeight: 900, color: C.pink }}>{(entry.steps || 0).toLocaleString()}</div></div>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>SÉANCE</div><div style={{ fontWeight: 700, fontSize: 13, color: sessionColor(entry.session_status) }}>{sessionLabel(entry.session_status)}</div></div>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💧 HYDRATATION</div><div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{entry.hydration || "—"} L</div></div>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>😴 SOMMEIL</div><div style={{ fontSize: 20, fontWeight: 900 }}>{entry.sleep_hours || "—"}h{entry.nap ? <span style={{ fontSize: 13, color: C.purple }}> · sieste</span> : ""}</div></div>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+        <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>PAS</div>
+        <div style={{ fontSize: 24, fontWeight: 900, color: C.pink }}>{(entry.steps || 0).toLocaleString()}</div>
+      </div>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+        <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>SÉANCE</div>
+        <div style={{ fontWeight: 700, fontSize: 13, color: sessionColor(entry.session_status) }}>{sessionLabel(entry.session_status)}</div>
+      </div>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+        <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💧 HYDRATATION</div>
+        <div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{entry.hydration || "—"} L</div>
+      </div>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+        <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>😴 SOMMEIL</div>
+        <div style={{ fontSize: 20, fontWeight: 900 }}>{entry.sleep_hours || "—"}h{entry.nap ? <span style={{ fontSize: 13, color: C.purple }}> · sieste</span> : ""}</div>
+      </div>
     </div>
+
+    {entry.meal_note && (
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>🍽️ REPAS</div>
+        <div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.meal_note}</div>
+      </div>
+    )}
+
     {entry.photos && entry.photos.length > 0 && (
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📷 PHOTOS REPAS</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
-          {entry.photos.map((p, i) => <img key={i} src={p} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 10 }} />)}
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📷 PHOTOS REPAS ({entry.photos.length})</div>
+        <div style={{ display: "grid", gridTemplateColumns: entry.photos.length === 1 ? "1fr" : "repeat(2, 1fr)", gap: 10 }}>
+          {entry.photos.map((p, i) => (
+            <img key={i} src={p} alt="" style={{ width: "100%", aspectRatio: entry.photos.length === 1 ? "16/9" : "1", objectFit: "cover", borderRadius: 10 }} />
+          ))}
         </div>
       </div>
     )}
+
+    {entry.session_note && (
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>💪 NOTE SÉANCE</div>
+        <div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.session_note}</div>
+      </div>
+    )}
+
     {entry.had_difficulty && (
       <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
         <div style={{ fontSize: 11, color: C.orange, fontWeight: 700, marginBottom: 8 }}>⚠️ DIFFICULTÉ</div>
         <div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.difficulty_note || "Difficulté signalée"}</div>
       </div>
     )}
+
     {entry.coach_message && (
       <div style={{ background: C.pink + "15", border: `1px solid ${C.pink}44`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
         <div style={{ fontSize: 11, color: C.pink, fontWeight: 700, marginBottom: 8 }}>💬 MESSAGE DE TON COACH</div>
@@ -1129,12 +1240,19 @@ const EntryCard = ({ e, onClick }) => (
         <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
       </div>
     </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 8 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: e.photos?.length > 0 || e.meal_note || e.had_difficulty || e.coach_message ? 12 : 0 }}>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>PAS</div><div style={{ fontSize: 18, fontWeight: 900, color: C.pink }}>{(e.steps || 0).toLocaleString()}</div></div>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SÉANCE</div><div style={{ fontWeight: 700, fontSize: 13, color: sessionColor(e.session_status) }}>{sessionLabel(e.session_status)}</div></div>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>HYDRATATION</div><div style={{ fontSize: 18, fontWeight: 900, color: C.blue }}>{e.hydration || "—"} L</div></div>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SOMMEIL</div><div style={{ fontSize: 15, fontWeight: 700 }}>{e.sleep_hours || "—"}h {e.nap ? "· 😴" : ""}</div></div>
     </div>
+    {e.photos && e.photos.length > 0 && (
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        {e.photos.slice(0, 3).map((p, i) => <img key={i} src={p} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8 }} />)}
+        {e.photos.length > 3 && <div style={{ width: 60, height: 60, borderRadius: 8, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.textMuted }}>+{e.photos.length - 3}</div>}
+      </div>
+    )}
+    {e.meal_note && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}><span style={{ color: C.white, fontWeight: 700 }}>Repas : </span>{e.meal_note.length > 80 ? e.meal_note.slice(0, 80) + "..." : e.meal_note}</div>}
     {e.had_difficulty && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: 10, marginBottom: 8 }}><div style={{ fontSize: 11, color: C.orange, fontWeight: 700, marginBottom: 4 }}>⚠️ DIFFICULTÉ</div><div style={{ fontSize: 13 }}>{e.difficulty_note}</div></div>}
     {e.coach_message && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {e.coach_message}</div>}
   </Card>
@@ -1151,6 +1269,7 @@ const PaymentHistory = ({ payments }) => (
         <div>
           <div style={{ fontWeight: 700, fontSize: 14, color: C.green }}>✅ {p.amount} €</div>
           <div style={{ fontSize: 12, color: C.textMuted }}>Reçu le {formatDate(p.paid_date)}</div>
+          {p.note && <div style={{ fontSize: 12, color: C.textMuted }}>{p.note}</div>}
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 11, color: C.textMuted }}>Prochain</div>
@@ -1307,6 +1426,7 @@ const CoachApp = ({ user, onLogout }) => {
               </div>
               <Card>
                 <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>JOURNAL DU JOUR</div>
+                {clients.length === 0 && <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune cliente. Clique sur "+" pour en ajouter une.</p>}
                 {clients.map(c => (
                   <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
                     <Avatar initials={c.avatar} size={32} color={c.today_done ? C.pink : C.muted} />
@@ -1335,7 +1455,10 @@ const CoachApp = ({ user, onLogout }) => {
                       <Btn small variant="danger" onClick={() => deleteWorkout(w.id)} style={{ width: "auto" }}>🗑️</Btn>
                     </div>
                   </div>
-                  <Badge color={C.orange}>{w.exercises?.length || 0} exercices</Badge>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <Badge color={C.orange}>{w.exercises?.length || 0} exercices</Badge>
+                    <Badge color={C.purple}>{w.exercises?.reduce((a, e) => a + e.sets, 0) || 0} séries</Badge>
+                  </div>
                 </Card>
               ))}
             </div>
@@ -1360,6 +1483,19 @@ const CoachApp = ({ user, onLogout }) => {
                   {unreadMessages > 0 && <span style={{ position: "absolute", top: -6, right: -6, background: C.red, color: C.white, borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadMessages}</span>}
                 </button>
                 <button onClick={() => setEditingClient(client)} style={{ background: "#222", border: `1px solid ${C.border}`, color: C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>✏️ Modifier</button>
+                <button onClick={async () => {
+                  if (client.is_paused) {
+                    const pauseDays = Math.ceil((new Date(today) - new Date(client.pause_start)) / 86400000);
+                    const newDate = new Date(client.next_payment);
+                    newDate.setDate(newDate.getDate() + pauseDays);
+                    const newPayment = newDate.toISOString().slice(0, 10);
+                    await supabase.from("clients").update({ is_paused: false, pause_start: null, next_payment: newPayment }).eq("id", client.id);
+                  } else {
+                    await supabase.from("clients").update({ is_paused: true, pause_start: today }).eq("id", client.id);
+                  }
+                }} style={{ background: client.is_paused ? C.green + "22" : C.blue + "22", border: `1px solid ${client.is_paused ? C.green : C.blue}55`, color: client.is_paused ? C.green : C.blue, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>
+                  {client.is_paused ? "▶ Reprendre" : "⏸️ Pause"}
+                </button>
               </div>
 
               <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["nutrition", "🍽️ Nutrition"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
@@ -1424,6 +1560,24 @@ const CoachApp = ({ user, onLogout }) => {
                     <div style={{ fontSize: 13, color: C.textMuted }}>Logs nutrition de {client.name}</div>
                     <button onClick={() => setShowNutritionReport(true)} style={{ background: C.pink, border: "none", color: C.black, borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📊 Bilan mensuel</button>
                   </div>
+                  {(() => {
+                    const todayLogs = clientNutritionLogs.filter(l => l.date === today);
+                    const totals = sumMacros(todayLogs);
+                    const goals = { kcal: client.calories_target || 1800, prot: client.protein_target || 100, carb: client.carb_target || 180, fat: client.fat_target || 60 };
+                    return (
+                      <Card>
+                        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AUJOURD'HUI — {todayLogs.length} aliments saisis</div>
+                        {todayLogs.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Rien de saisi aujourd'hui.</p> : (
+                          <>
+                            <MacroBar label="Calories" value={Math.round(totals.kcal)} max={goals.kcal} color={C.yellow} unit=" kcal" />
+                            <MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} />
+                            <MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} />
+                            <MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} />
+                          </>
+                        )}
+                      </Card>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -1440,6 +1594,14 @@ const CoachApp = ({ user, onLogout }) => {
                       </div>
                     </Card>
                   )}
+                  {progressPhotos.length > 0 && (
+                    <Card>
+                      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>📸 PHOTOS DE PROGRESSION</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+                        {progressPhotos.map((p, i) => <div key={i}><img src={p.photo} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 12, marginBottom: 4 }} /><div style={{ fontSize: 11, color: C.textMuted }}>{formatDate(p.date)}</div>{p.note && <div style={{ fontSize: 11, color: C.white }}>{p.note}</div>}</div>)}
+                      </div>
+                    </Card>
+                  )}
                   {weights.length <= 1 && progressPhotos.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de données.</p></Card>}
                   </>)}
                 </div>
@@ -1453,7 +1615,13 @@ const CoachApp = ({ user, onLogout }) => {
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>DÉBUT</div><div style={{ fontWeight: 700, fontSize: 13 }}>{formatDate(client.start_date)}</div></div>
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>SÉANCES/SEMAINE</div><div style={{ fontWeight: 700, fontSize: 13 }}>{client.sessions_per_week || 3}x</div></div>
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>MONTANT</div><div style={{ fontWeight: 700, fontSize: 18, color: C.green }}>{client.monthly_amount || "—"} €</div></div>
-                      <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>PROCHAIN PAIEMENT</div><div style={{ fontWeight: 700, fontSize: 13 }}>{formatDate(client.next_payment)}</div></div>
+                      <div style={{ background: client.is_paused ? C.blue + "15" : daysUntil(client.next_payment) <= 3 ? C.yellow + "15" : "#111", borderRadius: 10, padding: 12 }}>
+                        <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>PROCHAIN PAIEMENT</div>
+                        {client.is_paused
+                          ? <div style={{ fontWeight: 700, fontSize: 13, color: C.blue }}>⏸️ En pause depuis le {formatDate(client.pause_start)}</div>
+                          : <div style={{ fontWeight: 700, fontSize: 13, color: daysUntil(client.next_payment) <= 3 ? C.yellow : C.white }}>{formatDate(client.next_payment)}</div>
+                        }
+                      </div>
                     </div>
                   </Card>
                   {!showPaymentForm ? (
@@ -1462,14 +1630,15 @@ const CoachApp = ({ user, onLogout }) => {
                     <Card style={{ borderColor: C.green + "44" }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 16 }}>✅ Nouveau paiement</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        <Inp label="Montant (€)" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
+                        <Inp label="Montant (€)" type="number" placeholder={client.monthly_amount || "150"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
                         <Inp label="Date de réception" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
-                        <Inp label="Note (optionnel)" value={paymentNote} onChange={e => setPaymentNote(e.target.value)} />
+                        <Inp label="Note (optionnel)" placeholder="Virement, espèces..." value={paymentNote} onChange={e => setPaymentNote(e.target.value)} />
                       </div>
                       <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
                         <Btn variant="secondary" onClick={() => setShowPaymentForm(false)} style={{ flex: 1 }}>Annuler</Btn>
                         <Btn variant="green" onClick={handleAddPayment} disabled={addingPayment} style={{ flex: 2 }}>{addingPayment ? "Enregistrement..." : "Confirmer ✅"}</Btn>
                       </div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 10, textAlign: "center" }}>⚡ Prochain paiement fixé à J+28</div>
                     </Card>
                   )}
                   <Card>
@@ -1497,13 +1666,22 @@ const CoachApp = ({ user, onLogout }) => {
             <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 20, marginTop: 0 }}>Un compte sera créé automatiquement.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <Inp label="Nom complet" placeholder="Camille Rousseau" value={newClientForm.name} onChange={e => setNewClientForm({ ...newClientForm, name: e.target.value })} />
-              <Inp label="Email" type="email" value={newClientForm.email} onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })} />
-              <Inp label="Mot de passe temporaire" type="text" value={newClientForm.password} onChange={e => setNewClientForm({ ...newClientForm, password: e.target.value })} />
-              <Inp label="Objectif" value={newClientForm.goal} onChange={e => setNewClientForm({ ...newClientForm, goal: e.target.value })} />
-              <Inp label="Séances par semaine" type="number" value={newClientForm.sessions_per_week} onChange={e => setNewClientForm({ ...newClientForm, sessions_per_week: e.target.value })} />
-              <Inp label="Montant toutes les 4 semaines (€)" type="number" value={newClientForm.monthly_amount} onChange={e => setNewClientForm({ ...newClientForm, monthly_amount: e.target.value })} />
+              <Inp label="Email" type="email" placeholder="camille@email.com" value={newClientForm.email} onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })} />
+              <Inp label="Mot de passe temporaire" type="text" placeholder="ex: Processlab2025!" value={newClientForm.password} onChange={e => setNewClientForm({ ...newClientForm, password: e.target.value })} />
+              <Inp label="Objectif" placeholder="Perte de poids..." value={newClientForm.goal} onChange={e => setNewClientForm({ ...newClientForm, goal: e.target.value })} />
+              <Inp label="Séances par semaine" type="number" min="1" max="7" value={newClientForm.sessions_per_week} onChange={e => setNewClientForm({ ...newClientForm, sessions_per_week: e.target.value })} />
+              <Inp label="Montant toutes les 4 semaines (€)" type="number" placeholder="150" value={newClientForm.monthly_amount} onChange={e => setNewClientForm({ ...newClientForm, monthly_amount: e.target.value })} />
               <Inp label="Date de début" type="date" value={newClientForm.start_date} onChange={e => setNewClientForm({ ...newClientForm, start_date: e.target.value })} />
               <Inp label="Premier paiement dû le" type="date" value={newClientForm.next_payment} onChange={e => setNewClientForm({ ...newClientForm, next_payment: e.target.value })} />
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🍽️ OBJECTIFS NUTRITIONNELS (optionnel)</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <Inp label="Calories / jour" type="number" placeholder="ex: 1800" value={newClientForm.calories_target} onChange={e => setNewClientForm({ ...newClientForm, calories_target: e.target.value })} />
+                  <Inp label="Protéines / jour (g)" type="number" placeholder="ex: 100" value={newClientForm.protein_target} onChange={e => setNewClientForm({ ...newClientForm, protein_target: e.target.value })} />
+                  <Inp label="Glucides / jour (g)" type="number" placeholder="ex: 180" value={newClientForm.carb_target} onChange={e => setNewClientForm({ ...newClientForm, carb_target: e.target.value })} />
+                  <Inp label="Lipides / jour (g)" type="number" placeholder="ex: 60" value={newClientForm.fat_target} onChange={e => setNewClientForm({ ...newClientForm, fat_target: e.target.value })} />
+                </div>
+              </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <Btn variant="secondary" onClick={() => setShowAddClient(false)} style={{ flex: 1 }}>Annuler</Btn>
@@ -1519,7 +1697,6 @@ const CoachApp = ({ user, onLogout }) => {
     </div>
   );
 };
-
 // ══════════════════════════════════════════════════════════════════════════════
 // CLIENT APP
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1529,6 +1706,7 @@ const ClientApp = ({ user, onLogout }) => {
   const [screen, setScreen] = useState("home");
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [selectedEntry, setSelectedEntry] = useState(null);
+  const [selectedPerf, setSelectedPerf] = useState(null);
   const [viewingWorkoutPerfs, setViewingWorkoutPerfs] = useState(null);
   const [sessionLogs, setSessionLogs] = useState([]);
   const [bodyTab, setBodyTab] = useState("weight");
@@ -1576,9 +1754,9 @@ const ClientApp = ({ user, onLogout }) => {
     reader.readAsDataURL(file);
   };
   const handleEnableNotifs = async () => {
-    if (!("Notification" in window)) { alert("Ajoute l'app à ton écran d'accueil depuis Safari pour activer les notifications."); return; }
-    const perm = await Notification.requestPermission();
-    if (perm === "granted") setNotifEnabled(true);
+    const granted = await requestNotifications();
+    if (granted) setNotifEnabled(true);
+    else alert("Pour activer : Réglages → Notifications → Process Lab → Autoriser");
   };
 
   if (screen === "messages" && clientId) return (
@@ -1602,6 +1780,7 @@ const ClientApp = ({ user, onLogout }) => {
       <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
         <button onClick={() => setViewingWorkoutPerfs(null)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
         <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>{viewingWorkoutPerfs.name}</h2>
+        <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 20 }}>{logs.length} séance{logs.length > 1 ? "s" : ""} réalisée{logs.length > 1 ? "s" : ""}</p>
         {logs.map((log, i) => <div key={i} style={{ marginBottom: 14 }}><PerfCard log={log} workout={viewingWorkoutPerfs} /></div>)}
       </div>
     );
@@ -1610,20 +1789,32 @@ const ClientApp = ({ user, onLogout }) => {
   if (screen === "perfs") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-      <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mes performances 📊</h2>
-      {myWorkouts.map(w => {
-        const logs = sessionLogs.filter(l => l.workout_id === w.id);
-        if (logs.length === 0) return null;
-        return (
-          <Card key={w.id} onClick={() => setViewingWorkoutPerfs(w)} style={{ marginBottom: 10, cursor: "pointer" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div><div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{w.name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{logs.length} fois · Dernière : {formatDate(logs[0].date)}</div></div>
-              <span style={{ color: C.purple, fontWeight: 700 }}>→</span>
-            </div>
-          </Card>
-        );
-      })}
-      {sessionLogs.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de séance enregistrée.</p></Card>}
+      <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Mes performances 📊</h2>
+      <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 20 }}>{sessionLogs.length} séance{sessionLogs.length > 1 ? "s" : ""} au total</p>
+      {myWorkouts.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>PAR SÉANCE</div>
+          {myWorkouts.map(w => {
+            const logs = sessionLogs.filter(l => l.workout_id === w.id);
+            if (logs.length === 0) return null;
+            return (
+              <Card key={w.id} onClick={() => setViewingWorkoutPerfs(w)} style={{ marginBottom: 10, cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>{w.name}</div>
+                    <div style={{ fontSize: 12, color: C.textMuted }}>{logs.length} fois · Dernière : {formatDate(logs[0].date)}</div>
+                  </div>
+                  <span style={{ color: C.purple, fontWeight: 700 }}>→</span>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>HISTORIQUE COMPLET</div>
+      {sessionLogs.length === 0 ? (
+        <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de séance enregistrée.</p></Card>
+      ) : sessionLogs.map((log, i) => <div key={i} style={{ marginBottom: 12 }}><PerfCard key={i} log={log} workout={myWorkouts.find(w => w.id === log.workout_id)} /></div>)}
     </div>
   );
 
@@ -1651,20 +1842,29 @@ const ClientApp = ({ user, onLogout }) => {
           <Card style={{ marginBottom: 14, borderColor: C.pink + "44", background: C.pink + "08" }}>
             <div style={{ fontSize: 10, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>MESSAGE DE TON COACH</div>
             <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{coachMsg}</div>
+            <button onClick={async () => {
+              const entry = entries.find(e => e.coach_message);
+              if (entry) await updateEntry(entry.id, { coach_message: "" });
+            }} style={{ background: "none", border: `1px solid ${C.pink}55`, borderRadius: 8, padding: "6px 12px", color: C.pink, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              ✓ Marquer comme lu
+            </button>
           </Card>
         )}
 
         <Card style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>JOURNAL DU JOUR</div>
-          {!todayEntry ? (
+          {!todayEntry && (
             <><p style={{ color: C.textMuted, fontSize: 13, marginBottom: 12, marginTop: 0 }}>Tu n'as pas encore rempli ton journal.</p><Btn onClick={() => setScreen("journal")}>Commencer mon journal →</Btn></>
-          ) : (
+          )}
+          {todayEntry && (
             <div>
               <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
                 <span style={{ fontSize: 30 }}>{feelings[(todayEntry.feeling || 3) - 1]}</span>
                 <div>
                   <div style={{ fontWeight: 700, marginBottom: 2 }}>Rempli aujourd'hui ✅</div>
-                  <div style={{ fontSize: 12, color: C.textMuted }}>{(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration || "—"}L · {todayEntry.sleep_hours || "—"}h sommeil</div>
+                  <div style={{ fontSize: 12, color: C.textMuted }}>
+                    {(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration || "—"}L · {todayEntry.sleep_hours || "—"}h sommeil
+                  </div>
                 </div>
               </div>
               <Btn onClick={() => setScreen("journal")} variant="ghost" style={{ fontSize: 14 }}>✏️ Modifier mon journal</Btn>
@@ -1672,21 +1872,37 @@ const ClientApp = ({ user, onLogout }) => {
           )}
         </Card>
 
-        {myWorkouts.length > 0 && (
+        {loading ? (
+          <div style={{ marginBottom: 14 }}><Spinner /></div>
+        ) : myWorkouts.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>💪 Mes entraînements</div>
-            {myWorkouts.map(w => (
-              <Card key={w.id} style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>💪</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
-                    <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div>
+            {myWorkouts.map(w => {
+              const scheduledDate = w.scheduledDate;
+              const isToday = scheduledDate === today;
+              const isPast = scheduledDate && scheduledDate < today;
+              const myLogs = sessionLogs.filter(l => l.workout_id === w.id);
+              return (
+                <Card key={w.id} style={{ marginBottom: 10, borderColor: isToday ? C.orange + "66" : C.border }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: myLogs.length > 0 ? 12 : 0 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", border: `1.5px solid ${isToday ? C.orange : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💪</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
+                      <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices {myLogs.length > 0 ? `· ${myLogs.length} fois réalisée` : ""}</div>
+                      {scheduledDate && <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>{isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>}
+                    </div>
                   </div>
-                </div>
-                <Btn onClick={() => setActiveWorkout(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn>
-              </Card>
-            ))}
+                  {myLogs.length > 0 && (
+                    <div style={{ background: C.purple + "12", borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, color: C.purple, fontWeight: 700, marginBottom: 6 }}>📊 DERNIÈRE FOIS — {formatDate(myLogs[0].date)}</div>
+                      {(() => { let logs = {}; try { logs = JSON.parse(myLogs[0].exercise_logs || "{}"); } catch {} return Object.values(logs).slice(0, 3).map((l, i) => l.weight || l.reps ? <div key={i} style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}><span style={{ color: C.white, fontWeight: 600 }}>{l.name}</span> {l.weight ? `· ${l.weight}` : ""} {l.reps ? `· ${l.reps} reps` : ""}</div> : null); })()}
+                      <button onClick={() => setViewingWorkoutPerfs(w)} style={{ fontSize: 12, color: C.purple, background: "none", border: "none", cursor: "pointer", fontWeight: 700, marginTop: 4, padding: 0 }}>Voir tout l'historique →</button>
+                    </div>
+                  )}
+                  <Btn onClick={() => setActiveWorkout(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn>
+                </Card>
+              );
+            })}
           </div>
         )}
 
@@ -1694,7 +1910,6 @@ const ClientApp = ({ user, onLogout }) => {
           <Card onClick={() => setScreen("body")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>POIDS</div><div style={{ fontSize: 22, fontWeight: 900, color: C.pink }}>{lastWeight ? `${lastWeight.value} kg` : "—"}</div>{startWeight && lastWeight && startWeight.value !== lastWeight.value && <div style={{ fontSize: 11, color: C.green }}>-{(startWeight.value - lastWeight.value).toFixed(1)} kg</div>}</Card>
           <Card onClick={() => setScreen("perfs")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>SÉANCES</div><div style={{ fontSize: 22, fontWeight: 900, color: C.purple }}>{sessionLogs.length}</div><div style={{ fontSize: 11, color: C.textMuted }}>réalisées</div></Card>
         </div>
-
         <div style={{ display: "flex", gap: 10 }}>
           <Btn variant="ghost" onClick={() => setScreen("history")} style={{ flex: 1 }}>📋 Journal</Btn>
           <Btn variant="ghost" onClick={() => setScreen("nutrition")} style={{ flex: 1 }}>🍽️ Nutrition</Btn>
@@ -1715,14 +1930,31 @@ const ClientApp = ({ user, onLogout }) => {
       <Card style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>MON ACCOMPAGNEMENT</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[{ label: "Date de début", val: formatDate(clientInfo.start_date), icon: "📅" }, { label: "Séances par semaine", val: `${clientInfo.sessions_per_week || 3} séances`, icon: "💪" }, { label: "Montant toutes les 4 semaines", val: `${clientInfo.monthly_amount || "—"} €`, icon: "💶" }, { label: "Prochain paiement", val: formatDate(clientInfo.next_payment), icon: "💳" }].map(item => (
-            <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "#111", borderRadius: 10 }}>
+          {[{ label: "Date de début", val: formatDate(clientInfo.start_date), icon: "📅" }, { label: "Séances par semaine", val: `${clientInfo.sessions_per_week || 3} séances`, icon: "💪" }, { label: "Montant toutes les 4 semaines", val: `${clientInfo.monthly_amount || "—"} €`, icon: "💶" }, { label: "Prochain paiement", val: formatDate(clientInfo.next_payment), icon: "💳", highlight: daysUntil(clientInfo.next_payment) <= 7 }].map(item => (
+            <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: item.highlight ? C.yellow + "15" : "#111", borderRadius: 10, border: item.highlight ? `1px solid ${C.yellow}44` : "none" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 18 }}>{item.icon}</span><span style={{ fontSize: 13, color: C.textMuted }}>{item.label}</span></div>
-              <span style={{ fontWeight: 700, fontSize: 14 }}>{item.val}</span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: item.highlight ? C.yellow : C.white }}>{item.val}</span>
             </div>
           ))}
         </div>
       </Card>
+      {(clientInfo.calories_target > 0 || clientInfo.protein_target > 0) && (
+        <Card style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>🍽️ MES OBJECTIFS NUTRITIONNELS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {clientInfo.calories_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🔥 CALORIES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.orange }}>{clientInfo.calories_target}</div><div style={{ fontSize: 11, color: C.textMuted }}>kcal / jour</div></div>}
+            {clientInfo.protein_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💪 PROTÉINES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.green }}>{clientInfo.protein_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
+            {clientInfo.carb_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🌾 GLUCIDES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{clientInfo.carb_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
+            {clientInfo.fat_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥑 LIPIDES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.pink }}>{clientInfo.fat_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
+          </div>
+        </Card>
+      )}
+      {daysUntil(clientInfo.next_payment) <= 7 && (
+        <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div>
+          <div style={{ fontSize: 13 }}>Ton prochain paiement de <strong>{clientInfo.monthly_amount} €</strong> est dû le <strong>{formatDate(clientInfo.next_payment)}</strong>.</div>
+        </div>
+      )}
       <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div><PaymentHistory payments={payments} /></Card>
     </div>
   );
@@ -1740,19 +1972,24 @@ const ClientApp = ({ user, onLogout }) => {
         </div>
       )}
       {bodyTab === "measures" && (
-        <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>NOUVELLES MENSURATIONS</div><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[["chest", "Poitrine (cm)"], ["waist", "Tour de taille (cm)"], ["hips", "Hanches (cm)"], ["thighs", "Cuisses (cm)"]].map(([k, label]) => <input key={k} type="number" placeholder={label} value={newMeasure[k]} onChange={e => setNewMeasure({ ...newMeasure, [k]: e.target.value })} style={inputSt} />)}<Btn onClick={handleAddMeasure}>Enregistrer</Btn></div></Card>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {measurements.length >= 2 && (() => { const first = measurements[0], last = measurements[measurements.length - 1]; return <Card>{[["chest", "Poitrine"], ["waist", "Tour de taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => { const diff = last[k] - first[k]; return <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{label}</span><span><strong>{last[k]} cm</strong> <span style={{ color: diff < 0 ? C.green : diff > 0 ? C.red : C.textMuted, fontSize: 11 }}>{diff < 0 ? diff : diff > 0 ? `+${diff}` : "—"} cm</span></span></div>; })}</Card>; })()}
+          <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>NOUVELLES MENSURATIONS</div><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[["chest", "Poitrine (cm)"], ["waist", "Tour de taille (cm)"], ["hips", "Hanches (cm)"], ["thighs", "Cuisses (cm)"]].map(([k, label]) => <input key={k} type="number" placeholder={label} value={newMeasure[k]} onChange={e => setNewMeasure({ ...newMeasure, [k]: e.target.value })} style={inputSt} />)}<Btn onClick={handleAddMeasure}>Enregistrer</Btn></div></Card>
+        </div>
       )}
       {bodyTab === "photos" && (
-        <Card>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UNE PHOTO</div>
-          <input type="text" placeholder="Note : ex: Semaine 4, de face" value={newPhotoNote} onChange={e => setNewPhotoNote(e.target.value)} style={{ ...inputSt, marginBottom: 10 }} />
-          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer" }}>
-            <span style={{ fontSize: 20 }}>📸</span>
-            <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Photo de progression</div></div>
-            <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleAddProgressPhoto} />
-          </label>
-          {progressPhotos.length > 0 && <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>{progressPhotos.map((p, i) => <div key={i}><img src={p.photo} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 12 }} /><div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>{formatDate(p.date)}</div></div>)}</div>}
-        </Card>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <Card>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UNE PHOTO</div>
+            <input type="text" placeholder="Note : ex: Semaine 4, de face" value={newPhotoNote} onChange={e => setNewPhotoNote(e.target.value)} style={{ ...inputSt, marginBottom: 10 }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer" }}>
+              <span style={{ fontSize: 20 }}>📸</span>
+              <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Photo de progression</div><div style={{ fontSize: 11, color: C.textMuted }}>De face, de profil, de dos...</div></div>
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleAddProgressPhoto} />
+            </label>
+          </Card>
+          {progressPhotos.length > 0 && <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>MON ÉVOLUTION</div><div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>{progressPhotos.map((p, i) => <div key={i}><img src={p.photo} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 12, marginBottom: 4 }} /><div style={{ fontSize: 11, color: C.textMuted }}>{formatDate(p.date)}</div>{p.note && <div style={{ fontSize: 11, color: C.white }}>{p.note}</div>}</div>)}</div></Card>}
+        </div>
       )}
     </div>
   );
@@ -1761,7 +1998,11 @@ const ClientApp = ({ user, onLogout }) => {
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
       <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon historique</h2>
-      {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => <div key={i} style={{ marginBottom: 12 }}><EntryCard e={e} onClick={() => setSelectedEntry(e)} /></div>)}
+      {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => (
+        <div key={i} style={{ marginBottom: 12 }}>
+          <EntryCard e={e} onClick={() => setSelectedEntry(e)} />
+        </div>
+      ))}
     </div>
   );
 
@@ -1769,15 +2010,20 @@ const ClientApp = ({ user, onLogout }) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// NUTRITION TRACKER + REPORT (stubs - kept from original)
+// NUTRITION
 // ══════════════════════════════════════════════════════════════════════════════
 const MEALS = ["Petit-déjeuner","Déjeuner","Dîner","Collation"];
+
 const getMacros = (entry) => {
   if (entry.manual_macros) return entry.manual_macros;
   if (entry.per100) { const r = (entry.grams || 100) / 100; return { kcal: Math.round(entry.per100.kcal * r), prot: Math.round(entry.per100.prot * r * 10) / 10, carb: Math.round(entry.per100.carb * r * 10) / 10, fat: Math.round(entry.per100.fat * r * 10) / 10 }; }
   return { kcal: 0, prot: 0, carb: 0, fat: 0 };
 };
-const sumMacros = (logs = []) => logs.reduce((acc, e) => { const m = getMacros(e); return { kcal: acc.kcal + m.kcal, prot: acc.prot + m.prot, carb: acc.carb + m.carb, fat: acc.fat + m.fat }; }, { kcal: 0, prot: 0, carb: 0, fat: 0 });
+
+const sumMacros = (logs = []) => logs.reduce((acc, e) => {
+  const m = getMacros(e);
+  return { kcal: acc.kcal + m.kcal, prot: acc.prot + m.prot, carb: acc.carb + m.carb, fat: acc.fat + m.fat };
+}, { kcal: 0, prot: 0, carb: 0, fat: 0 });
 
 const MacroBar = ({ label, value, max, color, unit = "g" }) => {
   const pct = Math.min((value / max) * 100, 100);
@@ -1801,7 +2047,9 @@ const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
 
   useEffect(() => {
     if (!clientId) return;
-    supabase.from("nutrition_logs").select("*").eq("client_id", clientId).order("created_at").then(({ data }) => { setLogs(data || []); setLoading(false); });
+    supabase.from("nutrition_logs").select("*").eq("client_id", clientId).order("created_at").then(({ data }) => {
+      setLogs(data || []); setLoading(false);
+    });
   }, [clientId]);
 
   const goals = { kcal: clientInfo?.calories_target || 1800, prot: clientInfo?.protein_target || 100, carb: clientInfo?.carb_target || 180, fat: clientInfo?.fat_target || 60 };
@@ -1814,7 +2062,7 @@ const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
       <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>🍽️ Mon journal nutrition</h2>
       {loading ? <Spinner /> : (
         <Card>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AUJOURD'HUI</div>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AUJOURD'HUI — {todayLogs.length} aliments saisis</div>
           <MacroBar label="Calories" value={Math.round(totals.kcal)} max={goals.kcal} color={C.yellow} unit=" kcal" />
           <MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} />
           <MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} />
@@ -1827,7 +2075,7 @@ const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
 
 const NutritionReport = ({ client, clientInfo, nutritionLogs, isCoach, onShare, onClose, sharedMonths = [] }) => (
   <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.97)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
-    <div style={{ background: C.card, borderRadius: 20, padding: 28, maxWidth: 400, width: "100%" }}>
+    <div style={{ background: C.card, borderRadius: 20, padding: 28, maxWidth: 400, width: "100%", margin: 20 }}>
       <h3 style={{ color: C.white, margin: "0 0 16px" }}>Bilan nutrition — {client}</h3>
       <p style={{ color: C.textMuted, fontSize: 13 }}>Bilan mensuel disponible ici.</p>
       <Btn onClick={onClose} style={{ marginTop: 16 }}>Fermer</Btn>
