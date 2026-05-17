@@ -159,6 +159,8 @@ const useMessages = (clientId) => {
 
   const markRead = async (clientId, sender) => {
 await supabase.from("messages").update({ read: true }).eq("client_id", clientId).eq("sender", sender).eq("read", false);
+    setUnread(0);
+  };
   const ChatScreen = ({ clientId, clientName, sender, onBack }) => {
   const { messages, sendMessage, markRead } = useMessages(clientId);
   const [text, setText] = useState("");
