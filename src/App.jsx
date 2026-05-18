@@ -140,7 +140,7 @@ const useMessages = (clientId) => {
     const load = () => {
       supabase.from("messages").select("*").eq("client_id", clientId).order("created_at").then(({ data }) => {
         setMessages(data || []);
-        setUnread((data || []).filter(m => !m.read && m.sender === "client").length);
+        setUnread((data || []).filter(m => !m.read).length);
       });
     };
     load();
