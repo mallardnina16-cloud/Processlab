@@ -824,14 +824,281 @@ const getMacros = (entry) => { if (entry.manual_macros) return entry.manual_macr
 const sumMacros = (logs = []) => logs.reduce((acc, e) => { const m = getMacros(e); return { kcal: acc.kcal + m.kcal, prot: acc.prot + m.prot, carb: acc.carb + m.carb, fat: acc.fat + m.fat }; }, { kcal: 0, prot: 0, carb: 0, fat: 0 });
 const MacroBar = ({ label, value, max, color, unit = "g" }) => { const pct = Math.min((value / max) * 100, 100); const over = value > max; return (<div style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}><span style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{label}</span><span style={{ fontSize: 11, color: over ? C.red : C.white, fontWeight: 700 }}>{value}{unit} / {max}{unit}</span></div><div style={{ height: 6, background: "#111", borderRadius: 99, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: over ? C.red : color, borderRadius: 99, transition: "width 0.5s" }} /></div></div>); };
 const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
-  const [logs, setLogs] = useState([]); const [loading, setLoading] = useState(true);
-  useEffect(() => { if (!clientId) return; supabase.from("nutrition_logs").select("*").eq("client_id", clientId).order("created_at").then(({ data }) => { setLogs(data || []); setLoading(false); }); }, [clientId]);
-  const goals = { kcal: clientInfo?.calories_target || 1800, prot: clientInfo?.protein_target || 100, carb: clientInfo?.carb_target || 180, fat: clientInfo?.fat_target || 60 };
-  const todayLogs = logs.filter(l => l.date === today); const totals = sumMacros(todayLogs);
-  return (<div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}><button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button><h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>🍽️ Mon journal nutrition</h2>{loading ? <Spinner /> : (<Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AUJOURD'HUI — {todayLogs.length} aliments saisis</div><MacroBar label="Calories" value={Math.round(totals.kcal)} max={goals.kcal} color={C.yellow} unit=" kcal" /><MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} /><MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} /><MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} /></Card>)}</div>);
-};
-const NutritionReport = ({ client, clientInfo, nutritionLogs, isCoach, onShare, onClose, sharedMonths = [] }) => (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.97)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ background: C.card, borderRadius: 20, padding: 28, maxWidth: 400, width: "100%", margin: 20 }}><h3 style={{ color: C.white, margin: "0 0 16px" }}>Bilan nutrition — {client}</h3><p style={{ color: C.textMuted, fontSize: 13 }}>Bilan mensuel disponible ici.</p><Btn onClick={onClose} style={{ marginTop: 16 }}>Fermer</Btn></div></div>);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedMeal, setSelectedMeal] = useState("Petit-déjeuner");
+  const [customFoods, setCustomFoods] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [activeTab, setActiveTab] = useState("journal");
+  const [showAddManual, setShowAddManual] = useState(false);
+  const [manualForm, setManualForm] = useState({ name: "", kcal: "", prot: "", carb: "", fat: "", grams: "100" });
+  const [addingManual, setAddingManual] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(today);
 
+  useEffect(() => {
+    if (!clientId) return;
+    loadData();
+  }, [clientId, selectedDate]);
+
+  const loadData = async () => {
+    setLoading(true);
+    const [logsRes, customRes, favRes] = await Promise.all([
+      supabase.from("nutrition_logs").select("*").eq("client_id", clientId).eq("date", selectedDate).order("created_at"),
+      supabase.from("custom_foods").select("*").order("name"),
+      supabase.from("food_favorites").select("*").eq("client_id", clientId),
+    ]);
+    setLogs(logsRes.data || []);
+    setCustomFoods(customRes.data || []);
+    setFavorites(favRes.data || []);
+    setLoading(false);
+  };
+
+  const searchOpenFood = async (query) => {
+    if (!query.trim()) { setSearchResults([]); return; }
+    setSearching(true);
+    try {
+      const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&lc=fr&cc=fr`);
+      const data = await res.json();
+      const products = (data.products || []).filter(p => p.product_name && p.nutriments).map(p => ({
+        id: p.code,
+        name: p.product_name,
+        brand: p.brands || "",
+        per100: {
+          kcal: Math.round(p.nutriments["energy-kcal_100g"] || 0),
+          prot: Math.round((p.nutriments["proteins_100g"] || 0) * 10) / 10,
+          carb: Math.round((p.nutriments["carbohydrates_100g"] || 0) * 10) / 10,
+          fat: Math.round((p.nutriments["fat_100g"] || 0) * 10) / 10,
+        },
+        source: "openfood",
+      }));
+      const custom = customFoods.filter(f => f.name.toLowerCase().includes(query.toLowerCase())).map(f => ({ ...f, source: "custom" }));
+      setSearchResults([...custom, ...products]);
+    } catch {
+      setSearchResults(customFoods.filter(f => f.name.toLowerCase().includes(query.toLowerCase())));
+    }
+    setSearching(false);
+  };
+
+  const addFood = async (food, grams = 100) => {
+    const r = grams / 100;
+    const macros = food.per100 ? {
+      kcal: Math.round(food.per100.kcal * r),
+      prot: Math.round(food.per100.prot * r * 10) / 10,
+      carb: Math.round(food.per100.carb * r * 10) / 10,
+      fat: Math.round(food.per100.fat * r * 10) / 10,
+    } : food.manual_macros;
+    const { data } = await supabase.from("nutrition_logs").insert([{
+      client_id: clientId, date: selectedDate, meal: selectedMeal,
+      food_name: food.name, grams: food.per100 ? grams : null,
+      per100: food.per100 || null, manual_macros: food.per100 ? null : macros,
+    }]).select().single();
+    if (data) setLogs(l => [...l, data]);
+    setSearch(""); setSearchResults([]);
+  };
+
+  const removeLog = async (id) => {
+    await supabase.from("nutrition_logs").delete().eq("id", id);
+    setLogs(l => l.filter(x => x.id !== id));
+  };
+
+  const toggleFavorite = async (food) => {
+    const existing = favorites.find(f => f.food_name === food.name);
+    if (existing) {
+      await supabase.from("food_favorites").delete().eq("id", existing.id);
+      setFavorites(f => f.filter(x => x.id !== existing.id));
+    } else {
+      const { data } = await supabase.from("food_favorites").insert([{
+        client_id: clientId, food_name: food.name, food_data: food,
+      }]).select().single();
+      if (data) setFavorites(f => [...f, data]);
+    }
+  };
+
+  const isFavorite = (name) => favorites.some(f => f.food_name === name);
+
+  const addManualFood = async () => {
+    if (!manualForm.name || !manualForm.kcal) return alert("Remplis au minimum le nom et les calories.");
+    setAddingManual(true);
+    const macros = { kcal: parseInt(manualForm.kcal) || 0, prot: parseFloat(manualForm.prot) || 0, carb: parseFloat(manualForm.carb) || 0, fat: parseFloat(manualForm.fat) || 0 };
+    await supabase.from("custom_foods").insert([{ name: manualForm.name, per100: macros, source: "custom" }]);
+    const { data } = await supabase.from("nutrition_logs").insert([{
+      client_id: clientId, date: selectedDate, meal: selectedMeal,
+      food_name: manualForm.name, grams: parseInt(manualForm.grams) || 100,
+      per100: macros, manual_macros: null,
+    }]).select().single();
+    if (data) setLogs(l => [...l, data]);
+    setManualForm({ name: "", kcal: "", prot: "", carb: "", fat: "", grams: "100" });
+    setAddingManual(false); setShowAddManual(false);
+    await loadData();
+  };
+
+  const goals = { kcal: clientInfo?.calories_target || 1800, prot: clientInfo?.protein_target || 100, carb: clientInfo?.carb_target || 180, fat: clientInfo?.fat_target || 60 };
+  const totals = sumMacros(logs);
+  const mealGroups = MEALS.map(m => ({ meal: m, logs: logs.filter(l => l.meal === m) }));
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
+      <h2 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 4px" }}>🍽️ Nutrition</h2>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
+        {Array.from({ length: 4 }, (_, i) => {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().slice(0, 10);
+          const label = i === 0 ? "Aujourd'hui" : i === 1 ? "Hier" : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
+          return (
+            <button key={dateStr} onClick={() => setSelectedDate(dateStr)} style={{ padding: "8px 14px", borderRadius: 12, border: `2px solid ${selectedDate === dateStr ? C.pink : C.border}`, background: selectedDate === dateStr ? C.pink + "22" : "#111", color: selectedDate === dateStr ? C.pink : C.textMuted, fontWeight: selectedDate === dateStr ? 700 : 400, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>{label}</button>
+          );
+        })}
+      </div>
+
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>RÉSUMÉ DU JOUR</div>
+        <MacroBar label="Calories" value={Math.round(totals.kcal)} max={goals.kcal} color={C.yellow} unit=" kcal" />
+        <MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} />
+        <MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} />
+        <MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} />
+      </Card>
+
+      <Tab tabs={[["journal", "📋 Journal"], ["ajouter", "➕ Ajouter"], ["favoris", "⭐ Favoris"]]} active={activeTab} onChange={setActiveTab} />
+
+      {activeTab === "journal" && (
+        <div>
+          {loading ? <Spinner /> : mealGroups.map(({ meal, logs: mLogs }) => mLogs.length === 0 ? null : (
+            <div key={meal} style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>{meal}</div>
+              {mLogs.map((log, i) => {
+                const m = getMacros(log);
+                return (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: C.card, borderRadius: 12, marginBottom: 6, border: `1px solid ${C.border}` }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{log.food_name}</div>
+                      <div style={{ fontSize: 11, color: C.textMuted }}>{log.grams ? `${log.grams}g · ` : ""}{Math.round(m.kcal)} kcal · P:{m.prot}g · G:{m.carb}g · L:{m.fat}g</div>
+                    </div>
+                    <button onClick={() => removeLog(log.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 16, padding: "0 0 0 10px" }}>✕</button>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          {logs.length === 0 && !loading && <div style={{ textAlign: "center", color: C.textMuted, padding: "30px 0" }}>Rien enregistré ce jour 🍽️</div>}
+        </div>
+      )}
+
+      {activeTab === "ajouter" && (
+        <div>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>REPAS</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {MEALS.map(m => (
+                <button key={m} onClick={() => setSelectedMeal(m)} style={{ padding: "8px 14px", borderRadius: 10, border: `1.5px solid ${selectedMeal === m ? C.pink : C.border}`, background: selectedMeal === m ? C.pink + "22" : "#111", color: selectedMeal === m ? C.pink : C.textMuted, fontWeight: selectedMeal === m ? 700 : 400, fontSize: 13, cursor: "pointer" }}>{m}</button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ position: "relative", marginBottom: 14 }}>
+            <input value={search} onChange={e => { setSearch(e.target.value); searchOpenFood(e.target.value); }} placeholder="🔍 Rechercher un aliment..." style={{ ...inputSt, paddingRight: 40 }} />
+            {searching && <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, borderRadius: "50%", border: `2px solid ${C.border}`, borderTop: `2px solid ${C.pink}`, animation: "spin 0.8s linear infinite" }} />}
+          </div>
+
+          {searchResults.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              {searchResults.map((food, i) => (
+                <FoodResultCard key={i} food={food} onAdd={addFood} onToggleFav={toggleFavorite} isFav={isFavorite(food.name)} />
+              ))}
+            </div>
+          )}
+
+          {search.length > 2 && !searching && searchResults.length === 0 && (
+            <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted, fontSize: 13 }}>
+              Aucun résultat — ajoute-le manuellement !
+            </div>
+          )}
+
+          <button onClick={() => setShowAddManual(!showAddManual)} style={{ width: "100%", padding: 14, borderRadius: 12, border: `1.5px dashed ${C.orange}55`, background: "transparent", color: C.orange, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 14 }}>
+            ✏️ Ajouter un aliment manuellement
+          </button>
+
+          {showAddManual && (
+            <Card style={{ borderColor: C.orange + "44" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.orange, marginBottom: 14 }}>✏️ Nouvel aliment</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <Inp label="Nom de l'aliment" placeholder="ex: Yaourt grec maison" value={manualForm.name} onChange={e => setManualForm({ ...manualForm, name: e.target.value })} />
+                <Inp label="Quantité (g)" type="number" placeholder="100" value={manualForm.grams} onChange={e => setManualForm({ ...manualForm, grams: e.target.value })} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <Inp label="Calories (kcal)" type="number" placeholder="0" value={manualForm.kcal} onChange={e => setManualForm({ ...manualForm, kcal: e.target.value })} />
+                  <Inp label="Protéines (g)" type="number" placeholder="0" value={manualForm.prot} onChange={e => setManualForm({ ...manualForm, prot: e.target.value })} />
+                  <Inp label="Glucides (g)" type="number" placeholder="0" value={manualForm.carb} onChange={e => setManualForm({ ...manualForm, carb: e.target.value })} />
+                  <Inp label="Lipides (g)" type="number" placeholder="0" value={manualForm.fat} onChange={e => setManualForm({ ...manualForm, fat: e.target.value })} />
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                <Btn variant="secondary" onClick={() => setShowAddManual(false)} style={{ flex: 1 }}>Annuler</Btn>
+                <Btn onClick={addManualFood} disabled={addingManual} style={{ flex: 2, background: C.orange, color: C.black }}>{addingManual ? "Ajout..." : "✅ Ajouter"}</Btn>
+              </div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 10, textAlign: "center" }}>Cet aliment sera partagé avec toutes les clientes 🤝</div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {activeTab === "favoris" && (
+        <div>
+          {favorites.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: C.textMuted }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
+              <div>Aucun favori — ajoute des aliments en cliquant sur ⭐</div>
+            </div>
+          ) : (
+            favorites.map((fav, i) => (
+              <FoodResultCard key={i} food={fav.food_data} onAdd={addFood} onToggleFav={toggleFavorite} isFav={true} />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FoodResultCard = ({ food, onAdd, onToggleFav, isFav }) => {
+  const [grams, setGrams] = useState(100);
+  const [showGrams, setShowGrams] = useState(false);
+  const p = food.per100;
+  const r = grams / 100;
+  return (
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>{food.name}</div>
+          {food.brand && <div style={{ fontSize: 11, color: C.textMuted }}>{food.brand}</div>}
+          {food.source === "custom" && <Badge color={C.orange} style={{ fontSize: 10 }}>Personnalisé</Badge>}
+        </div>
+        <button onClick={() => onToggleFav(food)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", padding: "0 0 0 8px" }}>{isFav ? "⭐" : "☆"}</button>
+      </div>
+      {p && (
+        <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+          {[{ l: "Kcal", v: Math.round(p.kcal * r), c: C.yellow }, { l: "Prot", v: `${Math.round(p.prot * r * 10) / 10}g`, c: C.green }, { l: "Gluc", v: `${Math.round(p.carb * r * 10) / 10}g`, c: C.blue }, { l: "Lip", v: `${Math.round(p.fat * r * 10) / 10}g`, c: C.pink }].map(s => (
+            <div key={s.l} style={{ background: "#111", borderRadius: 8, padding: "6px 10px", textAlign: "center" }}>
+              <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 700 }}>{s.l}</div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: s.c }}>{s.v}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {showGrams ? (
+          <input type="number" value={grams} onChange={e => setGrams(parseInt(e.target.value) || 100)} style={{ ...inputSt, width: 80, flex: "none", fontSize: 13, padding: "8px 10px" }} />
+        ) : (
+          <button onClick={() => setShowGrams(true)} style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.textMuted, fontSize: 12, cursor: "pointer" }}>{grams}g ✏️</button>
+        )}
+        <Btn onClick={() => { onAdd(food, grams); setShowGrams(false); }} style={{ flex: 1, padding: "10px" }}>+ Ajouter</Btn>
+      </div>
+    </div>
+  );
+};
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
   const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout } = useWorkouts();
