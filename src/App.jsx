@@ -860,7 +860,7 @@ const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
     if (!query.trim()) { setSearchResults([]); return; }
     setSearching(true);
     try {
-const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15&fields=code,product_name,brands,nutriments`, { headers: { "User-Agent": "ProcessLab/1.0" } });
+const res = await fetch(`/api/openfood/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15&fields=code,product_name,brands,nutriments`, { headers: { "User-Agent": "ProcessLab/1.0" } });
       const data = await res.json();
       const products = (data.products || []).filter(p => p.product_name && p.nutriments).map(p => ({
         id: p.code,
