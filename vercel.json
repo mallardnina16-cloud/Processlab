@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/openfood/:path*", "destination": "https://world.openfoodfacts.org/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
