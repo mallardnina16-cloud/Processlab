@@ -152,7 +152,7 @@ const useMessages = (clientId) => {
     return data;
   };
   const markRead = async (clientId, sender) => {
-    await supabase.from("messages").update({ read: true }).eq("client_id", clientId).eq("sender", sender).eq("read", false);
+    await supabase.from("messages").update({ read: true }).eq("client_id", clientId).eq("sender", sender);
     setUnread(0);
   };
   return { messages, unread, sendMessage, markRead };
