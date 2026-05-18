@@ -341,8 +341,8 @@ const useWorkouts = () => {
   const fetch = async () => {
     setLoading(true);
     const [{ data: ws }, { data: exs }] = await Promise.all([
-      supabase.from("workouts").select("*").order("created_at"),
-      supabase.from("exercises").select("*").order("position"),
+      supabase.from("workouts").select("*"),
+      supabase.from("exercises").select("*"),
     ]);
     if (!ws) { setLoading(false); return; }
     setWorkouts(ws.map(w => ({ ...w, exercises: (exs || []).filter(e => e.workout_id === w.id) })));
