@@ -132,9 +132,13 @@ const requestNotifications = async () => {
   return false;
 };
 
+// ══════════════════════════════════════════════════════════════════════════════
+// MESSAGING
+// ══════════════════════════════════════════════════════════════════════════════
 const useMessages = (clientId) => {
   const [messages, setMessages] = useState([]);
   const [unread, setUnread] = useState(0);
+
   useEffect(() => {
     if (!clientId) return;
     const load = () => {
@@ -147,14 +151,17 @@ const useMessages = (clientId) => {
     const interval = setInterval(load, 3000);
     return () => clearInterval(interval);
   }, [clientId]);
+
   const sendMessage = async (clientId, content, sender) => {
     const { data } = await supabase.from("messages").insert([{ client_id: clientId, content, sender, read: false }]).select().single();
     return data;
   };
+
   const markRead = async (clientId, sender) => {
     await supabase.from("messages").update({ read: true }).eq("client_id", clientId).eq("sender", sender);
     setUnread(0);
   };
+
   return { messages, unread, sendMessage, markRead };
 };
 
@@ -162,15 +169,18 @@ const ChatScreen = ({ clientId, clientName, sender, onBack }) => {
   const { messages, sendMessage, markRead } = useMessages(clientId);
   const [text, setText] = useState("");
   const bottomRef = useRef(null);
+
   useEffect(() => {
     if (clientId) markRead(clientId, sender === "coach" ? "client" : "coach");
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   }, [messages]);
+
   const handleSend = async () => {
     if (!text.trim()) return;
     await sendMessage(clientId, text.trim(), sender);
     setText("");
   };
+
   return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
@@ -204,12 +214,12 @@ const ChatScreen = ({ clientId, clientName, sender, onBack }) => {
     </div>
   );
 };
-
 const LoginScreen = ({ onLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
   const handleLogin = async () => {
     if (!email || !password) return setError("Remplis tous les champs.");
     setLoading(true); setError("");
@@ -217,6 +227,7 @@ const LoginScreen = ({ onLogin }) => {
     if (err) { setError("Email ou mot de passe incorrect."); setLoading(false); return; }
     onLogin(data.user); setLoading(false);
   };
+
   return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ marginBottom: 40 }}><Logo size={32} /></div>
@@ -248,18 +259,21 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
   const handleSave = async () => {
     setSaving(true);
     const avatar = form.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
     await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment, calories_target: parseInt(form.calories_target) || 0, protein_target: parseInt(form.protein_target) || 0, carb_target: parseInt(form.carb_target) || 0, fat_target: parseInt(form.fat_target) || 0 });
     setSaving(false); onClose();
   };
+
   const handleDelete = async () => {
     if (!confirmDelete) { setConfirmDelete(true); return; }
     setDeleting(true);
     await onDelete(client.id);
     setDeleting(false); onClose();
   };
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000c", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 440, maxHeight: "90vh", overflowY: "auto" }}>
@@ -360,6 +374,7 @@ const useClientData = (clientId) => {
   const [progressPhotos, setProgressPhotos] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const fetch = async () => {
     if (!clientId) return;
     setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
@@ -378,6 +393,7 @@ const useClientData = (clientId) => {
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
+
   const addEntry = async (entry) => {
     const { data } = await supabase.from("entries").insert([{ ...entry, client_id: clientId }]).select().single();
     if (data) { setEntries(e => [data, ...e]); await supabase.from("clients").update({ today_done: true }).eq("id", clientId); }
@@ -403,6 +419,7 @@ const useClientData = (clientId) => {
     if (data) { setPayments(p => [data, ...p]); await supabase.from("clients").update({ next_payment: nextDue }).eq("id", clientId); }
     return data;
   };
+
   return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment };
 };
 const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) => {
@@ -420,7 +437,9 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
   const [difficultyNote, setDifficultyNote] = useState("");
   const [proteinEstimate, setProteinEstimate] = useState("");
   const [saving, setSaving] = useState(false);
+
   const existing = entries.find(e => e.date === selectedDate) || null;
+
   useEffect(() => {
     if (existing) {
       setFeeling(existing.feeling || null); setSteps(existing.steps?.toString() || "");
@@ -436,6 +455,7 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
       setDifficultyNote(""); setProteinEstimate("");
     }
   }, [selectedDate]);
+
   const compressAndUpload = async (file) => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -467,15 +487,18 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
       img.src = url;
     });
   };
+
   const handlePhoto = async (e) => {
     const files = Array.from(e.target.files);
     for (const file of files) { const result = await compressAndUpload(file); setPhotos(p => [...p, result]); }
   };
+
   const handleSave = async () => {
     setSaving(true);
     await onSave({ date: selectedDate, steps: parseInt(steps) || 0, feeling: feeling || 3, meal_note: mealNote, photos, session_status: sessionStatus || "rest", session_note: sessionNote, hydration: parseFloat(hydration) || 0, sleep_hours: parseFloat(sleepHours) || 0, nap: nap || false, had_difficulty: hadDifficulty || false, difficulty_note: difficultyNote, protein_estimate: proteinEstimate });
     setSaving(false); onBack();
   };
+
   return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
@@ -598,12 +621,26 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
   );
 };
 
+const MUSCLE_GROUPS = [
+  { id: "all", label: "Tous" }, { id: "glutes", label: "Fessiers" }, { id: "hamstrings", label: "Ischio-jambiers" },
+  { id: "quadriceps", label: "Quadriceps" }, { id: "back", label: "Dos" }, { id: "chest", label: "Pectoraux" },
+  { id: "shoulders", label: "Épaules" }, { id: "upper arms", label: "Bras" }, { id: "lower arms", label: "Avant-bras" },
+  { id: "abs", label: "Abdos" }, { id: "calves", label: "Mollets" }, { id: "adductors", label: "Adducteurs" },
+];
+
+const EQUIPMENT_GROUPS = [
+  { id: "all", label: "Tout" }, { id: "body weight", label: "Poids du corps" }, { id: "dumbbell", label: "Haltères" },
+  { id: "barbell", label: "Barre" }, { id: "cable", label: "Câble" }, { id: "machine", label: "Machine" },
+  { id: "band", label: "Élastique" }, { id: "kettlebell", label: "Kettlebell" }, { id: "leverage machine", label: "Appareil guidé" },
+];
+
 const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
   const [name, setName] = useState(workout?.name || "");
   const [desc, setDesc] = useState(workout?.description || "");
   const initBlocks = () => { if (workout?.blocks && workout.blocks.length > 0) return workout.blocks; if (workout?.exercises && workout.exercises.length > 0) return workout.exercises.map(e => ({ ...e, type: e.type || "exercise" })); return []; };
   const [blocks, setBlocks] = useState(initBlocks);
   const [saving, setSaving] = useState(false);
+
   const addSimple = () => setBlocks(b => [...b, newSimpleEx()]);
   const addCircuit = () => setBlocks(b => [...b, { ...newCircuit(), id: Date.now().toString() }]);
   const delBlock = id => setBlocks(b => b.filter(x => x.id !== id));
@@ -613,6 +650,7 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
   const addCircuitEx = cid => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "12", work_time: 30, rest_time: 30, note: "", suggested_weight: "", weight_type: "haltères" }] } : x));
   const delCircuitEx = (cid, eid) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.filter(e => e.id !== eid) } : x));
   const handleSave = async () => { if (!name.trim()) return alert("Donne un nom à la séance"); setSaving(true); const allEx = blocks.flatMap(b => b.type === "circuit" ? b.exercises.map(e => ({ ...e, type: "exercise", sets: b.rounds, rest: b.rest_between_rounds })) : [b]); await onSave({ id: workout?.id, name, description: desc, exercises: allEx, blocks }); setSaving(false); };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}><button onClick={onCancel} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20, padding: 0 }}>←</button><h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>{workout ? "Modifier" : "Nouvelle séance"}</h2></div>
@@ -653,7 +691,6 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
     </div>
   );
 };
-
 const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const blocks = (workout.blocks && workout.blocks.length > 0) ? workout.blocks : workout.exercises.map(e => ({ ...e, type: e.type || "exercise" }));
   const [blockIdx, setBlockIdx] = useState(0);
@@ -670,14 +707,17 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const [circuitExIdx, setCircuitExIdx] = useState(0);
   const [intervalPhase, setIntervalPhase] = useState("work");
   const timerRef = useRef(null);
+
   const currentBlock = blocks[blockIdx];
   const allExercises = blocks.flatMap(b => b.type === "circuit" ? b.exercises : [b]);
   const lastLog = sessionLogs.find(l => l.workout_id === workout.id);
   const lastExLogs = (() => { try { return JSON.parse(lastLog?.exercise_logs || "{}"); } catch { return {}; } })();
   const getLastPerf = (exName) => Object.values(lastExLogs).find(l => l.name === exName);
   const getAllPerfs = (exName) => sessionLogs.filter(l => l.workout_id === workout.id).map(l => { try { const logs = JSON.parse(l.exercise_logs || "{}"); return { date: l.date, ...Object.values(logs).find(e => e.name === exName) }; } catch { return null; } }).filter(l => l && (l.weight || l.reps)).slice(0, 5);
+
   useEffect(() => () => clearInterval(timerRef.current), []);
   useEffect(() => { setSimpleSets(0); setShowSimpleLog(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work"); }, [blockIdx]);
+
   const startTimer = (secs, label, onEnd) => { clearInterval(timerRef.current); setResting(true); setRestTime(secs); setRestLabel(label); timerRef.current = setInterval(() => { setRestTime(t => { if (t <= 1) { clearInterval(timerRef.current); setResting(false); onEnd(); return 0; } return t - 1; }); }, 1000); };
   const skipTimer = () => { clearInterval(timerRef.current); setResting(false); };
   const goNextBlock = () => { const next = blockIdx + 1; if (next < blocks.length) { setBlockIdx(next); } else { setDone(true); } };
@@ -686,6 +726,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const advanceCircuit = () => { setIntervalPhase("work"); const nextEx = circuitExIdx + 1; if (nextEx < currentBlock.exercises.length) { setCircuitExIdx(nextEx); } else { const nextRound = currentRound + 1; if (nextRound <= currentBlock.rounds) { setCurrentRound(nextRound); setCircuitExIdx(0); startTimer(currentBlock.rest_between_rounds || 120, "REPOS ENTRE TOURS", () => {}); } else { goNextBlock(); } } };
   const startIntervalWork = () => { setIntervalPhase("work"); startTimer(circuitEx.work_time || 30, "⚡ TRAVAIL", () => { setIntervalPhase("rest"); startTimer(circuitEx.rest_time || 30, "😴 REPOS", () => { advanceCircuit(); }); }); };
   const saveAndFinish = async () => { if (clientId) { const logsWithNames = {}; allExercises.forEach(e => { logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, weight: exLogs[e.id]?.weight || "", reps: exLogs[e.id]?.reps || "" }; }); await supabase.from("session_logs").insert([{ client_id: clientId, workout_id: workout.id, workout_name: workout.name, date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote }]); } onFinish(); };
+
   if (done) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <div style={{ textAlign: "center", paddingTop: 40, marginBottom: 32 }}><div style={{ fontSize: 72, marginBottom: 16 }}>🏆</div><h1 style={{ fontSize: 26, fontWeight: 900, marginBottom: 8 }}>Séance terminée !</h1><p style={{ color: C.textMuted }}>{workout.name}</p></div>
@@ -697,7 +738,9 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       <Btn onClick={saveAndFinish} style={{ marginBottom: 30 }}>💾 Enregistrer et terminer</Btn>
     </div>
   );
+
   if (!currentBlock) return null;
+
   const TimerBar = () => resting ? (
     <div style={{ background: C.surface, border: `1px solid ${restLabel.includes("TRAVAIL") ? C.green : C.orange}44`, borderRadius: 20, padding: 28, marginBottom: 20, textAlign: "center" }}>
       <div style={{ fontSize: 13, color: restLabel.includes("TRAVAIL") ? C.green : C.orange, fontWeight: 700, marginBottom: 8 }}>{restLabel}</div>
@@ -705,7 +748,9 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       <Btn small variant="ghost" onClick={skipTimer} style={{ width: "auto", margin: "16px auto 0" }}>Passer →</Btn>
     </div>
   ) : null;
+
   const NavBar = () => (<><div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}><button onClick={onFinish} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, padding: 0 }}>✕ Quitter</button><span style={{ fontWeight: 700, fontSize: 14 }}>{workout.name}</span><span style={{ fontSize: 13, color: C.pink, fontWeight: 700 }}>{blockIdx + 1}/{blocks.length}</span></div><div style={{ height: 3, background: C.border }}><div style={{ height: "100%", background: C.pink, width: `${(blockIdx / blocks.length) * 100}%`, transition: "width .4s" }} /></div></>);
+
   if (currentBlock.type === "exercise") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
       <NavBar />
@@ -743,6 +788,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       </div>
     </div>
   );
+
   if (currentBlock.type === "circuit") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
       <NavBar />
@@ -752,6 +798,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
         {!resting && circuitEx && (<div>
           <h2 style={{ fontSize: 26, fontWeight: 900, margin: "0 0 10px" }}>{circuitEx.name}</h2>
           {circuitEx.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
+          {circuitEx.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {circuitEx.tempo}</div>}
           {(() => { const lp = getLastPerf(circuitEx.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
           {currentBlock.interval_mode ? (<div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}><div style={{ background: C.green + "15", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: `1px solid ${C.green}44` }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>⚡ TRAVAIL</div><div style={{ fontSize: 28, fontWeight: 900, color: C.green }}>{circuitEx.work_time}s</div></div><div style={{ background: C.orange + "15", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: `1px solid ${C.orange}44` }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>😴 REPOS</div><div style={{ fontSize: 28, fontWeight: 900, color: C.orange }}>{circuitEx.rest_time}s</div></div></div>{circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14 }}>💡 {circuitEx.note}</div>}<Btn onClick={startIntervalWork} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Démarrer</Btn></div>)
           : (<div><div style={{ background: "#111", borderRadius: 12, padding: "14px", textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>REPS</div><div style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{circuitEx.reps}</div></div>{circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14 }}>💡 {circuitEx.note}</div>}<Btn onClick={advanceCircuit} style={{ fontSize: 17, background: C.purple, color: C.white }}>✅ Exo suivant →</Btn></div>)}
@@ -760,6 +807,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       </div>
     </div>
   );
+
   return null;
 };
 
@@ -770,8 +818,7 @@ const PerfCard = ({ log, workout }) => {
   return (
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}><div><div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{log.workout_name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{formatDate(log.date)}</div></div><Badge color={C.green}>✅ Réalisée</Badge></div>
-      {enrichedLogs.filter(l => l.weight || l.reps).map((exLog, i) => (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name}</div>{exLog.suggested_weight && <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>}</div><div style={{ display: "flex", gap: 12 }}>{exLog.weight && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div></div>}{exLog.reps && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div><div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div></div>}</div></div>))}
-      {enrichedLogs.filter(l => l.weight || l.reps).length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucune performance saisie</div>}
+      {enrichedLogs.length > 0 && (<div style={{ marginBottom: log.note ? 14 : 0 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>DÉTAIL DES EXERCICES</div>{enrichedLogs.filter(l => l.weight || l.reps).map((exLog, i) => (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}><div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name}</div>{exLog.suggested_weight && <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>}</div><div style={{ display: "flex", gap: 12 }}>{exLog.weight && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div></div>}{exLog.reps && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div><div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div></div>}</div></div>))}{enrichedLogs.filter(l => l.weight || l.reps).length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucune performance saisie</div>}</div>)}
       {log.note && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {log.note}</div>}
     </Card>
   );
@@ -792,6 +839,7 @@ const EntryDetail = ({ entry, onBack }) => (
     {entry.photos && entry.photos.length > 0 && (<div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📷 PHOTOS REPAS ({entry.photos.length})</div><div style={{ display: "grid", gridTemplateColumns: entry.photos.length === 1 ? "1fr" : "repeat(2, 1fr)", gap: 10 }}>{entry.photos.map((p, i) => <img key={i} src={p} alt="" style={{ width: "100%", aspectRatio: entry.photos.length === 1 ? "16/9" : "1", objectFit: "cover", borderRadius: 10 }} />)}</div></div>)}
     {entry.session_note && <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>💪 NOTE SÉANCE</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.session_note}</div></div>}
     {entry.had_difficulty && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.orange, fontWeight: 700, marginBottom: 8 }}>⚠️ DIFFICULTÉ</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.difficulty_note || "Difficulté signalée"}</div></div>}
+    {entry.protein_estimate && (<div style={{ background: C.green + "12", border: `1px solid ${C.green}33`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginBottom: 8 }}>🥩 PROTÉINES</div><div style={{ fontSize: 14 }}>{{ low: "😬 Moins de la moitié de l'objectif", medium: "😐 Environ la moitié de l'objectif", good: "🙂 Presque l'objectif atteint", great: "💪 Objectif atteint !" }[entry.protein_estimate] || entry.protein_estimate}</div></div>)}
     {entry.coach_message && <div style={{ background: C.pink + "15", border: `1px solid ${C.pink}44`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.pink, fontWeight: 700, marginBottom: 8 }}>💬 MESSAGE DE TON COACH</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.coach_message}</div></div>}
   </div>
 );
@@ -818,287 +866,6 @@ const PaymentHistory = ({ payments }) => (
     {payments.map((p, i) => (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "#111", borderRadius: 12 }}><div><div style={{ fontWeight: 700, fontSize: 14, color: C.green }}>✅ {p.amount} €</div><div style={{ fontSize: 12, color: C.textMuted }}>Reçu le {formatDate(p.paid_date)}</div>{p.note && <div style={{ fontSize: 12, color: C.textMuted }}>{p.note}</div>}</div><div style={{ textAlign: "right" }}><div style={{ fontSize: 11, color: C.textMuted }}>Prochain</div><div style={{ fontSize: 13, fontWeight: 700, color: C.yellow }}>{formatDate(p.next_due_date)}</div></div></div>))}
   </div>
 );
-
-const MEALS = ["Petit-déjeuner","Déjeuner","Dîner","Collation"];
-const getMacros = (entry) => { if (entry.manual_macros) return entry.manual_macros; if (entry.per100) { const r = (entry.grams || 100) / 100; return { kcal: Math.round(entry.per100.kcal * r), prot: Math.round(entry.per100.prot * r * 10) / 10, carb: Math.round(entry.per100.carb * r * 10) / 10, fat: Math.round(entry.per100.fat * r * 10) / 10 }; } return { kcal: 0, prot: 0, carb: 0, fat: 0 }; };
-const sumMacros = (logs = []) => logs.reduce((acc, e) => { const m = getMacros(e); return { kcal: acc.kcal + m.kcal, prot: acc.prot + m.prot, carb: acc.carb + m.carb, fat: acc.fat + m.fat }; }, { kcal: 0, prot: 0, carb: 0, fat: 0 });
-const MacroBar = ({ label, value, max, color, unit = "g" }) => { const pct = Math.min((value / max) * 100, 100); const over = value > max; return (<div style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}><span style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{label}</span><span style={{ fontSize: 11, color: over ? C.red : C.white, fontWeight: 700 }}>{value}{unit} / {max}{unit}</span></div><div style={{ height: 6, background: "#111", borderRadius: 99, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: over ? C.red : color, borderRadius: 99, transition: "width 0.5s" }} /></div></div>); };
-const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [selectedMeal, setSelectedMeal] = useState("Petit-déjeuner");
-  const [customFoods, setCustomFoods] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [activeTab, setActiveTab] = useState("journal");
-  const [showAddManual, setShowAddManual] = useState(false);
-  const [manualForm, setManualForm] = useState({ name: "", kcal: "", prot: "", carb: "", fat: "", grams: "100" });
-  const [addingManual, setAddingManual] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(today);
-
-  useEffect(() => {
-    if (!clientId) return;
-    loadData();
-  }, [clientId, selectedDate]);
-
-  const loadData = async () => {
-    setLoading(true);
-    const [logsRes, customRes, favRes] = await Promise.all([
-      supabase.from("nutrition_logs").select("*").eq("client_id", clientId).eq("date", selectedDate).order("created_at"),
-      supabase.from("custom_foods").select("*").order("name"),
-      supabase.from("food_favorites").select("*").eq("client_id", clientId),
-    ]);
-    setLogs(logsRes.data || []);
-    setCustomFoods(customRes.data || []);
-    setFavorites(favRes.data || []);
-    setLoading(false);
-  };
-
-  const searchOpenFood = async (query) => {
-    if (!query.trim()) { setSearchResults([]); return; }
-    setSearching(true);
-    try {
-const res = await fetch(`/api/openfood/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=15&fields=code,product_name,brands,nutriments`, { headers: { "User-Agent": "ProcessLab/1.0" } });
-      const data = await res.json();
-      const products = (data.products || []).filter(p => p.product_name && p.nutriments).map(p => ({
-        id: p.code,
-        name: p.product_name,
-        brand: p.brands || "",
-        per100: {
-          kcal: Math.round(p.nutriments["energy-kcal_100g"] || 0),
-          prot: Math.round((p.nutriments["proteins_100g"] || 0) * 10) / 10,
-          carb: Math.round((p.nutriments["carbohydrates_100g"] || 0) * 10) / 10,
-          fat: Math.round((p.nutriments["fat_100g"] || 0) * 10) / 10,
-        },
-        source: "openfood",
-      }));
-      const custom = customFoods.filter(f => f.name.toLowerCase().includes(query.toLowerCase())).map(f => ({ ...f, source: "custom" }));
-      setSearchResults([...custom, ...products]);
-    } catch {
-      setSearchResults(customFoods.filter(f => f.name.toLowerCase().includes(query.toLowerCase())));
-    }
-    setSearching(false);
-  };
-
-  const addFood = async (food, grams = 100) => {
-    const r = grams / 100;
-    const macros = food.per100 ? {
-      kcal: Math.round(food.per100.kcal * r),
-      prot: Math.round(food.per100.prot * r * 10) / 10,
-      carb: Math.round(food.per100.carb * r * 10) / 10,
-      fat: Math.round(food.per100.fat * r * 10) / 10,
-    } : food.manual_macros;
-    const { data } = await supabase.from("nutrition_logs").insert([{
-      client_id: clientId, date: selectedDate, meal: selectedMeal,
-      food_name: food.name, grams: food.per100 ? grams : null,
-      per100: food.per100 || null, manual_macros: food.per100 ? null : macros,
-    }]).select().single();
-    if (data) setLogs(l => [...l, data]);
-    setSearch(""); setSearchResults([]);
-  };
-
-  const removeLog = async (id) => {
-    await supabase.from("nutrition_logs").delete().eq("id", id);
-    setLogs(l => l.filter(x => x.id !== id));
-  };
-
-  const toggleFavorite = async (food) => {
-    const existing = favorites.find(f => f.food_name === food.name);
-    if (existing) {
-      await supabase.from("food_favorites").delete().eq("id", existing.id);
-      setFavorites(f => f.filter(x => x.id !== existing.id));
-    } else {
-      const { data } = await supabase.from("food_favorites").insert([{
-        client_id: clientId, food_name: food.name, food_data: food,
-      }]).select().single();
-      if (data) setFavorites(f => [...f, data]);
-    }
-  };
-
-  const isFavorite = (name) => favorites.some(f => f.food_name === name);
-
-  const addManualFood = async () => {
-    if (!manualForm.name || !manualForm.kcal) return alert("Remplis au minimum le nom et les calories.");
-    setAddingManual(true);
-    const macros = { kcal: parseInt(manualForm.kcal) || 0, prot: parseFloat(manualForm.prot) || 0, carb: parseFloat(manualForm.carb) || 0, fat: parseFloat(manualForm.fat) || 0 };
-    await supabase.from("custom_foods").insert([{ name: manualForm.name, per100: macros, source: "custom" }]);
-    const { data } = await supabase.from("nutrition_logs").insert([{
-      client_id: clientId, date: selectedDate, meal: selectedMeal,
-      food_name: manualForm.name, grams: parseInt(manualForm.grams) || 100,
-      per100: macros, manual_macros: null,
-    }]).select().single();
-    if (data) setLogs(l => [...l, data]);
-    setManualForm({ name: "", kcal: "", prot: "", carb: "", fat: "", grams: "100" });
-    setAddingManual(false); setShowAddManual(false);
-    await loadData();
-  };
-
-  const goals = { kcal: clientInfo?.calories_target || 1800, prot: clientInfo?.protein_target || 100, carb: clientInfo?.carb_target || 180, fat: clientInfo?.fat_target || 60 };
-  const totals = sumMacros(logs);
-  const mealGroups = MEALS.map(m => ({ meal: m, logs: logs.filter(l => l.meal === m) }));
-
-  return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-      <h2 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 4px" }}>🍽️ Nutrition</h2>
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
-        {Array.from({ length: 4 }, (_, i) => {
-          const d = new Date(); d.setDate(d.getDate() - i);
-          const dateStr = d.toISOString().slice(0, 10);
-          const label = i === 0 ? "Aujourd'hui" : i === 1 ? "Hier" : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
-          return (
-            <button key={dateStr} onClick={() => setSelectedDate(dateStr)} style={{ padding: "8px 14px", borderRadius: 12, border: `2px solid ${selectedDate === dateStr ? C.pink : C.border}`, background: selectedDate === dateStr ? C.pink + "22" : "#111", color: selectedDate === dateStr ? C.pink : C.textMuted, fontWeight: selectedDate === dateStr ? 700 : 400, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>{label}</button>
-          );
-        })}
-      </div>
-
-      <Card style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>RÉSUMÉ DU JOUR</div>
-        <MacroBar label="Calories" value={Math.round(totals.kcal)} max={goals.kcal} color={C.yellow} unit=" kcal" />
-        <MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} />
-        <MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} />
-        <MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} />
-      </Card>
-
-      <Tab tabs={[["journal", "📋 Journal"], ["ajouter", "➕ Ajouter"], ["favoris", "⭐ Favoris"]]} active={activeTab} onChange={setActiveTab} />
-
-      {activeTab === "journal" && (
-        <div>
-          {loading ? <Spinner /> : mealGroups.map(({ meal, logs: mLogs }) => mLogs.length === 0 ? null : (
-            <div key={meal} style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>{meal}</div>
-              {mLogs.map((log, i) => {
-                const m = getMacros(log);
-                return (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: C.card, borderRadius: 12, marginBottom: 6, border: `1px solid ${C.border}` }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13 }}>{log.food_name}</div>
-                      <div style={{ fontSize: 11, color: C.textMuted }}>{log.grams ? `${log.grams}g · ` : ""}{Math.round(m.kcal)} kcal · P:{m.prot}g · G:{m.carb}g · L:{m.fat}g</div>
-                    </div>
-                    <button onClick={() => removeLog(log.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 16, padding: "0 0 0 10px" }}>✕</button>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          {logs.length === 0 && !loading && <div style={{ textAlign: "center", color: C.textMuted, padding: "30px 0" }}>Rien enregistré ce jour 🍽️</div>}
-        </div>
-      )}
-
-      {activeTab === "ajouter" && (
-        <div>
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>REPAS</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {MEALS.map(m => (
-                <button key={m} onClick={() => setSelectedMeal(m)} style={{ padding: "8px 14px", borderRadius: 10, border: `1.5px solid ${selectedMeal === m ? C.pink : C.border}`, background: selectedMeal === m ? C.pink + "22" : "#111", color: selectedMeal === m ? C.pink : C.textMuted, fontWeight: selectedMeal === m ? 700 : 400, fontSize: 13, cursor: "pointer" }}>{m}</button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ position: "relative", marginBottom: 14 }}>
-            <input value={search} onChange={e => { setSearch(e.target.value); searchOpenFood(e.target.value); }} placeholder="🔍 Rechercher un aliment..." style={{ ...inputSt, paddingRight: 40 }} />
-            {searching && <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, borderRadius: "50%", border: `2px solid ${C.border}`, borderTop: `2px solid ${C.pink}`, animation: "spin 0.8s linear infinite" }} />}
-          </div>
-
-          {searchResults.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              {searchResults.map((food, i) => (
-                <FoodResultCard key={i} food={food} onAdd={addFood} onToggleFav={toggleFavorite} isFav={isFavorite(food.name)} />
-              ))}
-            </div>
-          )}
-
-          {search.length > 2 && !searching && searchResults.length === 0 && (
-            <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted, fontSize: 13 }}>
-              Aucun résultat — ajoute-le manuellement !
-            </div>
-          )}
-
-          <button onClick={() => setShowAddManual(!showAddManual)} style={{ width: "100%", padding: 14, borderRadius: 12, border: `1.5px dashed ${C.orange}55`, background: "transparent", color: C.orange, fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 14 }}>
-            ✏️ Ajouter un aliment manuellement
-          </button>
-
-          {showAddManual && (
-            <Card style={{ borderColor: C.orange + "44" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.orange, marginBottom: 14 }}>✏️ Nouvel aliment</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <Inp label="Nom de l'aliment" placeholder="ex: Yaourt grec maison" value={manualForm.name} onChange={e => setManualForm({ ...manualForm, name: e.target.value })} />
-                <Inp label="Quantité (g)" type="number" placeholder="100" value={manualForm.grams} onChange={e => setManualForm({ ...manualForm, grams: e.target.value })} />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <Inp label="Calories (kcal)" type="number" placeholder="0" value={manualForm.kcal} onChange={e => setManualForm({ ...manualForm, kcal: e.target.value })} />
-                  <Inp label="Protéines (g)" type="number" placeholder="0" value={manualForm.prot} onChange={e => setManualForm({ ...manualForm, prot: e.target.value })} />
-                  <Inp label="Glucides (g)" type="number" placeholder="0" value={manualForm.carb} onChange={e => setManualForm({ ...manualForm, carb: e.target.value })} />
-                  <Inp label="Lipides (g)" type="number" placeholder="0" value={manualForm.fat} onChange={e => setManualForm({ ...manualForm, fat: e.target.value })} />
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-                <Btn variant="secondary" onClick={() => setShowAddManual(false)} style={{ flex: 1 }}>Annuler</Btn>
-                <Btn onClick={addManualFood} disabled={addingManual} style={{ flex: 2, background: C.orange, color: C.black }}>{addingManual ? "Ajout..." : "✅ Ajouter"}</Btn>
-              </div>
-              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 10, textAlign: "center" }}>Cet aliment sera partagé avec toutes les clientes 🤝</div>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {activeTab === "favoris" && (
-        <div>
-          {favorites.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 0", color: C.textMuted }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
-              <div>Aucun favori — ajoute des aliments en cliquant sur ⭐</div>
-            </div>
-          ) : (
-            favorites.map((fav, i) => (
-              <FoodResultCard key={i} food={fav.food_data} onAdd={addFood} onToggleFav={toggleFavorite} isFav={true} />
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const FoodResultCard = ({ food, onAdd, onToggleFav, isFav }) => {
-  const [grams, setGrams] = useState(100);
-  const [showGrams, setShowGrams] = useState(false);
-  const p = food.per100;
-  const r = grams / 100;
-  return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>{food.name}</div>
-          {food.brand && <div style={{ fontSize: 11, color: C.textMuted }}>{food.brand}</div>}
-          {food.source === "custom" && <Badge color={C.orange} style={{ fontSize: 10 }}>Personnalisé</Badge>}
-        </div>
-        <button onClick={() => onToggleFav(food)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", padding: "0 0 0 8px" }}>{isFav ? "⭐" : "☆"}</button>
-      </div>
-      {p && (
-        <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-          {[{ l: "Kcal", v: Math.round(p.kcal * r), c: C.yellow }, { l: "Prot", v: `${Math.round(p.prot * r * 10) / 10}g`, c: C.green }, { l: "Gluc", v: `${Math.round(p.carb * r * 10) / 10}g`, c: C.blue }, { l: "Lip", v: `${Math.round(p.fat * r * 10) / 10}g`, c: C.pink }].map(s => (
-            <div key={s.l} style={{ background: "#111", borderRadius: 8, padding: "6px 10px", textAlign: "center" }}>
-              <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 700 }}>{s.l}</div>
-              <div style={{ fontSize: 13, fontWeight: 900, color: s.c }}>{s.v}</div>
-            </div>
-          ))}
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {showGrams ? (
-          <input type="number" value={grams} onChange={e => setGrams(parseInt(e.target.value) || 100)} style={{ ...inputSt, width: 80, flex: "none", fontSize: 13, padding: "8px 10px" }} />
-        ) : (
-          <button onClick={() => setShowGrams(true)} style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 12px", color: C.textMuted, fontSize: 12, cursor: "pointer" }}>{grams}g ✏️</button>
-        )}
-        <Btn onClick={() => { onAdd(food, grams); setShowGrams(false); }} style={{ flex: 1, padding: "10px" }}>+ Ajouter</Btn>
-      </div>
-    </div>
-  );
-};
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
   const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout } = useWorkouts();
@@ -1124,11 +891,21 @@ const CoachApp = ({ user, onLogout }) => {
   const [sharedMonths, setSharedMonths] = useState({});
   const [selectedNutritionDay, setSelectedNutritionDay] = useState(null);
   const [showChat, setShowChat] = useState(false);
+
   const client = clients.find(c => c.id === selected);
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
   const { unread: unreadMessages } = useMessages(selected);
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return !c.is_paused && d >= 0 && d <= 5; });
-  useEffect(() => { if (selected) { setSelectedNutritionDay(null); setShowChat(false); supabase.from("session_logs").select("*").eq("client_id", selected).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || [])); supabase.from("nutrition_logs").select("*").eq("client_id", selected).order("created_at").then(({ data }) => setClientNutritionLogs(data || [])); } }, [selected]);
+
+  useEffect(() => {
+    if (selected) {
+      setSelectedNutritionDay(null);
+      setShowChat(false);
+      supabase.from("session_logs").select("*").eq("client_id", selected).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || []));
+      supabase.from("nutrition_logs").select("*").eq("client_id", selected).order("created_at").then(({ data }) => setClientNutritionLogs(data || []));
+    }
+  }, [selected]);
+
   const handleAddClient = async () => {
     if (!newClientForm.name || !newClientForm.email || !newClientForm.password) return alert("Remplis au minimum le nom, l'email et le mot de passe.");
     setAddingClient(true);
@@ -1141,15 +918,18 @@ const CoachApp = ({ user, onLogout }) => {
     setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "", carb_target: "", fat_target: "" });
     alert(`✅ Compte créé !\n\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
   };
+
   const handleSaveClient = async (id, patch) => { await updateClient(id, patch); alert("✅ Profil mis à jour !"); };
   const handleDeleteClient = async (id) => { await deleteClient(id); setSelected(null); setMainTab("dashboard"); alert("✅ Cliente supprimée."); };
   const handleAddPayment = async () => { if (!paymentAmount || !paymentDate) return alert("Remplis le montant et la date."); setAddingPayment(true); await addPayment(parseFloat(paymentAmount), paymentDate, paymentNote); setAddingPayment(false); setShowPaymentForm(false); setPaymentAmount(""); setPaymentDate(today); setPaymentNote(""); alert(`✅ Paiement de ${paymentAmount}€ enregistré !`); };
   const handleSendMessage = async () => { if (!msgText.trim() || !selected) return; const todayEntry = entries.find(e => e.date === today); if (todayEntry) { await updateEntry(todayEntry.id, { coach_message: msgText }); } else { await addEntry({ date: today, steps: 0, feeling: 3, meal_note: "", session_status: "rest", coach_message: msgText, photos: [] }); } setMsgText(""); alert("✅ Message envoyé !"); };
   const handleShareMonth = (clientId, monthKey) => { setSharedMonths(prev => ({ ...prev, [clientId]: [...(prev[clientId] || []), monthKey] })); alert("✅ Bilan partagé avec la cliente !"); };
+
   if (showChat && client) return <ChatScreen clientId={selected} clientName={client.name} sender="coach" onBack={() => setShowChat(false)} />;
   if (showNutritionReport && client) return <NutritionReport client={client.name} clientInfo={client} nutritionLogs={clientNutritionLogs} isCoach={true} onShare={(mk) => handleShareMonth(client.id, mk)} onClose={() => setShowNutritionReport(false)} sharedMonths={sharedMonths[client.id] || []} />;
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} />;
   if (buildingWorkout || editingWorkout) return (<div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}><WorkoutBuilder workout={editingWorkout} onSave={async w => { await saveWorkout(w); setEditingWorkout(null); setBuildingWorkout(false); }} onCancel={() => { setEditingWorkout(null); setBuildingWorkout(false); }} /></div>);
+
   return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
@@ -1177,7 +957,7 @@ const CoachApp = ({ user, onLogout }) => {
           {mainTab === "workouts" && !selected && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}><h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Mes séances 💪</h1><Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Nouvelle séance</Btn></div>
-              {loadingWorkouts ? <Spinner /> : workouts.map(w => (<Card key={w.id} style={{ marginBottom: 14 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}><div><div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{w.name}</div>{w.description && <div style={{ fontSize: 13, color: C.textMuted }}>{w.description}</div>}</div><div style={{ display: "flex", gap: 8 }}><Btn small variant="secondary" onClick={() => setEditingWorkout(w)} style={{ width: "auto" }}>✏️</Btn><Btn small variant="danger" onClick={() => deleteWorkout(w.id)} style={{ width: "auto" }}>🗑️</Btn></div></div><div style={{ display: "flex", gap: 10 }}><Badge color={C.orange}>{w.exercises?.length || 0} exercices</Badge><Badge color={C.purple}>{w.exercises?.reduce((a, e) => a + e.sets, 0) || 0} séries</Badge></div></Card>))}
+              {loadingWorkouts ? <Spinner /> : workouts.map(w => (<Card key={w.id} style={{ marginBottom: 14 }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}><div><div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{w.name}</div>{w.description && <div style={{ fontSize: 13, color: C.textMuted }}>{w.description}</div>}</div><div style={{ display: "flex", gap: 8 }}><Btn small variant="secondary" onClick={() => setEditingWorkout(w)} style={{ width: "auto" }}>✏️</Btn><Btn small variant="danger" onClick={() => deleteWorkout(w.id)} style={{ width: "auto" }}>🗑️</Btn></div></div><Badge color={C.orange}>{w.exercises?.length || 0} exercices</Badge></Card>))}
             </div>
           )}
           {mainTab === "client" && client && (
@@ -1194,7 +974,14 @@ const CoachApp = ({ user, onLogout }) => {
                   {unreadMessages > 0 && <span style={{ position: "absolute", top: -6, right: -6, background: C.red, color: C.white, borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadMessages}</span>}
                 </button>
                 <button onClick={() => setEditingClient(client)} style={{ background: "#222", border: `1px solid ${C.border}`, color: C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>✏️ Modifier</button>
-                <button onClick={async () => { if (client.is_paused) { const pauseDays = Math.ceil((new Date(today) - new Date(client.pause_start)) / 86400000); const newDate = new Date(client.next_payment); newDate.setDate(newDate.getDate() + pauseDays); const newPayment = newDate.toISOString().slice(0, 10); await supabase.from("clients").update({ is_paused: false, pause_start: null, next_payment: newPayment }).eq("id", client.id); } else { await supabase.from("clients").update({ is_paused: true, pause_start: today }).eq("id", client.id); } }} style={{ background: client.is_paused ? C.green + "22" : C.blue + "22", border: `1px solid ${client.is_paused ? C.green : C.blue}55`, color: client.is_paused ? C.green : C.blue, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>{client.is_paused ? "▶ Reprendre" : "⏸️ Pause"}</button>
+                <button onClick={async () => {
+                  if (client.is_paused) {
+                    const pauseDays = Math.ceil((new Date(today) - new Date(client.pause_start)) / 86400000);
+                    const newDate = new Date(client.next_payment); newDate.setDate(newDate.getDate() + pauseDays);
+                    const newPayment = newDate.toISOString().slice(0, 10);
+                    await supabase.from("clients").update({ is_paused: false, pause_start: null, next_payment: newPayment }).eq("id", client.id);
+                  } else { await supabase.from("clients").update({ is_paused: true, pause_start: today }).eq("id", client.id); }
+                }} style={{ background: client.is_paused ? C.green + "22" : C.blue + "22", border: `1px solid ${client.is_paused ? C.green : C.blue}55`, color: client.is_paused ? C.green : C.blue, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 700, flexShrink: 0 }}>{client.is_paused ? "▶ Reprendre" : "⏸️ Pause"}</button>
               </div>
               <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["nutrition", "🍽️ Nutrition"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
               {clientTab === "journal" && (<div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{loadingData ? <Spinner /> : entries.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune entrée.</p></Card> : entries.map((e, i) => <EntryCard key={i} e={e} onClick={() => setSelectedEntry(e)} />)}</div>)}
@@ -1210,7 +997,30 @@ const CoachApp = ({ user, onLogout }) => {
               {clientTab === "nutrition" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between" }}><div style={{ fontSize: 13, color: C.textMuted }}>Logs nutrition de {client.name}</div><button onClick={() => setShowNutritionReport(true)} style={{ background: C.pink, border: "none", color: C.black, borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📊 Bilan mensuel</button></div>
-                  {(() => { const todayLogs = clientNutritionLogs.filter(l => l.date === today); const totals = sumMacros(todayLogs); const goals = { kcal: client.calories_target || 1800, prot: client.protein_target || 100, carb: client.carb_target || 180, fat: client.fat_target || 60 }; return (<Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AUJOURD'HUI — {todayLogs.length} aliments saisis</div>{todayLogs.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Rien de saisi aujourd'hui.</p> : (<><MacroBar label="Calories" value={Math.round(totals.kcal)} max={goals.kcal} color={C.yellow} unit=" kcal" /><MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} /><MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} /><MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} /></>)}</Card>); })()}
+                  {(() => {
+                    const todayLogs = clientNutritionLogs.filter(l => l.date === today);
+                    const totals = sumMacros(todayLogs);
+                    const goals = { kcal: client.calories_target || 1800, prot: client.protein_target || 100, carb: client.carb_target || 180, fat: client.fat_target || 60 };
+                    return (<Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AUJOURD'HUI — {todayLogs.length} aliments saisis</div>{todayLogs.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Rien de saisi aujourd'hui.</p> : (<><MacroBar label="Calories" value={Math.round(totals.kcal)} max={goals.kcal} color={C.yellow} unit=" kcal" /><MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} /><MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} /><MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} /></>)}</Card>);
+                  })()}
+                  <Card>
+                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>HISTORIQUE 7 JOURS</div>
+                    {Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().slice(0, 10); }).map(d => {
+                      const dayLogs = clientNutritionLogs.filter(l => l.date === d);
+                      if (dayLogs.length === 0) return null;
+                      const t = sumMacros(dayLogs);
+                      const isOpen = selectedNutritionDay === d;
+                      return (
+                        <div key={d}>
+                          <div onClick={() => setSelectedNutritionDay(isOpen ? null : d)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 12, color: isOpen ? C.pink : C.white, fontWeight: isOpen ? 700 : 400 }}>{formatDate(d)}</span><span style={{ fontSize: 10, color: C.textMuted }}>{dayLogs.length} aliment{dayLogs.length > 1 ? "s" : ""}</span></div>
+                            <div style={{ display: "flex", gap: 12, alignItems: "center" }}><span style={{ fontSize: 12, color: C.yellow, fontWeight: 700 }}>{Math.round(t.kcal)} kcal</span><span style={{ fontSize: 12, color: C.green }}>💪 {Math.round(t.prot)}g</span><span style={{ fontSize: 12, color: C.textMuted }}>{isOpen ? "▲" : "▼"}</span></div>
+                          </div>
+                          {isOpen && (<div style={{ padding: "8px 0 4px" }}>{MEALS.map((label, mi) => { const mealLogs = dayLogs.filter(l => l.meal_idx === mi); if (mealLogs.length === 0) return null; return (<div key={mi} style={{ marginBottom: 6 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4, textTransform: "uppercase" }}>{label}</div>{mealLogs.map((e, j) => { const m = getMacros(e); return (<div key={j} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: "#111", borderRadius: 8, marginBottom: 4 }}><div><div style={{ fontSize: 12, fontWeight: 600 }}>{e.name}</div><div style={{ fontSize: 10, color: C.textMuted }}>{e.quantity_label || (e.manual_macros ? "saisie libre" : `${e.grams}g`)} · 💪 {m.prot}g · 🌾 {m.carb}g · 🥑 {m.fat}g</div></div><span style={{ fontWeight: 800, fontSize: 12, color: C.yellow, flexShrink: 0, marginLeft: 8 }}>{m.kcal} kcal</span></div>); })}</div>); })}</div>)}
+                        </div>
+                      );
+                    })}
+                  </Card>
                 </div>
               )}
               {clientTab === "body" && (<div style={{ display: "flex", flexDirection: "column", gap: 14 }}>{loadingData ? <Spinner /> : (<>{weights.length > 1 && <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>POIDS</div><div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>{[{ l: "DÉPART", v: `${weights[0].value} kg`, c: C.white }, { l: "ACTUEL", v: `${weights[weights.length - 1].value} kg`, c: C.pink }, { l: "PERDU", v: `-${(weights[0].value - weights[weights.length - 1].value).toFixed(1)} kg`, c: C.green }].map(s => (<div key={s.l} style={{ background: "#111", borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></div>))}</div></Card>}{progressPhotos.length > 0 && <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>📸 PHOTOS DE PROGRESSION</div><div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>{progressPhotos.map((p, i) => <div key={i}><img src={p.photo} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 12, marginBottom: 4 }} /><div style={{ fontSize: 11, color: C.textMuted }}>{formatDate(p.date)}</div>{p.note && <div style={{ fontSize: 11, color: C.white }}>{p.note}</div>}</div>)}</div></Card>}{weights.length <= 1 && progressPhotos.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de données.</p></Card>}</>)}</div>)}
@@ -1258,7 +1068,6 @@ const CoachApp = ({ user, onLogout }) => {
     </div>
   );
 };
-
 const ClientApp = ({ user, onLogout }) => {
   const [clientInfo, setClientInfo] = useState(null);
   const [clientId, setClientId] = useState(null);
@@ -1272,16 +1081,34 @@ const ClientApp = ({ user, onLogout }) => {
   const [newMeasure, setNewMeasure] = useState({ chest: "", waist: "", hips: "", thighs: "" });
   const [newPhotoNote, setNewPhotoNote] = useState("");
   const [notifEnabled, setNotifEnabled] = useState(typeof Notification !== "undefined" && Notification?.permission === "granted");
-  useEffect(() => { supabase.from("clients").select("*").eq("user_id", user.id).single().then(({ data }) => { if (data) { setClientInfo(data); setClientId(data.id); } }); }, [user.id]);
-  useEffect(() => { if (clientId) { supabase.from("session_logs").select("*").eq("client_id", clientId).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || [])); } }, [clientId]);
+
+  useEffect(() => {
+    supabase.from("clients").select("*").eq("user_id", user.id).single().then(({ data }) => {
+      if (data) { setClientInfo(data); setClientId(data.id); }
+    });
+  }, [user.id]);
+
+  useEffect(() => {
+    if (clientId) {
+      supabase.from("session_logs").select("*").eq("client_id", clientId).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || []));
+    }
+  }, [clientId]);
+
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientId);
   const { unread: unreadMessages } = useMessages(clientId);
+
   const myWorkouts = assignedWorkouts.filter(a => a.workout || a.workouts).map(a => ({ ...(a.workout || a.workouts), scheduledDate: a.scheduled_date }));
   const todayEntry = entries.find(e => e.date === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
   const lastWeight = weights[weights.length - 1];
   const startWeight = weights[0];
-  const handleSaveJournal = async (payload) => { const existingEntry = entries.find(e => e.date === payload.date); if (existingEntry) { await updateEntry(existingEntry.id, payload); } else { await addEntry({ ...payload, client_id: clientId }); } };
+
+  const handleSaveJournal = async (payload) => {
+    const existingEntry = entries.find(e => e.date === payload.date);
+    if (existingEntry) { await updateEntry(existingEntry.id, payload); }
+    else { await addEntry({ ...payload, client_id: clientId }); }
+  };
+
   const handleAddWeight = async () => { if (!newWeight) return; await addWeight(parseFloat(newWeight)); setNewWeight(""); alert("✅ Poids enregistré !"); };
   const handleAddMeasure = async () => { await addMeasurement({ chest: parseFloat(newMeasure.chest), waist: parseFloat(newMeasure.waist), hips: parseFloat(newMeasure.hips), thighs: parseFloat(newMeasure.thighs) }); setNewMeasure({ chest: "", waist: "", hips: "", thighs: "" }); alert("✅ Mensurations enregistrées !"); };
   const handleAddProgressPhoto = async (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = async ev => { await addProgressPhoto(ev.target.result, newPhotoNote); setNewPhotoNote(""); alert("✅ Photo ajoutée !"); }; reader.readAsDataURL(file); };
@@ -1327,7 +1154,14 @@ const ClientApp = ({ user, onLogout }) => {
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>💪 Mes entraînements</div>
             {myWorkouts.map(w => {
               const scheduledDate = w.scheduledDate; const isToday = scheduledDate === today; const isPast = scheduledDate && scheduledDate < today; const myLogs = sessionLogs.filter(l => l.workout_id === w.id);
-              return (<Card key={w.id} style={{ marginBottom: 10, borderColor: isToday ? C.orange + "66" : C.border }}><div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: myLogs.length > 0 ? 12 : 0 }}><div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", border: `1.5px solid ${isToday ? C.orange : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💪</div><div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices {myLogs.length > 0 ? `· ${myLogs.length} fois réalisée` : ""}</div>{scheduledDate && <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>{isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>}</div></div>{myLogs.length > 0 && (<div style={{ background: C.purple + "12", borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}><div style={{ fontSize: 11, color: C.purple, fontWeight: 700, marginBottom: 6 }}>📊 DERNIÈRE FOIS — {formatDate(myLogs[0].date)}</div>{(() => { let logs = {}; try { logs = JSON.parse(myLogs[0].exercise_logs || "{}"); } catch {} return Object.values(logs).slice(0, 3).map((l, i) => l.weight || l.reps ? <div key={i} style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}><span style={{ color: C.white, fontWeight: 600 }}>{l.name}</span> {l.weight ? `· ${l.weight}` : ""} {l.reps ? `· ${l.reps} reps` : ""}</div> : null); })()}<button onClick={() => setViewingWorkoutPerfs(w)} style={{ fontSize: 12, color: C.purple, background: "none", border: "none", cursor: "pointer", fontWeight: 700, marginTop: 4, padding: 0 }}>Voir tout l'historique →</button></div>)}<Btn onClick={() => setActiveWorkout(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn></Card>);
+              return (<Card key={w.id} style={{ marginBottom: 10, borderColor: isToday ? C.orange + "66" : C.border }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: myLogs.length > 0 ? 12 : 0 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", border: `1.5px solid ${isToday ? C.orange : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💪</div>
+                  <div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div><div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices {myLogs.length > 0 ? `· ${myLogs.length} fois réalisée` : ""}</div>{scheduledDate && <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>{isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>}</div>
+                </div>
+                {myLogs.length > 0 && (<div style={{ background: C.purple + "12", borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}><div style={{ fontSize: 11, color: C.purple, fontWeight: 700, marginBottom: 6 }}>📊 DERNIÈRE FOIS — {formatDate(myLogs[0].date)}</div>{(() => { let logs = {}; try { logs = JSON.parse(myLogs[0].exercise_logs || "{}"); } catch {} return Object.values(logs).slice(0, 3).map((l, i) => l.weight || l.reps ? <div key={i} style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}><span style={{ color: C.white, fontWeight: 600 }}>{l.name}</span> {l.weight ? `· ${l.weight}` : ""} {l.reps ? `· ${l.reps} reps` : ""}</div> : null); })()}<button onClick={() => setViewingWorkoutPerfs(w)} style={{ fontSize: 12, color: C.purple, background: "none", border: "none", cursor: "pointer", fontWeight: 700, marginTop: 4, padding: 0 }}>Voir tout l'historique →</button></div>)}
+                <Btn onClick={() => setActiveWorkout(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn>
+              </Card>);
             })}
           </div>
         )}
@@ -1367,7 +1201,17 @@ const ClientApp = ({ user, onLogout }) => {
           ))}
         </div>
       </Card>
-      {(clientInfo.calories_target > 0 || clientInfo.protein_target > 0) && (<Card style={{ marginBottom: 14 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>🍽️ MES OBJECTIFS NUTRITIONNELS</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>{clientInfo.calories_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🔥 CALORIES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.orange }}>{clientInfo.calories_target}</div><div style={{ fontSize: 11, color: C.textMuted }}>kcal / jour</div></div>}{clientInfo.protein_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💪 PROTÉINES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.green }}>{clientInfo.protein_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}{clientInfo.carb_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🌾 GLUCIDES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{clientInfo.carb_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}{clientInfo.fat_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥑 LIPIDES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.pink }}>{clientInfo.fat_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}</div></Card>)}
+      {(clientInfo.calories_target > 0 || clientInfo.protein_target > 0) && (
+        <Card style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>🍽️ MES OBJECTIFS NUTRITIONNELS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {clientInfo.calories_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🔥 CALORIES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.orange }}>{clientInfo.calories_target}</div><div style={{ fontSize: 11, color: C.textMuted }}>kcal / jour</div></div>}
+            {clientInfo.protein_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💪 PROTÉINES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.green }}>{clientInfo.protein_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
+            {clientInfo.carb_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🌾 GLUCIDES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{clientInfo.carb_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
+            {clientInfo.fat_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥑 LIPIDES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.pink }}>{clientInfo.fat_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
+          </div>
+        </Card>
+      )}
       {daysUntil(clientInfo.next_payment) <= 7 && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}><div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div><div style={{ fontSize: 13 }}>Ton prochain paiement de <strong>{clientInfo.monthly_amount} €</strong> est dû le <strong>{formatDate(clientInfo.next_payment)}</strong>.</div></div>}
       <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div><PaymentHistory payments={payments} /></Card>
     </div>
@@ -1388,23 +1232,498 @@ const ClientApp = ({ user, onLogout }) => {
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
       <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon historique</h2>
-      {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => <div key={i} style={{ marginBottom: 12 }}><EntryCard e={e} onClick={() => setSelectedEntry(e)} /></div>)}
+      {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => (<div key={i} style={{ marginBottom: 12 }}><EntryCard e={e} onClick={() => setSelectedEntry(e)} /></div>))}
     </div>
   );
 
   return null;
 };
 
+const LOCAL_DB = [
+  {id:"l1",name:"Blanc de poulet cuit",unit:"g",per100:{kcal:165,prot:31,carb:0,fat:3.6}},
+  {id:"l2",name:"Cuisse de poulet cuite",unit:"g",per100:{kcal:216,prot:26,carb:0,fat:12}},
+  {id:"l3",name:"Blanc de dinde cuit",unit:"g",per100:{kcal:147,prot:30,carb:0,fat:2.5}},
+  {id:"l4",name:"Dinde hachée cuite",unit:"g",per100:{kcal:170,prot:22,carb:0,fat:9}},
+  {id:"l5",name:"Escalope de dinde",unit:"g",per100:{kcal:112,prot:24,carb:0,fat:1.5}},
+  {id:"l6",name:"Poulet rôti sans peau",unit:"g",per100:{kcal:190,prot:27,carb:0,fat:9}},
+  {id:"l7",name:"Boeuf haché 5% MG cuit",unit:"g",per100:{kcal:144,prot:22,carb:0,fat:6}},
+  {id:"l8",name:"Boeuf haché 10% MG cuit",unit:"g",per100:{kcal:192,prot:20,carb:0,fat:12}},
+  {id:"l9",name:"Steak de boeuf cuit",unit:"g",per100:{kcal:185,prot:28,carb:0,fat:8}},
+  {id:"l10",name:"Filet de boeuf cuit",unit:"g",per100:{kcal:175,prot:27,carb:0,fat:7}},
+  {id:"l11",name:"Filet de porc cuit",unit:"g",per100:{kcal:166,prot:25,carb:0,fat:7}},
+  {id:"l12",name:"Cotelette de porc cuite",unit:"g",per100:{kcal:209,prot:22,carb:0,fat:13}},
+  {id:"l13",name:"Jambon blanc",unit:"g",per100:{kcal:107,prot:17,carb:1,fat:3.5}},
+  {id:"l14",name:"Jambon de Bayonne",unit:"g",per100:{kcal:196,prot:26,carb:0,fat:10}},
+  {id:"l15",name:"Veau escalope cuite",unit:"g",per100:{kcal:175,prot:28,carb:0,fat:6}},
+  {id:"l16",name:"Agneau gigot cuit",unit:"g",per100:{kcal:218,prot:25,carb:0,fat:13}},
+  {id:"l17",name:"Saumon frais cuit",unit:"g",per100:{kcal:206,prot:22,carb:0,fat:13}},
+  {id:"l18",name:"Saumon fumé",unit:"g",per100:{kcal:160,prot:23,carb:0,fat:8}},
+  {id:"l19",name:"Thon boite au naturel",unit:"g",per100:{kcal:103,prot:23,carb:0,fat:1}},
+  {id:"l20",name:"Thon boite a l huile egoutte",unit:"g",per100:{kcal:184,prot:24,carb:0,fat:10}},
+  {id:"l21",name:"Cabillaud cuit",unit:"g",per100:{kcal:89,prot:20,carb:0,fat:0.8}},
+  {id:"l22",name:"Lieu noir cuit",unit:"g",per100:{kcal:99,prot:21,carb:0,fat:1.2}},
+  {id:"l23",name:"Truite cuite",unit:"g",per100:{kcal:168,prot:23,carb:0,fat:8}},
+  {id:"l24",name:"Crevettes cuites",unit:"g",per100:{kcal:89,prot:19,carb:0,fat:1.2}},
+  {id:"l25",name:"Sardines a l huile egouttees",unit:"g",per100:{kcal:208,prot:25,carb:0,fat:12}},
+  {id:"l26",name:"Maquereau fume",unit:"g",per100:{kcal:305,prot:19,carb:0,fat:25}},
+  {id:"l27",name:"Dorade cuite",unit:"g",per100:{kcal:121,prot:22,carb:0,fat:3.5}},
+  {id:"l28",name:"Bar cuit",unit:"g",per100:{kcal:124,prot:23,carb:0,fat:3.5}},
+  {id:"l29",name:"Thon mi-cuit",unit:"g",per100:{kcal:144,prot:26,carb:0,fat:4}},
+  {id:"l30",name:"Oeuf entier cuit",unit:"g",piece_weight:60,per100:{kcal:147,prot:13,carb:0.7,fat:10}},
+  {id:"l31",name:"Blanc d oeuf cuit",unit:"g",piece_weight:35,per100:{kcal:52,prot:11,carb:0.7,fat:0.2}},
+  {id:"l32",name:"Omelette nature",unit:"g",per100:{kcal:154,prot:11,carb:0.5,fat:12}},
+  {id:"l33",name:"Fromage blanc 0%",unit:"g",per100:{kcal:46,prot:8,carb:4,fat:0.2}},
+  {id:"l34",name:"Fromage blanc 3%",unit:"g",per100:{kcal:72,prot:7,carb:4,fat:3}},
+  {id:"l35",name:"Skyr nature",unit:"g",per100:{kcal:63,prot:11,carb:4,fat:0.2}},
+  {id:"l36",name:"Yaourt grec 0%",unit:"g",per100:{kcal:57,prot:10,carb:4,fat:0.2}},
+  {id:"l37",name:"Yaourt grec entier",unit:"g",per100:{kcal:115,prot:9,carb:4,fat:7}},
+  {id:"l38",name:"Yaourt nature entier",unit:"g",per100:{kcal:61,prot:3.5,carb:4.7,fat:3.3}},
+  {id:"l39",name:"Cottage cheese",unit:"g",per100:{kcal:98,prot:11,carb:3.4,fat:4.3}},
+  {id:"l40",name:"Ricotta",unit:"g",per100:{kcal:174,prot:11,carb:3,fat:13}},
+  {id:"l41",name:"Mozzarella light",unit:"g",per100:{kcal:149,prot:22,carb:2,fat:6}},
+  {id:"l42",name:"Mozzarella classique",unit:"g",per100:{kcal:254,prot:18,carb:2,fat:19}},
+  {id:"l43",name:"Emmental rape",unit:"g",per100:{kcal:382,prot:29,carb:0,fat:29}},
+  {id:"l44",name:"Gruyere",unit:"g",per100:{kcal:413,prot:30,carb:0,fat:32}},
+  {id:"l45",name:"Feta",unit:"g",per100:{kcal:264,prot:14,carb:4,fat:21}},
+  {id:"l46",name:"Camembert",unit:"g",per100:{kcal:299,prot:20,carb:0.5,fat:24}},
+  {id:"l47",name:"Lait demi-ecreme",unit:"ml",per100:{kcal:46,prot:3.2,carb:4.8,fat:1.6}},
+  {id:"l48",name:"Lait ecreme",unit:"ml",per100:{kcal:33,prot:3.4,carb:4.8,fat:0.1}},
+  {id:"l49",name:"Lait entier",unit:"ml",per100:{kcal:64,prot:3.2,carb:4.8,fat:3.5}},
+  {id:"l50",name:"Lait de soja",unit:"ml",per100:{kcal:39,prot:3.3,carb:2.8,fat:1.8}},
+  {id:"l51",name:"Lait d avoine",unit:"ml",per100:{kcal:47,prot:1,carb:8.5,fat:1.5}},
+  {id:"l52",name:"Whey proteine vanille",unit:"g",per100:{kcal:380,prot:74,carb:8,fat:5}},
+  {id:"l53",name:"Whey isolat",unit:"g",per100:{kcal:360,prot:85,carb:3,fat:1}},
+  {id:"l54",name:"Caseine",unit:"g",per100:{kcal:370,prot:78,carb:5,fat:2}},
+  {id:"l55",name:"Riz blanc cuit",unit:"g",per100:{kcal:130,prot:2.7,carb:28,fat:0.3}},
+  {id:"l56",name:"Riz complet cuit",unit:"g",per100:{kcal:111,prot:2.6,carb:23,fat:0.9}},
+  {id:"l57",name:"Pates blanches cuites",unit:"g",per100:{kcal:157,prot:5.8,carb:30,fat:0.9}},
+  {id:"l58",name:"Pates completes cuites",unit:"g",per100:{kcal:149,prot:5.5,carb:28,fat:1.1}},
+  {id:"l59",name:"Quinoa cuit",unit:"g",per100:{kcal:120,prot:4.4,carb:21,fat:1.9}},
+  {id:"l60",name:"Patate douce cuite",unit:"g",per100:{kcal:86,prot:1.6,carb:20,fat:0.1}},
+  {id:"l61",name:"Pomme de terre cuite",unit:"g",per100:{kcal:77,prot:2,carb:17,fat:0.1}},
+  {id:"l62",name:"Flocons d avoine",unit:"g",per100:{kcal:364,prot:13,carb:58,fat:7}},
+  {id:"l63",name:"Pain complet",unit:"g",per100:{kcal:247,prot:9,carb:42,fat:3.5}},
+  {id:"l64",name:"Pain de mie complet",unit:"g",per100:{kcal:255,prot:8.5,carb:44,fat:3.7}},
+  {id:"l65",name:"Baguette blanche",unit:"g",per100:{kcal:270,prot:9,carb:55,fat:1.3}},
+  {id:"l66",name:"Galette de riz souffle",unit:"g",per100:{kcal:385,prot:7,carb:82,fat:1.3}},
+  {id:"l67",name:"Couscous cuit",unit:"g",per100:{kcal:112,prot:3.8,carb:23,fat:0.2}},
+  {id:"l68",name:"Boulgour cuit",unit:"g",per100:{kcal:83,prot:3,carb:18,fat:0.2}},
+  {id:"l69",name:"Orge perle cuit",unit:"g",per100:{kcal:123,prot:2.3,carb:28,fat:0.4}},
+  {id:"l70",name:"Lentilles cuites",unit:"g",per100:{kcal:116,prot:9,carb:20,fat:0.4}},
+  {id:"l71",name:"Lentilles corail cuites",unit:"g",per100:{kcal:100,prot:7.6,carb:17,fat:0.4}},
+  {id:"l72",name:"Pois chiches cuits",unit:"g",per100:{kcal:164,prot:8.9,carb:27,fat:2.6}},
+  {id:"l73",name:"Haricots rouges cuits",unit:"g",per100:{kcal:127,prot:8.7,carb:22,fat:0.5}},
+  {id:"l74",name:"Haricots blancs cuits",unit:"g",per100:{kcal:114,prot:7.4,carb:20,fat:0.5}},
+  {id:"l75",name:"Edamame",unit:"g",per100:{kcal:122,prot:11,carb:10,fat:5.2}},
+  {id:"l76",name:"Tofu ferme",unit:"g",per100:{kcal:76,prot:8.1,carb:1.9,fat:4.2}},
+  {id:"l77",name:"Tofu soyeux",unit:"g",per100:{kcal:55,prot:5.3,carb:2.4,fat:3.5}},
+  {id:"l78",name:"Tempeh",unit:"g",per100:{kcal:193,prot:19,carb:9,fat:11}},
+  {id:"l79",name:"Epinards crus",unit:"g",per100:{kcal:23,prot:2.8,carb:3.6,fat:0.4}},
+  {id:"l80",name:"Brocoli cuit",unit:"g",per100:{kcal:35,prot:2.8,carb:7,fat:0.4}},
+  {id:"l81",name:"Chou-fleur cuit",unit:"g",per100:{kcal:23,prot:1.8,carb:4.5,fat:0.3}},
+  {id:"l82",name:"Haricots verts cuits",unit:"g",per100:{kcal:31,prot:1.9,carb:6.6,fat:0.2}},
+  {id:"l83",name:"Courgette cuite",unit:"g",per100:{kcal:17,prot:1.2,carb:3.2,fat:0.2}},
+  {id:"l84",name:"Tomate",unit:"g",per100:{kcal:18,prot:0.9,carb:3.5,fat:0.2}},
+  {id:"l85",name:"Concombre",unit:"g",per100:{kcal:15,prot:0.7,carb:3.1,fat:0.1}},
+  {id:"l86",name:"Carotte crue",unit:"g",per100:{kcal:41,prot:0.9,carb:9.6,fat:0.2}},
+  {id:"l87",name:"Poivron rouge",unit:"g",per100:{kcal:31,prot:1,carb:6,fat:0.3}},
+  {id:"l88",name:"Champignons de Paris crus",unit:"g",per100:{kcal:22,prot:3.1,carb:3.3,fat:0.3}},
+  {id:"l89",name:"Avocat",unit:"g",per100:{kcal:160,prot:2,carb:8.5,fat:15}},
+  {id:"l90",name:"Salade verte",unit:"g",per100:{kcal:15,prot:1.4,carb:2.2,fat:0.2}},
+  {id:"l91",name:"Celeri branche",unit:"g",per100:{kcal:16,prot:0.7,carb:3,fat:0.2}},
+  {id:"l92",name:"Aubergine cuite",unit:"g",per100:{kcal:25,prot:0.8,carb:5.5,fat:0.2}},
+  {id:"l93",name:"Poireau cuit",unit:"g",per100:{kcal:31,prot:1.8,carb:6.4,fat:0.3}},
+  {id:"l94",name:"Asperge cuite",unit:"g",per100:{kcal:20,prot:2.2,carb:3.7,fat:0.1}},
+  {id:"l95",name:"Petits pois cuits",unit:"g",per100:{kcal:84,prot:5.4,carb:14,fat:0.4}},
+  {id:"l96",name:"Mais doux en boite",unit:"g",per100:{kcal:89,prot:3.3,carb:19,fat:1.3}},
+  {id:"l97",name:"Betterave cuite",unit:"g",per100:{kcal:44,prot:1.7,carb:9.8,fat:0.1}},
+  {id:"l98",name:"Radis",unit:"g",per100:{kcal:16,prot:0.7,carb:3.4,fat:0.1}},
+  {id:"l99",name:"Chou rouge cru",unit:"g",per100:{kcal:31,prot:1.4,carb:7,fat:0.2}},
+  {id:"l100",name:"Fenouil cru",unit:"g",per100:{kcal:31,prot:1.2,carb:7,fat:0.2}},
+  {id:"l101",name:"Banane",unit:"g",piece_weight:120,per100:{kcal:89,prot:1.1,carb:22,fat:0.3}},
+  {id:"l102",name:"Pomme",unit:"g",piece_weight:150,per100:{kcal:52,prot:0.3,carb:13,fat:0.2}},
+  {id:"l103",name:"Orange",unit:"g",piece_weight:180,per100:{kcal:47,prot:0.9,carb:11,fat:0.1}},
+  {id:"l104",name:"Fraises",unit:"g",per100:{kcal:32,prot:0.7,carb:7.7,fat:0.3}},
+  {id:"l105",name:"Myrtilles",unit:"g",per100:{kcal:57,prot:0.7,carb:14,fat:0.3}},
+  {id:"l106",name:"Framboises",unit:"g",per100:{kcal:52,prot:1.2,carb:11,fat:0.7}},
+  {id:"l107",name:"Mangue",unit:"g",per100:{kcal:60,prot:0.8,carb:15,fat:0.4}},
+  {id:"l108",name:"Ananas",unit:"g",per100:{kcal:50,prot:0.5,carb:13,fat:0.1}},
+  {id:"l109",name:"Kiwi",unit:"g",piece_weight:70,per100:{kcal:61,prot:1.1,carb:14,fat:0.5}},
+  {id:"l110",name:"Raisin",unit:"g",per100:{kcal:69,prot:0.7,carb:18,fat:0.2}},
+  {id:"l111",name:"Poire",unit:"g",per100:{kcal:57,prot:0.4,carb:14,fat:0.1}},
+  {id:"l112",name:"Peche",unit:"g",per100:{kcal:39,prot:0.9,carb:9.5,fat:0.3}},
+  {id:"l113",name:"Melon",unit:"g",per100:{kcal:34,prot:0.8,carb:8,fat:0.2}},
+  {id:"l114",name:"Pasteque",unit:"g",per100:{kcal:30,prot:0.6,carb:7.6,fat:0.2}},
+  {id:"l115",name:"Cerise",unit:"g",per100:{kcal:63,prot:1,carb:15,fat:0.2}},
+  {id:"l116",name:"Abricot",unit:"g",piece_weight:40,per100:{kcal:48,prot:1.4,carb:11,fat:0.4}},
+  {id:"l117",name:"Prune",unit:"g",piece_weight:50,per100:{kcal:46,prot:0.7,carb:11,fat:0.3}},
+  {id:"l118",name:"Huile d olive",unit:"g",per100:{kcal:828,prot:0,carb:0,fat:92}},
+  {id:"l119",name:"Huile de coco",unit:"g",per100:{kcal:862,prot:0,carb:0,fat:100}},
+  {id:"l120",name:"Beurre",unit:"g",per100:{kcal:717,prot:0.6,carb:0.6,fat:81}},
+  {id:"l121",name:"Beurre de cacahuete",unit:"g",per100:{kcal:593,prot:25,carb:20,fat:51}},
+  {id:"l122",name:"Beurre d amande",unit:"g",per100:{kcal:614,prot:21,carb:19,fat:56}},
+  {id:"l123",name:"Amandes",unit:"g",per100:{kcal:575,prot:21,carb:22,fat:49}},
+  {id:"l124",name:"Noix",unit:"g",per100:{kcal:654,prot:15,carb:14,fat:65}},
+  {id:"l125",name:"Noix de cajou",unit:"g",per100:{kcal:553,prot:18,carb:30,fat:44}},
+  {id:"l126",name:"Noisettes",unit:"g",per100:{kcal:628,prot:15,carb:17,fat:61}},
+  {id:"l127",name:"Graines de chia",unit:"g",per100:{kcal:490,prot:17,carb:42,fat:31}},
+  {id:"l128",name:"Graines de lin",unit:"g",per100:{kcal:534,prot:18,carb:29,fat:42}},
+  {id:"l129",name:"Graines de courge",unit:"g",per100:{kcal:559,prot:30,carb:11,fat:49}},
+  {id:"l130",name:"Tahini puree de sesame",unit:"g",per100:{kcal:595,prot:17,carb:21,fat:54}},
+  {id:"l131",name:"Sauce soja",unit:"ml",per100:{kcal:60,prot:10,carb:6,fat:0.1}},
+  {id:"l132",name:"Ketchup",unit:"g",per100:{kcal:100,prot:1.5,carb:25,fat:0.1}},
+  {id:"l133",name:"Moutarde",unit:"g",per100:{kcal:66,prot:4,carb:6,fat:3}},
+  {id:"l134",name:"Mayonnaise allegee",unit:"g",per100:{kcal:265,prot:1.5,carb:12,fat:23}},
+  {id:"l135",name:"Hummus",unit:"g",per100:{kcal:166,prot:7.9,carb:14,fat:9.6}},
+  {id:"l136",name:"Vinaigrette",unit:"g",per100:{kcal:462,prot:0.1,carb:5,fat:48}},
+  {id:"l137",name:"Muesli sans sucre",unit:"g",per100:{kcal:364,prot:10,carb:59,fat:8}},
+  {id:"l138",name:"Corn flakes",unit:"g",per100:{kcal:357,prot:7,carb:84,fat:0.9}},
+  {id:"l139",name:"Crepe nature",unit:"g",per100:{kcal:200,prot:5.7,carb:27,fat:8}},
+  {id:"l140",name:"Jus d orange",unit:"ml",per100:{kcal:45,prot:0.7,carb:10,fat:0.2}},
+  {id:"l141",name:"Shaker proteine",unit:"ml",per100:{kcal:40,prot:6,carb:3,fat:0.5}},
+  {id:"l142",name:"Seitan",unit:"g",per100:{kcal:370,prot:75,carb:14,fat:2}},
+  {id:"l143",name:"Proteines soja texturees",unit:"g",per100:{kcal:345,prot:52,carb:30,fat:1}},
+  {id:"l144",name:"Surimi",unit:"g",per100:{kcal:99,prot:8.2,carb:13,fat:1.2}},
+  {id:"l145",name:"Chocolat noir 70%",unit:"g",per100:{kcal:578,prot:8,carb:45,fat:43}},
+  {id:"l146",name:"Miel",unit:"g",per100:{kcal:304,prot:0.3,carb:82,fat:0}},
+  {id:"l147",name:"Confiture allegee",unit:"g",per100:{kcal:120,prot:0.5,carb:30,fat:0.1}},
+  {id:"l148",name:"Sirop d erable",unit:"g",per100:{kcal:260,prot:0,carb:67,fat:0.1}},
+  {id:"l149",name:"Compote pommes sans sucre",unit:"g",per100:{kcal:47,prot:0.3,carb:12,fat:0.1}},
+  {id:"l150",name:"Barre proteinee",unit:"g",piece_weight:60,per100:{kcal:380,prot:30,carb:40,fat:10}},
+  {id:"l151",name:"Yaourt aux fruits allege",unit:"g",per100:{kcal:74,prot:4.2,carb:13,fat:0.9}},
+  {id:"l152",name:"Creme fraiche allegee",unit:"g",per100:{kcal:113,prot:2.7,carb:4,fat:10}},
+  {id:"l153",name:"Creme fraiche entiere",unit:"g",per100:{kcal:292,prot:2.1,carb:3,fat:30}},
+  {id:"l154",name:"Farine de ble",unit:"g",per100:{kcal:340,prot:10,carb:71,fat:1}},
+  {id:"l155",name:"Farine d avoine",unit:"g",per100:{kcal:375,prot:13,carb:62,fat:7}},
+];
+
+const MEALS = ["Petit-déjeuner","Déjeuner","Dîner","Collation"];
+
+const calcMacros = (per100, grams) => { const r = grams / 100; return { kcal: Math.round(per100.kcal * r), prot: Math.round(per100.prot * r * 10) / 10, carb: Math.round(per100.carb * r * 10) / 10, fat: Math.round(per100.fat * r * 10) / 10 }; };
+const getMacros = (entry) => { if (entry.manual_macros) return entry.manual_macros; if (entry.per100) return calcMacros(entry.per100, entry.grams); const f = LOCAL_DB.find(f => f.id === entry.food_id); return f ? calcMacros(f.per100, entry.grams) : { kcal: 0, prot: 0, carb: 0, fat: 0 }; };
+const sumMacros = (logs = []) => logs.reduce((acc, e) => { const m = getMacros(e); return { kcal: acc.kcal + m.kcal, prot: acc.prot + m.prot, carb: acc.carb + m.carb, fat: acc.fat + m.fat }; }, { kcal: 0, prot: 0, carb: 0, fat: 0 });
+const parseOFF = (p) => { const n = p.nutriments || {}; return { id: "off_" + p.code, name: p.product_name_fr || p.product_name || "Produit inconnu", brand: p.brands || "", unit: "g", per100: { kcal: Math.round(n["energy-kcal_100g"] || (n["energy_100g"] || 0) / 4.184), prot: Math.round((n.proteins_100g || 0) * 10) / 10, carb: Math.round((n.carbohydrates_100g || 0) * 10) / 10, fat: Math.round((n.fat_100g || 0) * 10) / 10 }, source: "off", image: p.image_small_url || null }; };
+const getMonthDays = (year, month) => { const days = [], d = new Date(year, month - 1, 1); while (d.getMonth() === month - 1) { days.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1); } return days; };
+
+const MacroBar = ({ label, value, max, color, unit = "g" }) => {
+  const pct = Math.min((value / max) * 100, 100); const over = value > max;
+  return (<div style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}><span style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{label}</span><span style={{ fontSize: 11, color: over ? C.red : C.white, fontWeight: 700 }}>{value}{unit} / {max}{unit}</span></div><div style={{ height: 6, background: "#111", borderRadius: 99, overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: over ? C.red : color, borderRadius: 99, transition: "width 0.5s" }} /></div></div>);
+};
+
+const FoodModal = ({ onAdd, onClose, customFoods = [] }) => {
+  const [tab, setTab] = useState("search");
+  const [query, setQuery] = useState("");
+  const [localRes, setLR] = useState([]);
+  const [offRes, setOR] = useState([]);
+  const [offLoading, setOL] = useState(false);
+  const [selected, setSel] = useState(null);
+  const [grams, setGrams] = useState("");
+  const [pieceCount, setPieceCount] = useState("1");
+  const [meal, setMeal] = useState(0);
+  const [manual, setManual] = useState({ name: "", kcal: "", prot: "", carb: "", fat: "" });
+  const [favorites, setFavorites] = useState([]);
+  const debRef = useRef(null);
+
+  useEffect(() => {
+    supabase.from("food_favorites").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+      setFavorites((data || []).map(f => ({ ...JSON.parse(JSON.stringify(f.food_data)), favId: f.id })));
+    });
+  }, []);
+
+  const isFav = selected ? favorites.some(f => f.id === selected.id) : false;
+
+  const toggleFav = async (food) => {
+    const existing = favorites.find(f => f.id === food.id);
+    if (existing) {
+      await supabase.from("food_favorites").delete().eq("id", existing.favId);
+      setFavorites(favs => favs.filter(f => f.id !== food.id));
+    } else {
+      const user = (await supabase.auth.getUser()).data.user;
+      const { data } = await supabase.from("food_favorites").insert([{ user_id: user?.id, food_id: food.id, food_name: food.name, food_data: food }]).select().single();
+      if (data) setFavorites(favs => [...favs, { ...food, favId: data.id }]);
+    }
+  };
+
+  const saveToCustomFoods = async (food) => {
+    if (food.source === "local" || food.source === "custom") return;
+    const exists = customFoods.find(f => f.name.toLowerCase() === food.name.toLowerCase());
+    if (exists) return;
+    await supabase.from("custom_foods").insert([{ name: food.name, brand: food.brand || "", unit: food.unit || "g", piece_weight: food.piece_weight || null, kcal_100: food.per100.kcal, prot_100: food.per100.prot, carb_100: food.per100.carb, fat_100: food.per100.fat, source: food.source || "off" }]);
+  };
+
+  const isPiece = selected && selected.piece_weight;
+  const effectiveGrams = isPiece ? (selected.piece_weight * Number(pieceCount || 1)) : Number(grams);
+
+  useEffect(() => {
+    if (tab !== "search") return;
+    const q = query.trim().toLowerCase();
+    if (q.length < 2) { setLR([]); setOR([]); return; }
+    const localMatches = LOCAL_DB.filter(f => f.name.toLowerCase().includes(q)).slice(0, 4);
+    const customMatches = customFoods.filter(f => f.name.toLowerCase().includes(q) && !localMatches.find(l => l.name.toLowerCase() === f.name.toLowerCase())).slice(0, 4);
+    setLR([...localMatches, ...customMatches]);
+    clearTimeout(debRef.current); setOL(true);
+    debRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/openfood/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&lc=fr&cc=fr&fields=code,product_name,product_name_fr,brands,nutriments,image_small_url`);
+        const data = await res.json();
+        setOR((data.products || []).filter(p => p.product_name_fr || p.product_name).map(parseOFF).filter(p => p.per100.kcal > 0).slice(0, 7));
+      } catch { setOR([]); } finally { setOL(false); }
+    }, 700);
+  }, [query, tab, customFoods]);
+
+  const preview = selected && effectiveGrams > 0 ? calcMacros(selected.per100, effectiveGrams) : null;
+
+  const handleAdd = async () => {
+    if (tab === "manual") {
+      if (!manual.name || !manual.kcal) return;
+      await supabase.from("custom_foods").insert([{ name: manual.name, kcal_100: +manual.kcal, prot_100: +manual.prot || 0, carb_100: +manual.carb || 0, fat_100: +manual.fat || 0, source: "manual" }]);
+      onAdd({ name: manual.name, grams: 100, meal_idx: meal, manual_macros: { kcal: +manual.kcal, prot: +manual.prot || 0, carb: +manual.carb || 0, fat: +manual.fat || 0 }, source: "manual" });
+    } else {
+      if (!selected || effectiveGrams <= 0) return;
+      await saveToCustomFoods(selected);
+      const label = isPiece ? `${pieceCount} pièce${Number(pieceCount) > 1 ? "s" : ""}` : `${effectiveGrams}g`;
+      onAdd({ name: selected.name, food_id: selected.id, grams: effectiveGrams, meal_idx: meal, per100: selected.per100, source: selected.source || "local", quantity_label: label });
+    }
+    onClose();
+  };
+
+  const FoodItem = ({ food }) => (
+    <div onClick={() => { setSel(food); setGrams(""); setPieceCount("1"); }} style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: "transparent" }} onMouseEnter={e => e.currentTarget.style.background = "#222"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+      {food.image && <img src={food.image} alt="" style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 6, background: "#fff", flexShrink: 0 }} onError={e => e.target.style.display = "none"} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: C.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{food.name}</div>
+        {food.brand && <div style={{ color: C.textMuted, fontSize: 10 }}>{food.brand}</div>}
+        <div style={{ color: C.textMuted, fontSize: 10 }}>{food.per100.kcal} kcal · 💪 {food.per100.prot}g prot{food.piece_weight ? ` · 🔢 ${food.piece_weight}g/pièce` : ""}</div>
+      </div>
+      <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 6, fontWeight: 700, flexShrink: 0, background: food.source === "off" ? C.blue + "22" : food.source === "custom" ? C.green + "22" : C.purple + "22", color: food.source === "off" ? C.blue : food.source === "custom" ? C.green : C.purple }}>{food.source === "off" ? "OFF" : food.source === "custom" ? "PERSO" : "BASE"}</span>
+    </div>
+  );
+
+  const QuantitySelector = ({ food }) => (
+    <div>
+      <button onClick={() => setSel(null)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 12, cursor: "pointer", marginBottom: 10 }}>← Retour</button>
+      <div style={{ background: "#111", borderRadius: 14, padding: "11px 14px", marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div style={{ flex: 1 }}><div style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{food.name}</div>{food.brand && <div style={{ color: C.textMuted, fontSize: 11 }}>{food.brand}</div>}<div style={{ color: C.textMuted, fontSize: 11, marginTop: 2 }}>Pour 100g — {food.per100.kcal} kcal · 💪 {food.per100.prot}g</div></div>
+          <button onClick={() => toggleFav(food)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", opacity: isFav ? 1 : 0.3, marginLeft: 8, flexShrink: 0 }}>⭐</button>
+        </div>
+      </div>
+      <label style={{ fontSize: 11, color: C.textMuted, display: "block", marginBottom: 8 }}>{food.piece_weight ? `NOMBRE DE PIÈCES (≈ ${food.piece_weight}g / pièce)` : "QUANTITÉ (g)"}</label>
+      {food.piece_weight ? (
+        <div><div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}><button onClick={() => setPieceCount(c => String(Math.max(1, Number(c) - 1)))} style={{ width: 44, height: 44, borderRadius: "50%", background: "#222", border: "none", color: C.white, fontSize: 22, cursor: "pointer", flexShrink: 0 }}>−</button><input type="number" value={pieceCount} onChange={e => setPieceCount(e.target.value)} style={{ ...inputSt, fontSize: 24, textAlign: "center", fontWeight: 900 }} autoFocus /><button onClick={() => setPieceCount(c => String(Number(c) + 1))} style={{ width: 44, height: 44, borderRadius: "50%", background: C.pink, border: "none", color: C.black, fontSize: 22, cursor: "pointer", flexShrink: 0 }}>+</button></div><div style={{ fontSize: 11, color: C.textMuted, textAlign: "center", marginBottom: 8 }}>= {food.piece_weight * Number(pieceCount || 1)}g au total</div></div>
+      ) : (
+        <input type="number" value={grams} onChange={e => setGrams(e.target.value)} placeholder="Ex : 150" autoFocus style={{ ...inputSt, fontSize: 20, marginBottom: 8 }} />
+      )}
+      {preview && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>{[["⚡", `${preview.kcal} kcal`, C.yellow], ["💪", `${preview.prot}g prot`, C.green], ["🌾", `${preview.carb}g gluc`, C.blue], ["🥑", `${preview.fat}g lip`, C.pink]].map(([ico, val, color]) => (<div key={val} style={{ background: color + "22", border: `1px solid ${color}44`, borderRadius: 8, padding: "4px 8px", fontSize: 11, color, fontWeight: 600 }}>{ico} {val}</div>))}</div>}
+    </div>
+  );
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: C.card, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 500, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}><div style={{ width: 40, height: 4, background: C.border, borderRadius: 99 }} /></div>
+        <div style={{ padding: "14px 20px 0", flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}><h3 style={{ color: C.white, margin: 0, fontSize: 16, fontWeight: 900 }}>Ajouter un aliment</h3><button onClick={onClose} style={{ background: "#222", border: "none", color: C.textMuted, fontSize: 15, cursor: "pointer", width: 30, height: 30, borderRadius: "50%" }}>✕</button></div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>{MEALS.map((m, i) => <button key={i} onClick={() => setMeal(i)} style={{ padding: "5px 12px", borderRadius: 99, fontSize: 11, cursor: "pointer", fontWeight: 700, background: meal === i ? C.pink : "#222", color: meal === i ? C.black : C.textMuted, border: "none" }}>{m}</button>)}</div>
+          <div style={{ display: "flex", background: "#111", borderRadius: 12, padding: 3, marginBottom: 12 }}>{[["🔍 Recherche", "search"], ["⭐ Favoris", "favorites"], ["✏️ Manuel", "manual"]].map(([label, t]) => (<button key={t} onClick={() => { setTab(t); setSel(null); setQuery(""); }} style={{ flex: 1, padding: "7px 4px", borderRadius: 9, fontSize: 11, fontWeight: 700, cursor: "pointer", border: "none", background: tab === t ? C.card : "transparent", color: tab === t ? C.pink : C.textMuted }}>{label}</button>))}</div>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
+          {tab === "search" && !selected && (<>
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Poulet, skyr, oeufs…" style={{ ...inputSt, marginBottom: 10 }} autoFocus />
+            {localRes.length > 0 && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 9, color: C.textMuted, letterSpacing: 1, marginBottom: 6, textTransform: "uppercase" }}>Base d'aliments</div><div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{localRes.map(f => <FoodItem key={f.id} food={f} />)}</div></div>}
+            {query.length >= 2 && <div style={{ marginBottom: 14 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><div style={{ fontSize: 9, color: C.textMuted, letterSpacing: 1 }}>OPEN FOOD FACTS</div>{offLoading && <div style={{ width: 12, height: 12, border: `2px solid ${C.border}`, borderTopColor: C.blue, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />}</div>{offRes.length > 0 ? <div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{offRes.map(f => <FoodItem key={f.id} food={f} />)}</div> : !offLoading && <div style={{ color: C.textMuted, fontSize: 12, textAlign: "center", padding: "8px 0" }}>Aucun résultat</div>}</div>}
+            {query.length < 2 && <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted, fontSize: 12 }}><div style={{ fontSize: 26, marginBottom: 6 }}>🔍</div>Tape au moins 2 lettres</div>}
+          </>)}
+          {tab === "search" && selected && <QuantitySelector food={selected} />}
+          {tab === "favorites" && !selected && (<div>{favorites.length === 0 ? (<div style={{ textAlign: "center", padding: "30px 0", color: C.textMuted }}><div style={{ fontSize: 36, marginBottom: 10 }}>⭐</div><div style={{ fontSize: 13, marginBottom: 6 }}>Pas encore de favoris</div><div style={{ fontSize: 11 }}>Recherche un aliment et clique sur ⭐ pour l'ajouter</div></div>) : (<div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{favorites.map(f => <FoodItem key={f.id} food={f} />)}</div>)}</div>)}
+          {tab === "favorites" && selected && <QuantitySelector food={selected} />}
+          {tab === "manual" && (<div style={{ display: "flex", flexDirection: "column", gap: 10, paddingBottom: 10 }}>{[["Nom de l'aliment *", "name", "text"], ["Calories (kcal) *", "kcal", "number"], ["Protéines (g)", "prot", "number"], ["Glucides (g)", "carb", "number"], ["Lipides (g)", "fat", "number"]].map(([label, key, type]) => (<div key={key}><label style={{ fontSize: 10, color: C.textMuted, display: "block", marginBottom: 3 }}>{label}</label><input type={type} value={manual[key]} onChange={e => setManual(p => ({ ...p, [key]: e.target.value }))} style={inputSt} /></div>))}</div>)}
+        </div>
+        <div style={{ padding: "12px 20px 26px", flexShrink: 0 }}>
+          <button onClick={handleAdd} style={{ width: "100%", padding: 13, borderRadius: 16, background: C.pink, color: C.black, fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer", opacity: ((tab === "manual" && manual.name && manual.kcal) || (tab !== "manual" && selected && effectiveGrams > 0)) ? 1 : 0.4 }}>+ Ajouter au journal</button>
+        </div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+      </div>
+    </div>
+  );
+};
+
+const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [activeDay, setActiveDay] = useState(today);
+  const [customFoods, setCustomFoods] = useState([]);
+
+  const goals = { kcal: clientInfo?.calories_target || 1800, prot: clientInfo?.protein_target || 100, carb: clientInfo?.carb_target || 180, fat: clientInfo?.fat_target || 60 };
+
+  const loadCustomFoods = async () => {
+    const { data } = await supabase.from("custom_foods").select("*").order("created_at", { ascending: false });
+    setCustomFoods((data || []).map(f => ({ id: "custom_" + f.id, dbId: f.id, name: f.name, brand: f.brand || "", unit: f.unit || "g", piece_weight: f.piece_weight || null, per100: { kcal: f.kcal_100, prot: f.prot_100, carb: f.carb_100, fat: f.fat_100 }, source: "custom" })));
+  };
+
+  useEffect(() => {
+    if (!clientId) return;
+    setLoading(true);
+    Promise.all([
+      supabase.from("nutrition_logs").select("*").eq("client_id", clientId).order("created_at"),
+      supabase.from("custom_foods").select("*").order("created_at", { ascending: false }),
+    ]).then(([{ data: logData }, { data: foodData }]) => {
+      setLogs(logData || []);
+      setCustomFoods((foodData || []).map(f => ({ id: "custom_" + f.id, dbId: f.id, name: f.name, brand: f.brand || "", unit: f.unit || "g", piece_weight: f.piece_weight || null, per100: { kcal: f.kcal_100, prot: f.prot_100, carb: f.carb_100, fat: f.fat_100 }, source: "custom" })));
+      setLoading(false);
+    });
+  }, [clientId]);
+
+  const dayLogs = logs.filter(l => l.date === activeDay);
+  const totals = sumMacros(dayLogs);
+  const byMeal = MEALS.map((label, i) => ({ label, entries: dayLogs.filter(e => e.meal_idx === i) }));
+  const getLast7 = () => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().slice(0, 10); }).reverse();
+
+  const handleAdd = async (entry) => {
+    const { data } = await supabase.from("nutrition_logs").insert([{ ...entry, client_id: clientId, date: activeDay }]).select().single();
+    if (data) setLogs(l => [...l, data]);
+    loadCustomFoods();
+  };
+
+  const handleDelete = async (id) => { await supabase.from("nutrition_logs").delete().eq("id", id); setLogs(l => l.filter(x => x.id !== id)); };
+
+  const kcalLeft = goals.kcal - totals.kcal;
+  const kcalPct = Math.min((totals.kcal / goals.kcal) * 100, 100);
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
+      {showModal && <FoodModal onAdd={handleAdd} onClose={() => setShowModal(false)} customFoods={customFoods} />}
+      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
+      <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>🍽️ Mon journal nutrition</h2>
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, overflowX: "auto", paddingBottom: 4 }}>
+        {getLast7().map(d => { const hasLogs = logs.some(l => l.date === d); const isToday = d === today; const label = isToday ? "Auj." : new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" }); return (<button key={d} onClick={() => setActiveDay(d)} style={{ padding: "8px 12px", borderRadius: 12, border: `2px solid ${activeDay === d ? C.pink : C.border}`, background: activeDay === d ? C.pink + "22" : "#111", color: activeDay === d ? C.pink : C.textMuted, fontWeight: activeDay === d ? 700 : 400, fontSize: 12, cursor: "pointer", flexShrink: 0, position: "relative" }}>{label}{hasLogs && <span style={{ position: "absolute", top: -3, right: -3, width: 7, height: 7, borderRadius: "50%", background: C.green, border: `2px solid ${C.black}` }} />}</button>); })}
+      </div>
+      {loading ? <Spinner /> : (<>
+        <Card style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <svg width={90} height={90} style={{ transform: "rotate(-90deg)" }}><circle cx={45} cy={45} r={37} fill="none" stroke="#222" strokeWidth={7} /><circle cx={45} cy={45} r={37} fill="none" stroke={kcalPct >= 100 ? C.red : C.yellow} strokeWidth={7} strokeDasharray={`${kcalPct / 100 * 2 * Math.PI * 37} ${2 * Math.PI * 37}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.8s" }} /></svg>
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}><div style={{ fontSize: 18, fontWeight: 900, color: C.yellow, lineHeight: 1 }}>{Math.round(totals.kcal)}</div><div style={{ fontSize: 9, color: C.textMuted }}>KCAL</div></div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4 }}>Objectif : {goals.kcal} kcal</div>
+              <div style={{ padding: "8px 12px", background: kcalLeft < 0 ? C.red + "22" : C.green + "22", border: `1px solid ${kcalLeft < 0 ? C.red : C.green}44`, borderRadius: 10 }}><div style={{ fontSize: 9, color: C.textMuted, marginBottom: 1 }}>{kcalLeft < 0 ? "DÉPASSEMENT" : "RESTANT"}</div><div style={{ fontSize: 18, fontWeight: 900, color: kcalLeft < 0 ? C.red : C.green }}>{Math.abs(Math.round(kcalLeft))} kcal</div></div>
+            </div>
+          </div>
+          <MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} />
+          <MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} />
+          <MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} />
+        </Card>
+        <button onClick={() => setShowModal(true)} style={{ width: "100%", padding: 13, borderRadius: 14, background: C.pink, color: C.black, fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer", marginBottom: 16 }}>+ Ajouter un aliment</button>
+        {byMeal.map(({ label, entries }, mi) => (
+          <div key={mi} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>{label}</span>{entries.length > 0 && <span style={{ background: C.yellow + "22", color: C.yellow, borderRadius: 99, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>{entries.reduce((s, e) => s + getMacros(e).kcal, 0)} kcal</span>}</div>
+            {entries.length === 0 ? <div style={{ padding: "9px 14px", border: `1px dashed ${C.border}`, borderRadius: 12, color: C.textMuted, fontSize: 12, textAlign: "center" }}>Rien de saisi</div>
+            : <Card style={{ padding: 0, overflow: "hidden" }}>{entries.map((e, i) => { const m = getMacros(e); return (<div key={i} style={{ padding: "10px 14px", borderBottom: i < entries.length - 1 ? `1px solid ${C.border}` : "none" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}><div style={{ flex: 1, minWidth: 0 }}><div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>{e.name}</div><div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{e.manual_macros ? "saisie libre" : e.quantity_label || `${e.grams}g`} · 💪 {m.prot}g · 🌾 {m.carb}g · 🥑 {m.fat}g</div></div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontWeight: 800, fontSize: 13, color: C.yellow }}>{m.kcal} kcal</span><button onClick={() => handleDelete(e.id)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14 }}>✕</button></div></div></div>); })}</Card>}
+          </div>
+        ))}
+      </>)}
+    </div>
+  );
+};
+
+const NutritionReport = ({ client, clientInfo, nutritionLogs, isCoach, onShare, onClose, sharedMonths = [] }) => {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const days = getMonthDays(year, month);
+  const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+  const isShared = sharedMonths.includes(monthKey);
+  const goals = { kcal: clientInfo?.calories_target || 1800, prot: clientInfo?.protein_target || 100, carb: clientInfo?.carb_target || 180, fat: clientInfo?.fat_target || 60 };
+  const daysWithLogs = days.filter(d => nutritionLogs.some(l => l.date === d));
+  const loggedDays = daysWithLogs.length;
+  const totalDays = days.length;
+  const macroAvgs = loggedDays === 0 ? { kcal: 0, prot: 0, carb: 0, fat: 0 } : (() => { const sums = daysWithLogs.reduce((acc, d) => { const t = sumMacros(nutritionLogs.filter(l => l.date === d)); return { kcal: acc.kcal + t.kcal, prot: acc.prot + t.prot, carb: acc.carb + t.carb, fat: acc.fat + t.fat }; }, { kcal: 0, prot: 0, carb: 0, fat: 0 }); return { kcal: Math.round(sums.kcal / loggedDays), prot: Math.round(sums.prot / loggedDays * 10) / 10, carb: Math.round(sums.carb / loggedDays * 10) / 10, fat: Math.round(sums.fat / loggedDays * 10) / 10 }; })();
+  const protGoalDays = daysWithLogs.filter(d => sumMacros(nutritionLogs.filter(l => l.date === d)).prot >= goals.prot).length;
+  const kcalOkDays = daysWithLogs.filter(d => { const t = sumMacros(nutritionLogs.filter(l => l.date === d)); return t.kcal >= goals.kcal * 0.85 && t.kcal <= goals.kcal * 1.1; }).length;
+  const mealContrib = MEALS.map((label, i) => { const mealLogs = nutritionLogs.filter(l => l.date >= `${year}-${String(month).padStart(2, "0")}-01` && l.date <= `${year}-${String(month).padStart(2, "0")}-31` && l.meal_idx === i); const total = sumMacros(mealLogs); return { label, kcal: total.kcal, count: new Set(mealLogs.map(l => l.date)).size }; });
+  const totalMealKcal = mealContrib.reduce((s, m) => s + m.kcal, 0);
+  const maxKcal = Math.max(goals.kcal * 1.2, ...days.map(d => sumMacros(nutritionLogs.filter(l => l.date === d)).kcal));
+  const prevMonth = () => { if (month === 1) { setMonth(12); setYear(y => y - 1); } else setMonth(m => m - 1); };
+  const nextMonth = () => { if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1); };
+  const canNext = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
+  const generatePDF = () => { const lines = [`BILAN MENSUEL NUTRITION — ${client}`, `Mois : ${new Date(year, month - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`, ``, `ASSIDUITÉ`, `Jours renseignés : ${loggedDays} / ${totalDays} (${Math.round(loggedDays / totalDays * 100)}%)`, ``, `MOYENNES QUOTIDIENNES`, `Calories : ${macroAvgs.kcal} kcal (objectif : ${goals.kcal})`, `Protéines : ${macroAvgs.prot}g (objectif : ${goals.prot}g)`, `Glucides : ${macroAvgs.carb}g (objectif : ${goals.carb}g)`, `Lipides : ${macroAvgs.fat}g (objectif : ${goals.fat}g)`, ``, `ANALYSE PROTÉINES`, `Objectif atteint : ${protGoalDays} jours sur ${loggedDays}`, ``, `COMPLIANCE CALORIQUE (±15%)`, `Dans la cible : ${kcalOkDays} / ${loggedDays} jours`]; const blob = new Blob([lines.join("\n")], { type: "text/plain" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `bilan-${client}-${monthKey}.txt`; a.click(); URL.revokeObjectURL(url); };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.97)", zIndex: 300, overflowY: "auto" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "20px 16px 60px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <button onClick={onClose} style={{ background: C.card, border: "none", color: C.textMuted, fontSize: 13, cursor: "pointer", padding: "7px 14px", borderRadius: 10, fontWeight: 600 }}>← Retour</button>
+          <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>BILAN MENSUEL</div><div style={{ fontSize: 14, fontWeight: 900, color: C.white }}>{client}</div></div>
+          {isCoach ? <button onClick={generatePDF} style={{ background: C.pink, border: "none", color: C.black, fontSize: 11, cursor: "pointer", padding: "7px 12px", borderRadius: 10, fontWeight: 700 }}>📄 Export</button> : <div style={{ width: 70 }} />}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 20 }}>
+          <button onClick={prevMonth} style={{ background: C.card, border: `1px solid ${C.border}`, color: C.textMuted, width: 32, height: 32, borderRadius: "50%", cursor: "pointer", fontSize: 14 }}>‹</button>
+          <div style={{ fontSize: 16, fontWeight: 900, color: C.white, minWidth: 180, textAlign: "center", textTransform: "capitalize" }}>{new Date(year, month - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</div>
+          <button onClick={nextMonth} disabled={!canNext} style={{ background: canNext ? C.card : "transparent", border: `1px solid ${canNext ? C.border : "#222"}`, color: canNext ? C.textMuted : "#333", width: 32, height: 32, borderRadius: "50%", cursor: canNext ? "pointer" : "default", fontSize: 14 }}>›</button>
+        </div>
+        {loggedDays === 0 ? (<div style={{ textAlign: "center", padding: "60px 0", color: C.textMuted }}><div style={{ fontSize: 40, marginBottom: 12 }}>📭</div><div>Aucune donnée pour ce mois</div></div>) : (<>
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📋 ASSIDUITÉ DU SUIVI</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
+              <div style={{ position: "relative", flexShrink: 0 }}><svg width={80} height={80} style={{ transform: "rotate(-90deg)" }}><circle cx={40} cy={40} r={33} fill="none" stroke="#222" strokeWidth={7} /><circle cx={40} cy={40} r={33} fill="none" stroke={C.purple} strokeWidth={7} strokeDasharray={`${(loggedDays / totalDays) * 2 * Math.PI * 33} ${2 * Math.PI * 33}`} strokeLinecap="round" /></svg><div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}><div style={{ fontSize: 16, fontWeight: 900, color: C.purple }}>{Math.round(loggedDays / totalDays * 100)}%</div></div></div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", gap: 10, marginBottom: 10 }}><div style={{ flex: 1, background: C.purple + "22", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "8px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 900, color: C.purple }}>{loggedDays}</div><div style={{ fontSize: 9, color: C.textMuted }}>JOURS SAISIS</div></div><div style={{ flex: 1, background: "#111", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 900, color: C.textMuted }}>{totalDays - loggedDays}</div><div style={{ fontSize: 9, color: C.textMuted }}>MANQUANTS</div></div></div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>{days.map(d => { const hasLog = nutritionLogs.some(l => l.date === d); const isFuture = d > today; return <div key={d} style={{ width: 10, height: 10, borderRadius: 2, background: isFuture ? "#111" : hasLog ? C.purple : "#333", opacity: isFuture ? 0.3 : 1, border: d === today ? `1px solid ${C.pink}` : "none" }} />; })}</div>
+              </div>
+            </div>
+          </Card>
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📊 MOYENNES / JOUR RENSEIGNÉ</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>{[{ l: "KCAL", v: macroAvgs.kcal, obj: goals.kcal, c: C.yellow, u: "" }, { l: "PROT", v: macroAvgs.prot, obj: goals.prot, c: C.green, u: "g" }, { l: "GLUC", v: macroAvgs.carb, obj: goals.carb, c: C.blue, u: "g" }, { l: "LIP", v: macroAvgs.fat, obj: goals.fat, c: C.pink, u: "g" }].map(s => (<div key={s.l} style={{ background: s.c + "15", border: `1px solid ${s.c}33`, borderRadius: 10, padding: "8px 6px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 900, color: s.c }}>{s.v}{s.u}</div><div style={{ fontSize: 8, color: C.textMuted }}>obj. {s.obj}{s.u}</div><div style={{ fontSize: 8, color: C.textMuted, marginTop: 2 }}>{s.l}</div></div>))}</div>
+            <MacroBar label="Kcal moy. vs objectif" value={macroAvgs.kcal} max={goals.kcal} color={C.yellow} unit=" kcal" />
+            <MacroBar label="Protéines moy. vs objectif" value={macroAvgs.prot} max={goals.prot} color={C.green} />
+          </Card>
+          <Card style={{ marginBottom: 14, borderColor: C.green + "44" }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>💪 ANALYSE PROTÉINES</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>{[{ l: "Objectif atteint", v: protGoalDays, c: C.green }, { l: "En dessous", v: loggedDays - protGoalDays, c: C.red }, { l: "Taux réussite", v: `${loggedDays > 0 ? Math.round(protGoalDays / loggedDays * 100) : 0}%`, c: C.purple }].map(s => (<div key={s.l} style={{ background: s.c + "15", border: `1px solid ${s.c}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 900, color: s.c }}>{s.v}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>{s.l}</div></div>))}</div>
+            <div style={{ height: 6, background: "#111", borderRadius: 99, overflow: "hidden" }}><div style={{ width: `${loggedDays > 0 ? protGoalDays / loggedDays * 100 : 0}%`, height: "100%", background: `linear-gradient(90deg, ${C.purple}, ${C.green})`, borderRadius: 99 }} /></div>
+          </Card>
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>⚡ COMPLIANCE CALORIQUE (±15%)</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}><div style={{ background: C.green + "15", border: `1px solid ${C.green}33`, borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 900, color: C.green }}>{kcalOkDays}</div><div style={{ fontSize: 10, color: C.textMuted }}>Jours dans la cible</div></div><div style={{ background: C.red + "15", border: `1px solid ${C.red}33`, borderRadius: 10, padding: 12, textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 900, color: C.red }}>{loggedDays - kcalOkDays}</div><div style={{ fontSize: 10, color: C.textMuted }}>Jours hors cible</div></div></div>
+          </Card>
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>🍽️ CONTRIBUTION PAR REPAS</div>
+            {mealContrib.map((m, i) => (<div key={i} style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ fontSize: 12, fontWeight: 700 }}>{m.label}</span><span style={{ fontSize: 11, color: C.textMuted }}>{m.count} jours · {totalMealKcal > 0 ? Math.round(m.kcal / totalMealKcal * 100) : 0}%</span></div><div style={{ height: 5, background: "#111", borderRadius: 99 }}><div style={{ width: `${totalMealKcal > 0 ? Math.min(m.kcal / totalMealKcal * 100, 100) : 0}%`, height: "100%", background: [C.orange, C.blue, C.purple, C.green][i], borderRadius: 99 }} /></div></div>))}
+          </Card>
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📈 CALORIES — VUE MENSUELLE</div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 70, marginBottom: 6 }}>{days.map(d => { const kcal = sumMacros(nutritionLogs.filter(l => l.date === d)).kcal; const pct = Math.min((kcal / maxKcal) * 100, 100); const over = kcal > goals.kcal; const isEmpty = kcal === 0; const isFuture = d > today; return (<div key={d} style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end" }}><div style={{ width: "100%", height: isFuture || isEmpty ? 3 : `${Math.max(pct / 100 * 70, 3)}px`, background: isFuture ? "#111" : isEmpty ? "#222" : over ? C.red : C.yellow, borderRadius: "2px 2px 0 0", opacity: isFuture ? 0.3 : isEmpty ? 0.4 : 1 }} /></div>); })}</div>
+            <div style={{ display: "flex", gap: 12, fontSize: 9, color: C.textMuted }}><span style={{ color: C.yellow }}>■</span> Normal <span style={{ color: C.red }}>■</span> Dépassement</div>
+          </Card>
+          {isCoach && (<div style={{ display: "flex", gap: 10 }}><button onClick={generatePDF} style={{ flex: 1, padding: 13, borderRadius: 14, background: "#222", color: C.white, fontWeight: 700, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: 13 }}>📄 Exporter le bilan</button><button onClick={() => onShare(monthKey)} disabled={isShared} style={{ flex: 1, padding: 13, borderRadius: 14, background: isShared ? "#222" : C.pink, color: isShared ? C.textMuted : C.black, fontWeight: 700, border: "none", cursor: isShared ? "default" : "pointer", fontSize: 13 }}>{isShared ? "✓ Partagé" : "Partager avec la cliente"}</button></div>)}
+        </>)}
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isCoach, setIsCoach] = useState(false);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => { if (session?.user) { setUser(session.user); setIsCoach(session.user.email === COACH_EMAIL); } setLoading(false); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { if (session?.user) { setUser(session.user); setIsCoach(session.user.email === COACH_EMAIL); } else { setUser(null); setIsCoach(false); } });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) { setUser(session.user); setIsCoach(session.user.email === COACH_EMAIL); }
+      setLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) { setUser(session.user); setIsCoach(session.user.email === COACH_EMAIL); }
+      else { setUser(null); setIsCoach(false); }
+    });
     return () => subscription.unsubscribe();
   }, []);
+
   const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setIsCoach(false); };
+
   if (loading) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
   if (!user) return <LoginScreen onLogin={u => { setUser(u); setIsCoach(u.email === COACH_EMAIL); }} />;
   if (isCoach) return <CoachApp user={user} onLogout={handleLogout} />;
