@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://wetjzebxuyefzvulujxl.supabase.co";
-const SUPABASE_KEY = "sb_publishable_v6ENOZboJkDNbUy88oZJ0w_juqtwSb6";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndldGp6ZWJ4dXllZnp2dWx1anhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTUxMDcsImV4cCI6MjA5MTA3MTEwN30.8DvkApXsMT7hGahVQD5kpAJdD92Tzyo7qC0nwmnGEaU";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const COACH_EMAIL = "mallardnina16@gmail.com";
