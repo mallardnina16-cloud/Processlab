@@ -1714,9 +1714,13 @@ const ClientApp = ({ user, onLogout }) => {
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientId);
 
   // myWorkouts comes directly from assignedWorkouts — no second hook needed
-  const myWorkouts = assignedWorkouts
-    .filter(a => a.workout)
-    .map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
+  const { workouts } = useWorkouts();
+const myWorkouts = workouts
+  .filter(w => assignedWorkouts.find(a => a.workout_id === w.id))
+  .map(w => {
+    const assignment = assignedWorkouts.find(a => a.workout_id === w.id);
+    return { ...w, scheduledDate: assignment?.scheduled_date };
+  });
 
   const todayEntry = entries.find(e => e.date === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
@@ -1876,8 +1880,8 @@ const ClientApp = ({ user, onLogout }) => {
         </Card>
 
         {loading ? (
-          <div style={{ marginBottom: 14 }}><Spinner /></div>
-        ) : myWorkouts.length > 0 && (
+  <div style={{ marginBottom: 14 }}><Spinner /></div>
+) : myWorkouts.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>💪 Mes entraînements</div>
             {myWorkouts.map(w => {
