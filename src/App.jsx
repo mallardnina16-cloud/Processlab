@@ -641,6 +641,7 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
   };
   img.src = url;
 };
+  return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
         <div style={{ flex: 1 }}><Inp label="Nom de l'exercice" placeholder="ex: Squat..." value={ex.name} onChange={e => onChange({ ...ex, name: e.target.value })} /></div>
