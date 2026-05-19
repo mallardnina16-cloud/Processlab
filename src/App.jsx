@@ -2339,14 +2339,46 @@ const FoodModal = ({ onAdd, onClose, customFoods = [] }) => {
     ? (selected.piece_weight * Number(pieceCount || 1))
     : Number(grams);
 
-  useEffect(() => {
-    if (tab !== "search") return;
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) { setLR([]); setOR([]); return; }
-    // Search local DB + custom foods
-    const localMatches = LOCAL_DB.filter(f => f.name.toLowerCase().includes(q)).slice(0, 4);
-    const customMatches = customFoods.filter(f => f.name.toLowerCase().includes(q) && !localMatches.find(l => l.name.toLowerCase() === f.name.toLowerCase())).slice(0, 4);
-    setLR([...localMatches, ...customMatches]);
+// Normalisation : supprime accents, met en minuscules
+const normalize = (str) => str.toLowerCase()
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/['']/g, " ").trim();
+
+const scoreFood = (foodName, q) => {
+  const n = normalize(foodName);
+  const query = normalize(q);
+  if (n === query) return 100;
+  if (n.startsWith(query)) return 90;
+  const words = n.split(" ");
+  if (words.some(w => w.startsWith(query))) return 70;
+  if (n.includes(query)) return 50;
+  // Recherche mot par mot si query contient plusieurs mots
+  const queryWords = query.split(" ").filter(w => w.length > 1);
+  if (queryWords.length > 1 && queryWords.every(qw => n.includes(qw))) return 60;
+  if (queryWords.some(qw => n.includes(qw))) return 30;
+  return 0;
+};
+
+useEffect(() => {
+  if (tab !== "search") return;
+  const q = query.trim();
+  if (q.length < 2) { setLR([]); setOR([]); return; }
+
+  // Recherche dans la base locale avec score
+  const localScored = LOCAL_DB
+    .map(f => ({ ...f, score: scoreFood(f.name, q) }))
+    .filter(f => f.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+
+  // Recherche dans les aliments custom avec score
+  const customScored = customFoods
+    .map(f => ({ ...f, score: scoreFood(f.name, q) }))
+    .filter(f => f.score > 0 && !localScored.find(l => normalize(l.name) === normalize(f.name)))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4);
+
+  setLR([...localScored, ...customScored]);
     clearTimeout(debRef.current); setOL(true);
     debRef.current = setTimeout(async () => {
       try {
