@@ -1428,8 +1428,10 @@ const CoachApp = ({ user, onLogout }) => {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
-                    <Badge color={C.orange}>{w.exercises?.length || 0} exercices</Badge>
-                    <Badge color={C.purple}>{w.exercises?.reduce((a, e) => a + e.sets, 0) || 0} séries</Badge>
+                    <Badge color={C.orange}>{(w.blocks?.length || w.exercises?.length || 0)} exercices</Badge>
+                    <Badge color={C.purple}>{(w.blocks?.length > 0 
+  ? w.blocks.filter(b => b.type === "exercise").reduce((a, b) => a + (b.sets || 0), 0)
+  : w.exercises?.reduce((a, e) => a + (e.sets || 0), 0)) || 0} séries</Badge>
                   </div>
                 </Card>
               ))}
