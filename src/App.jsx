@@ -1279,7 +1279,100 @@ const PaymentHistory = ({ payments }) => (
     ))}
   </div>
 );
+const PauseModal = ({ client, onClose, onUpdate }) => {
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [pauses, setPauses] = useState([]);
 
+  useEffect(() => {
+    supabase.from("pauses").select("*").eq("client_id", client.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setPauses(data || []));
+  }, [client.id]);
+
+  const handlePause = async () => {
+    if (!startDate || !endDate) return alert("Remplis les deux dates.");
+    if (endDate < startDate) return alert("La date de fin doit être après la date de début.");
+    setSaving(true);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const daysCount = Math.ceil((end - start) / 86400000) + 1;
+    const newNextPayment = addDays(client.next_payment, daysCount);
+    await supabase.from("pauses").insert([{
+      client_id: client.id, start_date: startDate,
+      end_date: endDate, days_count: daysCount, reason
+    }]);
+    await supabase.from("clients").update({
+      is_paused: true, pause_start_date: startDate,
+      pause_end_date: endDate, next_payment: newNextPayment
+    }).eq("id", client.id);
+    onUpdate();
+    setSaving(false);
+    onClose();
+  };
+
+  const handleResume = async () => {
+    setSaving(true);
+    await supabase.from("clients").update({
+      is_paused: false, pause_start_date: null, pause_end_date: null
+    }).eq("id", client.id);
+    onUpdate();
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000c", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 440, maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>⏸️ Pause — {client.name}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20 }}>✕</button>
+        </div>
+
+        {client.is_paused ? (
+          <div>
+            <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontWeight: 700, color: C.orange, marginBottom: 6 }}>⏸️ Cliente en pause</div>
+              <div style={{ fontSize: 13, color: C.textMuted }}>Du {formatDate(client.pause_start_date)} au {formatDate(client.pause_end_date)}</div>
+            </div>
+            <Btn onClick={handleResume} disabled={saving} style={{ width: "100%", background: C.green, color: C.black }}>
+              {saving ? "..." : "▶ Reprendre maintenant"}
+            </Btn>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
+            <Inp label="Date de début de pause" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            <Inp label="Date de fin de pause" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+            {startDate && endDate && endDate >= startDate && (
+              <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: 12, fontSize: 13 }}>
+                ⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>{Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1} jours</span> de pause — prochain paiement décalé au <strong>{formatDate(addDays(client.next_payment, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000) + 1))}</strong>
+              </div>
+            )}
+            <Inp label="Raison (optionnel)" placeholder="Vacances, blessure..." value={reason} onChange={e => setReason(e.target.value)} />
+            <Btn onClick={handlePause} disabled={saving}>{saving ? "Enregistrement..." : "⏸️ Mettre en pause"}</Btn>
+          </div>
+        )}
+
+        {pauses.length > 0 && (
+          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>HISTORIQUE DES PAUSES</div>
+            {pauses.map((p, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}`, fontSize: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{formatDate(p.start_date)} → {formatDate(p.end_date)}</div>
+                  {p.reason && <div style={{ color: C.textMuted }}>{p.reason}</div>}
+                </div>
+                <Badge color={C.orange}>{p.days_count}j</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 // ══════════════════════════════════════════════════════════════════════════════
 // COACH APP
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1305,6 +1398,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [clientNutritionLogs, setClientNutritionLogs] = useState([]);
   const [showNutritionReport, setShowNutritionReport] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
   const [sharedMonths, setSharedMonths] = useState({});
 
   const client = clients.find(c => c.id === selected);
@@ -1403,8 +1497,9 @@ const CoachApp = ({ user, onLogout }) => {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
-                <div style={{ fontSize: 10, color: daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>{daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}</div>
-              </div>
+<div style={{ fontSize: 10, color: c.is_paused ? C.orange : daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>
+  {c.is_paused ? "⏸️ En pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}
+</div>              </div>
             </div>
           ))}
         </div>
@@ -1480,6 +1575,9 @@ const CoachApp = ({ user, onLogout }) => {
                   </div>
                 </div>
                 <button onClick={() => setEditingClient(client)} style={{ background: "#222", border: `1px solid ${C.border}`, color: C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>✏️ Modifier</button>
+             <button onClick={() => setShowPauseModal(true)} style={{ background: client.is_paused ? C.orange + "22" : "#222", border: `1px solid ${client.is_paused ? C.orange : C.border}`, color: client.is_paused ? C.orange : C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
+  {client.is_paused ? "⏸️ En pause" : "⏸️ Pause"}
+</button>
               </div>
 
               <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["nutrition", "🍽️ Nutrition"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
@@ -1707,6 +1805,13 @@ const CoachApp = ({ user, onLogout }) => {
       {editingClient && (
         <EditClientModal client={editingClient} onSave={handleSaveClient} onDelete={handleDeleteClient} onClose={() => setEditingClient(null)} />
       )}
+      {showPauseModal && client && (
+  <PauseModal
+    client={client}
+    onClose={() => setShowPauseModal(false)}
+    onUpdate={() => { updateClient(client.id, {}); }}
+  />
+)}
     </div>
   );
 };
