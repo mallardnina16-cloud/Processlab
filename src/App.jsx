@@ -609,8 +609,6 @@ const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 
 const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode = false }) => {
  const handlePhoto = async e => {
   const file = e.target.files[0]; if (!file) return;
-  
-  // Compresser l'image
   const img = new Image();
   const url = URL.createObjectURL(file);
   img.onload = async () => {
@@ -630,7 +628,6 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
         .from("exercise-media")
         .upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
       if (error) {
-        // Fallback base64 si upload échoue
         const reader = new FileReader();
         reader.onload = ev => onChange({ ...ex, photo: ev.target.result });
         reader.readAsDataURL(file);
@@ -644,8 +641,6 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
   };
   img.src = url;
 };
-  };
-  return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
         <div style={{ flex: 1 }}><Inp label="Nom de l'exercice" placeholder="ex: Squat..." value={ex.name} onChange={e => onChange({ ...ex, name: e.target.value })} /></div>
