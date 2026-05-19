@@ -607,11 +607,43 @@ const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: 
 const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", work_time: 30, rest_time: 30, tempo: "", note: "", suggested_weight: "", weight_type: "haltères" }] });
 
 const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode = false }) => {
-  const handlePhoto = e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => onChange({ ...ex, photo: ev.target.result });
-    reader.readAsDataURL(file);
+ const handlePhoto = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  
+  // Compresser l'image
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = async () => {
+    const MAX = 800;
+    let { width, height } = img;
+    if (width > MAX || height > MAX) {
+      if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+      else { width = Math.round(width * MAX / height); height = MAX; }
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width; canvas.height = height;
+    canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+    canvas.toBlob(async (blob) => {
+      URL.revokeObjectURL(url);
+      const fileName = `exercises/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+      const { data, error } = await supabase.storage
+        .from("exercise-media")
+        .upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) {
+        // Fallback base64 si upload échoue
+        const reader = new FileReader();
+        reader.onload = ev => onChange({ ...ex, photo: ev.target.result });
+        reader.readAsDataURL(file);
+      } else {
+        const { data: urlData } = supabase.storage
+          .from("exercise-media")
+          .getPublicUrl(fileName);
+        onChange({ ...ex, photo: urlData.publicUrl });
+      }
+    }, "image/jpeg", 0.75);
+  };
+  img.src = url;
+};
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
