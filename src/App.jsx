@@ -269,7 +269,7 @@ const useWorkouts = () => {
     setLoading(true);
     // Fetch workouts and exercises in parallel
     const [{ data: ws }, { data: exs }] = await Promise.all([
-      supabase.from("workouts").select("*").order("created_at"),
+      supabase.from("workouts").select("id, name, description, created_at").order("created_at"),
       supabase.from("exercises").select("*").order("position"),
     ]);
     if (!ws) { setLoading(false); return; }
