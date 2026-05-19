@@ -1744,13 +1744,9 @@ const ClientApp = ({ user, onLogout }) => {
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientId);
 
   // myWorkouts comes directly from assignedWorkouts — no second hook needed
-  const { workouts } = useWorkouts();
-const myWorkouts = workouts
-  .filter(w => assignedWorkouts.find(a => a.workout_id === w.id))
-  .map(w => {
-    const assignment = assignedWorkouts.find(a => a.workout_id === w.id);
-    return { ...w, scheduledDate: assignment?.scheduled_date };
-  });
+  const myWorkouts = assignedWorkouts
+  .filter(a => a.workout)
+  .map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
 
   const todayEntry = entries.find(e => e.date === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
