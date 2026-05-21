@@ -605,7 +605,17 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
 // ══════════════════════════════════════════════════════════════════════════════
 const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
 const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", work_time: 30, rest_time: 30, tempo: "", note: "", suggested_weight: "", weight_type: "haltères" }] });
-
+const newWarmup = () => ({ 
+  id: Date.now().toString(), 
+  type: "warmup", 
+  exercises: [{ 
+    id: Date.now().toString() + "w", 
+    name: "", 
+    reps: "", 
+    note: "", 
+    photo: null 
+  }] 
+});
 const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode = false }) => {
  const handlePhoto = async e => {
   const file = e.target.files[0]; if (!file) return;
@@ -725,7 +735,19 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
   const updCircuitEx = (cid, eid, patch) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.map(e => e.id === eid ? { ...e, ...patch } : e) } : x));
   const addCircuitEx = cid => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "12", work_time: 30, rest_time: 30, note: "", suggested_weight: "", weight_type: "haltères" }] } : x));
   const delCircuitEx = (cid, eid) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.filter(e => e.id !== eid) } : x));
+const addWarmupEx = wid => setBlocks(b => b.map(x => x.id === wid ? { 
+  ...x, exercises: [...x.exercises, { 
+    id: Date.now().toString(), name: "", reps: "", note: "", photo: null 
+  }] 
+} : x));
 
+const delWarmupEx = (wid, eid) => setBlocks(b => b.map(x => x.id === wid ? { 
+  ...x, exercises: x.exercises.filter(e => e.id !== eid) 
+} : x));
+
+const updWarmupEx = (wid, eid, patch) => setBlocks(b => b.map(x => x.id === wid ? { 
+  ...x, exercises: x.exercises.map(e => e.id === eid ? { ...e, ...patch } : e) 
+} : x));
   const handleSave = async () => {
     if (!name.trim()) return alert("Donne un nom à la séance");
     setSaving(true);
@@ -806,10 +828,17 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
 
       {blocks.length === 0 && <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted }}>Ajoute des exercices ou un circuit ci-dessous</div>}
 
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={addSimple} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.pink}55`, background: "transparent", color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Exercice simple</button>
-        <button onClick={addCircuit} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.purple}55`, background: "transparent", color: C.purple, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🔄 + Circuit</button>
-      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+  {!blocks.find(b => b.type === "warmup") && (
+    <button onClick={() => setBlocks(b => [{ ...newWarmup(), id: Date.now().toString() }, ...b])} style={{ width: "100%", padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.yellow}55`, background: C.yellow + "08", color: C.yellow, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+      🔥 + Ajouter un échauffement
+    </button>
+  )}
+  <div style={{ display: "flex", gap: 10 }}>
+    <button onClick={addSimple} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.pink}55`, background: "transparent", color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Exercice simple</button>
+    <button onClick={addCircuit} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1.5px dashed ${C.purple}55`, background: "transparent", color: C.purple, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>🔄 + Circuit</button>
+  </div>
+</div>
 
       <div style={{ display: "flex", gap: 10, paddingBottom: 30 }}>
         <Btn variant="secondary" onClick={onCancel} style={{ flex: 1 }}>Annuler</Btn>
@@ -823,7 +852,11 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
 // WORKOUT PLAYER — supports simple exercises + circuit blocks
 // ══════════════════════════════════════════════════════════════════════════════
 const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
-  const blocks = (workout.blocks && workout.blocks.length > 0) ? workout.blocks : workout.exercises.map(e => ({ ...e, type: e.type || "exercise" }));
+const rawBlocks = (workout.blocks && workout.blocks.length > 0) ? workout.blocks : workout.exercises.map(e => ({ ...e, type: e.type || "exercise" }));
+const blocks = [
+  ...rawBlocks.filter(b => b.type === "warmup"),
+  ...rawBlocks.filter(b => b.type !== "warmup")
+];
   const [blockIdx, setBlockIdx] = useState(0);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(0);
@@ -952,7 +985,111 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       <div style={{ height: 3, background: C.border }}><div style={{ height: "100%", background: C.pink, width: `${(blockIdx / blocks.length) * 100}%`, transition: "width .4s" }} /></div>
     </>
   );
-
+block.type === "warmup" ? (
+  <Card key={block.id} style={{ borderColor: C.yellow + "55", background: C.yellow + "08" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 26, height: 26, borderRadius: "50%", background: C.yellow + "22", border: `1.5px solid ${C.yellow}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🔥</div>
+        <span style={{ fontSize: 11, color: C.yellow, fontWeight: 700 }}>ÉCHAUFFEMENT</span>
+      </div>
+      <button onClick={() => delBlock(block.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 26, height: 26, color: C.red, cursor: "pointer" }}>✕</button>
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {block.exercises.map((ex, ei) => (
+        <div key={ex.id} style={{ background: "#111", borderRadius: 12, padding: 14, border: `1px solid ${C.yellow}33` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontSize: 11, color: C.yellow, fontWeight: 700 }}>Exo {ei + 1}</span>
+            <button onClick={() => delWarmupEx(block.id, ex.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 24, height: 24, color: C.red, cursor: "pointer", fontSize: 11 }}>✕</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Inp label="Nom de l'exercice" placeholder="ex: Vélo, étirements..." value={ex.name} onChange={e => updWarmupEx(block.id, ex.id, { name: e.target.value })} />
+            <Inp label="Reps / Durée" placeholder="ex: 10 reps ou 30 sec" value={ex.reps} onChange={e => updWarmupEx(block.id, ex.id, { reps: e.target.value })} />
+            <TA label="Commentaire" placeholder="Consigne, conseil..." value={ex.note} onChange={e => updWarmupEx(block.id, ex.id, { note: e.target.value })} style={{ minHeight: 48 }} />
+            <div>
+              {ex.photo ? (
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <img src={ex.photo} alt="" style={{ width: 100, height: 75, objectFit: "cover", borderRadius: 10 }} />
+                  <button onClick={() => updWarmupEx(block.id, ex.id, { photo: null })} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button>
+                </div>
+              ) : (
+                <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#111", border: `1px dashed ${C.yellow}44`, borderRadius: 10, cursor: "pointer", width: "fit-content" }}>
+                  <span>🖼️</span>
+                  <span style={{ fontSize: 13, color: C.textMuted }}>Photo du mouvement</span>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                    const file = e.target.files[0]; if (!file) return;
+                    const img = new Image();
+                    const url = URL.createObjectURL(file);
+                    img.onload = async () => {
+                      const MAX = 800; let { width, height } = img;
+                      if (width > MAX || height > MAX) {
+                        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+                        else { width = Math.round(width * MAX / height); height = MAX; }
+                      }
+                      const canvas = document.createElement("canvas");
+                      canvas.width = width; canvas.height = height;
+                      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+                      canvas.toBlob(async (blob) => {
+                        URL.revokeObjectURL(url);
+                        const fileName = `exercises/${Date.now()}_warmup`;
+                        const { data, error } = await supabase.storage.from("exercise-media").upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
+                        if (error) {
+                          const reader = new FileReader();
+                          reader.onload = ev => updWarmupEx(block.id, ex.id, { photo: ev.target.result });
+                          reader.readAsDataURL(blob);
+                        } else {
+                          const { data: urlData } = supabase.storage.from("exercise-media").getPublicUrl(fileName);
+                          updWarmupEx(block.id, ex.id, { photo: urlData.publicUrl });
+                        }
+                      }, "image/jpeg", 0.75);
+                    };
+                    img.src = url;
+                  }} />
+                </label>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+      <button onClick={() => addWarmupEx(block.id)} style={{ padding: "10px", borderRadius: 10, border: `1.5px dashed ${C.yellow}44`, background: "transparent", color: C.yellow, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+        + Ajouter un exercice d'échauffement
+      </button>
+    </div>
+  </Card>
+) :
+  if (currentBlock.type === "warmup") return (
+  <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+    <NavBar />
+    <div style={{ padding: 20 }}>
+      <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 20 }}>🔥</span>
+        <div>
+          <div style={{ fontSize: 13, color: C.yellow, fontWeight: 700 }}>ÉCHAUFFEMENT</div>
+          <div style={{ fontSize: 11, color: C.textMuted }}>{currentBlock.exercises.length} exercice{currentBlock.exercises.length > 1 ? "s" : ""}</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {currentBlock.exercises.map((ex, i) => (
+          <Card key={ex.id} style={{ borderColor: C.yellow + "33" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: ex.photo || ex.note ? 12 : 0 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.yellow + "22", border: `1.5px solid ${C.yellow}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: C.yellow }}>{i + 1}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>{ex.name}</div>
+                {ex.reps && <div style={{ fontSize: 13, color: C.yellow, marginTop: 2 }}>⏱️ {ex.reps}</div>}
+              </div>
+            </div>
+            {ex.photo && <img src={ex.photo} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 10, marginBottom: 10 }} />}
+            {ex.note && <div style={{ background: C.yellow + "11", border: `1px solid ${C.yellow}22`, borderRadius: 10, padding: 10, fontSize: 13, color: C.textMuted }}>💡 {ex.note}</div>}
+          </Card>
+        ))}
+      </div>
+      <div style={{ marginTop: 20 }}>
+        <Btn onClick={goNextBlock} style={{ fontSize: 17, background: C.yellow, color: C.black }}>
+          ✅ Échauffement terminé — Commencer la séance →
+        </Btn>
+      </div>
+    </div>
+  </div>
+);
   if (currentBlock.type === "exercise") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
       <NavBar />
