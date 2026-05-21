@@ -1373,6 +1373,92 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
     </div>
   );
 };
+const NutritionDayHistory = ({ logs }) => {
+  const [openDay, setOpenDay] = useState(null);
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    return d.toISOString().slice(0, 10);
+  });
+
+  return (
+    <Card>
+      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>HISTORIQUE 7 JOURS</div>
+      {last7.map(d => {
+        const dayLogs = logs.filter(l => l.date === d);
+        if (dayLogs.length === 0) return null;
+        const t = sumMacros(dayLogs);
+        const isOpen = openDay === d;
+        return (
+          <div key={d} style={{ borderBottom: `1px solid ${C.border}` }}>
+            {/* Ligne résumé cliquable */}
+            <div
+              onClick={() => setOpenDay(isOpen ? null : d)}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", cursor: "pointer" }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, color: isOpen ? C.pink : C.textMuted, fontWeight: isOpen ? 700 : 400 }}>
+                  {formatDate(d)}
+                </span>
+                <span style={{ fontSize: 10, color: C.textMuted }}>({dayLogs.length} aliments)</span>
+              </div>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: C.yellow, fontWeight: 700 }}>{Math.round(t.kcal)} kcal</span>
+                <span style={{ fontSize: 12, color: C.green }}>💪 {Math.round(t.prot)}g</span>
+                <span style={{ fontSize: 12, color: C.textMuted }}>{isOpen ? "▲" : "▼"}</span>
+              </div>
+            </div>
+            {/* Détail déroulé */}
+            {isOpen && (
+              <div style={{ paddingBottom: 10 }}>
+                {MEALS.map((mealLabel, mi) => {
+                  const mealLogs = dayLogs.filter(l => l.meal_idx === mi);
+                  if (mealLogs.length === 0) return null;
+                  const mealTotal = sumMacros(mealLogs);
+                  return (
+                    <div key={mi} style={{ marginBottom: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                        <span style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{mealLabel}</span>
+                        <span style={{ fontSize: 10, color: C.yellow }}>{Math.round(mealTotal.kcal)} kcal</span>
+                      </div>
+                      {mealLogs.map((e, j) => {
+                        const m = getMacros(e);
+                        return (
+                          <div key={j} style={{ display: "flex", justifyContent: "space-between", padding: "5px 10px", background: "#111", borderRadius: 8, marginBottom: 3 }}>
+                            <span style={{ fontSize: 12, color: C.white }}>
+                              {e.name} <span style={{ color: C.textMuted, fontSize: 10 }}>{e.manual_macros ? "libre" : e.quantity_label || `${e.grams}g`}</span>
+                            </span>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <span style={{ fontSize: 11, color: C.yellow, fontWeight: 700 }}>{m.kcal} kcal</span>
+                              <span style={{ fontSize: 11, color: C.green }}>💪{m.prot}g</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                {/* Total du jour */}
+                <div style={{ display: "flex", gap: 10, marginTop: 8, padding: "8px 10px", background: C.pink + "11", borderRadius: 8 }}>
+                  {[
+                    { label: "KCAL", val: Math.round(t.kcal), color: C.yellow },
+                    { label: "PROT", val: `${Math.round(t.prot)}g`, color: C.green },
+                    { label: "GLUC", val: `${Math.round(t.carb)}g`, color: C.blue },
+                    { label: "LIP", val: `${Math.round(t.fat)}g`, color: C.pink },
+                  ].map(s => (
+                    <div key={s.label} style={{ flex: 1, textAlign: "center" }}>
+                      <div style={{ fontSize: 13, fontWeight: 900, color: s.color }}>{s.val}</div>
+                      <div style={{ fontSize: 9, color: C.textMuted }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </Card>
+  );
+};
 // ══════════════════════════════════════════════════════════════════════════════
 // COACH APP
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1678,23 +1764,7 @@ const CoachApp = ({ user, onLogout }) => {
                     );
                   })()}
                   {/* Recent history */}
-                  <Card>
-                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>HISTORIQUE 7 JOURS</div>
-                    {Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().slice(0, 10); }).map(d => {
-                      const dayLogs = clientNutritionLogs.filter(l => l.date === d);
-                      if (dayLogs.length === 0) return null;
-                      const t = sumMacros(dayLogs);
-                      return (
-                        <div key={d} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
-                          <span style={{ fontSize: 12, color: C.textMuted }}>{formatDate(d)}</span>
-                          <div style={{ display: "flex", gap: 12 }}>
-                            <span style={{ fontSize: 12, color: C.yellow, fontWeight: 700 }}>{Math.round(t.kcal)} kcal</span>
-                            <span style={{ fontSize: 12, color: C.green }}>💪 {Math.round(t.prot)}g</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </Card>
+                 <NutritionDayHistory logs={clientNutritionLogs} />
                 </div>
               )}
 
