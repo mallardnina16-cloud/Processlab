@@ -1055,8 +1055,7 @@ block.type === "warmup" ? (
       </button>
     </div>
   </Card>
-) :
-  if (currentBlock.type === "warmup") return (
+if (currentBlock.type === "warmup") return (
   <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
     <NavBar />
     <div style={{ padding: 20 }}>
