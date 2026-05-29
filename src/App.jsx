@@ -1524,25 +1524,44 @@ const CoachApp = ({ user, onLogout }) => {
             <span style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>Clientes</span>
             <button onClick={() => setShowAddClient(true)} style={{ background: C.pink, border: "none", color: C.black, borderRadius: 6, width: 20, height: 20, fontWeight: 900, fontSize: 14, cursor: "pointer" }}>+</button>
           </div>
-          {loadingClients ? <Spinner /> : clients.map(c => (
-            <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); setClientTab("journal"); }} style={{ padding: "10px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: selected === c.id ? C.pink + "15" : "transparent", borderLeft: `3px solid ${selected === c.id ? C.pink : "transparent"}` }}>
-              <div style={{ position: "relative" }}>
-                <Avatar initials={c.avatar} size={30} color={c.today_done ? C.pink : C.muted} />
-                <div style={{ position: "absolute", bottom: -1, right: -1, width: 8, height: 8, borderRadius: "50%", background: c.today_done ? C.green : C.red, border: `2px solid ${C.black}` }} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
-                <div style={{ fontSize: 10, color: c.is_paused ? C.orange : daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>
-                  {c.is_paused ? "⏸️ En pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}
+          {loadingClients ? <Spinner /> : (() => {
+            const active = clients.filter(c => !c.is_paused);
+            const paused = clients.filter(c => c.is_paused);
+            const ClientRow = (c) => (
+              <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); setClientTab("journal"); }} style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: selected === c.id ? C.pink + "15" : "transparent", borderLeft: `3px solid ${selected === c.id ? C.pink : "transparent"}`, opacity: c.is_paused ? 0.65 : 1 }}>
+                <div style={{ position: "relative" }}>
+                  <Avatar initials={c.avatar} size={28} color={c.is_paused ? C.orange : c.today_done ? C.pink : C.muted} />
+                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 7, height: 7, borderRadius: "50%", background: c.today_done ? C.green : C.red, border: `2px solid ${C.black}` }} />
                 </div>
-              </div>
-              {unreadCounts[c.id] > 0 && (
-                <div style={{ minWidth: 18, height: 18, background: C.red, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: C.white, padding: "0 4px", flexShrink: 0 }}>
-                  {unreadCounts[c.id]}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.is_paused ? C.textMuted : C.white }}>{c.name}</div>
+                  <div style={{ fontSize: 10, color: c.is_paused ? C.orange : daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>
+                    {c.is_paused ? "⏸ Pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+                {unreadCounts[c.id] > 0 && (
+                  <div style={{ minWidth: 16, height: 16, background: C.red, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: C.white, padding: "0 3px", flexShrink: 0 }}>
+                    {unreadCounts[c.id]}
+                  </div>
+                )}
+              </div>
+            );
+            return (
+              <>
+                {active.map(c => ClientRow(c))}
+                {paused.length > 0 && (
+                  <>
+                    <div style={{ margin: "8px 16px 4px", display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ flex: 1, height: 1, background: C.border }} />
+                      <span style={{ fontSize: 9, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>En pause</span>
+                      <div style={{ flex: 1, height: 1, background: C.border }} />
+                    </div>
+                    {paused.map(c => ClientRow(c))}
+                  </>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* MAIN CONTENT */}
