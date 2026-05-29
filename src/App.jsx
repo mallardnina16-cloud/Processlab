@@ -135,51 +135,114 @@ const requestNotifications = async () => {
 // ══════════════════════════════════════════════════════════════════════════════
 // CHAT SIDEBAR
 // ══════════════════════════════════════════════════════════════════════════════
-const ChatSidebar = ({ clientId, clientName, senderRole, onClose }) => {
+const ChatSidebar = ({ clientId, clientName, senderRole, onClose, allClients, onSelectClient, unreadCounts }) => {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     if (!clientId) return;
+    setMessages([]);
     supabase.from("messages").select("*").eq("client_id", clientId).order("created_at").then(({ data }) => setMessages(data || []));
-    const channel = supabase.channel("chat_" + clientId)
+    const channel = supabase.channel("chat_sidebar_" + clientId)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `client_id=eq.${clientId}` },
-        (payload) => setMessages(m => [...m, payload.new])
+        (payload) => {
+          setMessages(m => m.find(x => x.id === payload.new.id) ? m : [...m, payload.new]);
+        }
       ).subscribe();
     return () => supabase.removeChannel(channel);
   }, [clientId]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+  }, [messages]);
+
+  // Focus input when opened
+  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 100); }, [clientId]);
 
   const handleSend = async () => {
-    if (!text.trim() || sending) return;
+    if (!text.trim() || sending || !clientId) return;
     setSending(true);
-    await supabase.from("messages").insert([{ client_id: clientId, sender: senderRole, content: text.trim() }]);
+    const content = text.trim();
     setText("");
+    await supabase.from("messages").insert([{ client_id: clientId, sender: senderRole, content }]);
     setSending(false);
   };
 
+  const formatTime = (ts) => new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const formatDay = (ts) => {
+    const d = new Date(ts);
+    const diff = Math.floor((new Date(today) - new Date(d.toISOString().slice(0,10))) / 86400000);
+    if (diff === 0) return "Aujourd'hui";
+    if (diff === 1) return "Hier";
+    return d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  };
+
+  // Group messages by day
+  const grouped = [];
+  let lastDay = null;
+  for (const msg of messages) {
+    const day = msg.created_at?.slice(0, 10);
+    if (day !== lastDay) { grouped.push({ type: "day", day, ts: msg.created_at }); lastDay = day; }
+    grouped.push({ type: "msg", msg });
+  }
+
+  const isCoach = senderRole === "coach";
+
   return (
-    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 340, background: C.card, borderLeft: `1px solid ${C.border}`, display: "flex", flexDirection: "column", zIndex: 50, boxShadow: "-4px 0 24px #0008" }}>
-      <div style={{ padding: "16px 18px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 15, color: C.white }}>💬 {clientName}</div>
-          <div style={{ fontSize: 11, color: C.textMuted }}>Chat en direct</div>
+    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 340, background: C.card, borderLeft: `1px solid ${C.border}`, display: "flex", flexDirection: "column", zIndex: 50, boxShadow: "-4px 0 30px #000a", fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+      {/* Header */}
+      <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isCoach && allClients?.length > 1 ? 10 : 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: C.white }}>{clientName || "Chat"}</div>
+              <div style={{ fontSize: 10, color: C.textMuted }}>{isCoach ? "Coach → Cliente" : "Toi → Coach"}</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: "#222", border: "none", color: C.textMuted, borderRadius: "50%", width: 28, height: 28, fontSize: 13, cursor: "pointer" }}>✕</button>
         </div>
-        <button onClick={onClose} style={{ background: "#222", border: "none", color: C.textMuted, borderRadius: "50%", width: 30, height: 30, fontSize: 14, cursor: "pointer" }}>✕</button>
+        {/* Onglets clientes côté coach */}
+        {isCoach && allClients?.length > 0 && (
+          <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 2, marginTop: 8 }}>
+            {allClients.map(c => (
+              <button key={c.id} onClick={() => onSelectClient?.(c.id)} style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 99, border: `1.5px solid ${c.id === clientId ? C.pink : C.border}`, background: c.id === clientId ? C.pink + "22" : "transparent", color: c.id === clientId ? C.pink : C.textMuted, fontSize: 11, fontWeight: c.id === clientId ? 700 : 400, cursor: "pointer", position: "relative" }}>
+                {c.name.split(" ")[0]}
+                {unreadCounts?.[c.id] > 0 && c.id !== clientId && (
+                  <span style={{ position: "absolute", top: -4, right: -4, width: 14, height: 14, background: C.red, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 900, color: C.white }}>
+                    {unreadCounts[c.id]}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 0" }}>
-        {messages.length === 0 && <div style={{ textAlign: "center", color: C.textMuted, fontSize: 13, paddingTop: 40 }}>Aucun message pour l'instant</div>}
-        {messages.map((msg, i) => {
+
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px 4px" }}>
+        {!clientId && <div style={{ textAlign: "center", color: C.textMuted, fontSize: 12, paddingTop: 40 }}>Sélectionne une cliente ci-dessus</div>}
+        {clientId && messages.length === 0 && <div style={{ textAlign: "center", color: C.textMuted, fontSize: 12, paddingTop: 40 }}>Aucun message pour l'instant 💬</div>}
+        {grouped.map((item, i) => {
+          if (item.type === "day") return (
+            <div key={`d${i}`} style={{ textAlign: "center", fontSize: 10, color: C.textMuted, fontWeight: 700, margin: "10px 0 6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {formatDay(item.ts)}
+            </div>
+          );
+          const { msg } = item;
           const isMe = msg.sender === senderRole;
           return (
-            <div key={i} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", marginBottom: 10 }}>
-              <div style={{ maxWidth: "78%", background: isMe ? C.pink : "#222", color: isMe ? C.black : C.white, borderRadius: isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "9px 13px", fontSize: 13, lineHeight: 1.4 }}>
-                <div>{msg.content}</div>
-                <div style={{ fontSize: 9, color: isMe ? C.black + "88" : C.textMuted, marginTop: 3, textAlign: "right" }}>
-                  {new Date(msg.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+            <div key={msg.id || i} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", marginBottom: 8 }}>
+              <div style={{ maxWidth: "80%" }}>
+                <div style={{ background: isMe ? C.pink : "#272727", color: isMe ? C.black : C.white, borderRadius: isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "9px 12px", fontSize: 13, lineHeight: 1.45, fontWeight: isMe ? 500 : 400 }}>
+                  {msg.content}
+                </div>
+                <div style={{ fontSize: 9, color: C.textMuted, marginTop: 2, textAlign: isMe ? "right" : "left", paddingLeft: isMe ? 0 : 4 }}>
+                  {!isMe && isCoach && <span style={{ color: C.pink, fontWeight: 700, marginRight: 4 }}>Elle</span>}
+                  {formatTime(msg.created_at)}
                 </div>
               </div>
             </div>
@@ -187,15 +250,19 @@ const ChatSidebar = ({ clientId, clientName, senderRole, onClose }) => {
         })}
         <div ref={bottomRef} />
       </div>
-      <div style={{ padding: 14, borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexShrink: 0 }}>
+
+      {/* Input */}
+      <div style={{ padding: "10px 12px 14px", borderTop: `1px solid ${C.border}`, flexShrink: 0, display: "flex", gap: 8 }}>
         <input
+          ref={inputRef}
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
-          placeholder="Écrire un message..."
-          style={{ ...inputSt, flex: 1, fontSize: 13, padding: "9px 12px" }}
+          placeholder={clientId ? "Écrire un message… (Entrée pour envoyer)" : "Sélectionne une cliente d'abord"}
+          disabled={!clientId}
+          style={{ ...inputSt, flex: 1, fontSize: 13, padding: "9px 12px", borderRadius: 20, opacity: clientId ? 1 : 0.4 }}
         />
-        <button onClick={handleSend} disabled={sending || !text.trim()} style={{ background: C.pink, border: "none", borderRadius: 10, width: 38, height: 38, color: C.black, fontSize: 16, cursor: "pointer", flexShrink: 0, opacity: (!text.trim() || sending) ? 0.4 : 1 }}>→</button>
+        <button onClick={handleSend} disabled={sending || !text.trim() || !clientId} style={{ background: text.trim() && clientId ? C.pink : "#333", border: "none", borderRadius: "50%", width: 38, height: 38, color: text.trim() && clientId ? C.black : C.textMuted, fontSize: 17, cursor: "pointer", flexShrink: 0, transition: "background 0.2s", display: "flex", alignItems: "center", justifyContent: "center" }}>→</button>
       </div>
     </div>
   );
@@ -1311,10 +1378,49 @@ const CoachApp = ({ user, onLogout }) => {
   const [sharedMonths, setSharedMonths] = useState({});
   // Chat state
   const [showChat, setShowChat] = useState(false);
+  // Compteurs messages non-lus par cliente { [clientId]: number }
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const audioRef = useRef(null);
 
   const client = clients.find(c => c.id === selected);
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5; });
+  const totalUnread = Object.values(unreadCounts).reduce((s, n) => s + n, 0);
+
+  // Abonnement global — écoute tous les messages entrants de toutes les clientes
+  useEffect(() => {
+    const channel = supabase
+      .channel("coach_global_messages")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const msg = payload.new;
+          // Seulement les messages envoyés par les clientes (sender = "client")
+          if (msg.sender !== "client") return;
+          // Si le chat est ouvert sur cette cliente, pas de badge
+          if (showChat && selected === msg.client_id) return;
+          setUnreadCounts(prev => ({ ...prev, [msg.client_id]: (prev[msg.client_id] || 0) + 1 }));
+          // Son de notification (bip léger)
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 880; osc.type = "sine";
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+          } catch {}
+        }
+      ).subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [showChat, selected]);
+
+  // Réinitialiser les non-lus quand on ouvre le chat d'une cliente
+  useEffect(() => {
+    if (showChat && selected) {
+      setUnreadCounts(prev => ({ ...prev, [selected]: 0 }));
+    }
+  }, [showChat, selected]);
 
   useEffect(() => {
     if (selected) {
@@ -1382,15 +1488,27 @@ const CoachApp = ({ user, onLogout }) => {
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <Logo />
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {/* Bouton chat — visible quand une cliente est sélectionnée */}
-          {client && (
+          {/* Bouton chat global avec badge total non-lus */}
+          <div style={{ position: "relative" }}>
             <button
-              onClick={() => setShowChat(v => !v)}
-              style={{ background: showChat ? C.pink + "22" : "#222", border: `1px solid ${showChat ? C.pink : C.border}`, color: showChat ? C.pink : C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}
+              onClick={() => {
+                if (!client && clients.length > 0) {
+                  const withUnread = clients.find(c => unreadCounts[c.id] > 0);
+                  const target = withUnread || clients[0];
+                  setSelected(target.id); setMainTab("client"); setClientTab("journal");
+                }
+                setShowChat(v => !v);
+              }}
+              style={{ background: showChat ? C.pink + "22" : totalUnread > 0 ? C.pink + "15" : "#222", border: `1.5px solid ${showChat ? C.pink : totalUnread > 0 ? C.pink : C.border}`, color: showChat ? C.pink : totalUnread > 0 ? C.pink : C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}
             >
               💬 Chat
             </button>
-          )}
+            {totalUnread > 0 && !showChat && (
+              <div style={{ position: "absolute", top: -6, right: -6, minWidth: 18, height: 18, background: C.red, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: C.white, padding: "0 4px" }}>
+                {totalUnread}
+              </div>
+            )}
+          </div>
           <span style={{ fontSize: 11, color: C.textMuted, background: C.card, padding: "4px 10px", borderRadius: 6 }}>Coach</span>
           <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
         </div>
@@ -1418,6 +1536,11 @@ const CoachApp = ({ user, onLogout }) => {
                   {c.is_paused ? "⏸️ En pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}
                 </div>
               </div>
+              {unreadCounts[c.id] > 0 && (
+                <div style={{ minWidth: 18, height: 18, background: C.red, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: C.white, padding: "0 4px", flexShrink: 0 }}>
+                  {unreadCounts[c.id]}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1653,13 +1776,16 @@ const CoachApp = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* CHAT SIDEBAR */}
-      {showChat && client && (
+      {/* CHAT SIDEBAR COACH — s'ouvre sur la cliente sélectionnée */}
+      {showChat && (
         <ChatSidebar
-          clientId={client.id}
-          clientName={client.name}
+          clientId={selected}
+          clientName={clients.find(c => c.id === selected)?.name || (clients[0]?.name || "Cliente")}
           senderRole="coach"
           onClose={() => setShowChat(false)}
+          allClients={clients}
+          onSelectClient={(cid) => { setSelected(cid); setMainTab("client"); setClientTab("journal"); }}
+          unreadCounts={unreadCounts}
         />
       )}
 
@@ -1696,7 +1822,11 @@ const CoachApp = ({ user, onLogout }) => {
         </div>
       )}
       {editingClient && <EditClientModal client={editingClient} onSave={handleSaveClient} onDelete={handleDeleteClient} onClose={() => setEditingClient(null)} />}
-      {showPauseModal && client && <PauseModal client={client} onClose={() => setShowPauseModal(false)} onUpdate={() => { updateClient(client.id, {}); }} />}
+      {showPauseModal && client && <PauseModal client={client} onClose={() => setShowPauseModal(false)} onUpdate={async () => {
+        // Re-fetch le client depuis Supabase pour avoir les vraies données à jour
+        const { data } = await supabase.from("clients").select("*").eq("id", client.id).single();
+        if (data) updateClient(client.id, data);
+      }} />}
     </div>
   );
 };
@@ -1746,6 +1876,21 @@ const ClientApp = ({ user, onLogout }) => {
       }, (payload) => {
         if (payload.new.sender === "coach") {
           setUnreadCount(n => n + 1);
+          // Son de notification
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 660; osc.type = "sine";
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+          } catch {}
+          // Notification navigateur si autorisée
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            new Notification("process lab. 💬", { body: "Nouveau message de ton coach !", icon: "/icon.png" });
+          }
         }
       })
       .subscribe();
@@ -2480,6 +2625,10 @@ const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
     loadCustomFoods();
   };
   const handleDelete = async (id) => { await supabase.from("nutrition_logs").delete().eq("id", id); setLogs(l => l.filter(x => x.id !== id)); };
+  const handleMoveMeal = async (id, newMealIdx) => {
+    await supabase.from("nutrition_logs").update({ meal_idx: newMealIdx }).eq("id", id);
+    setLogs(l => l.map(x => x.id === id ? { ...x, meal_idx: newMealIdx } : x));
+  };
 
   const kcalLeft = goals.kcal - totals.kcal;
   const kcalPct = Math.min((totals.kcal / goals.kcal) * 100, 100);
@@ -2546,9 +2695,22 @@ const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
                             <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>{e.name}</div>
                             <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{e.manual_macros ? "saisie libre" : e.quantity_label || `${e.grams}g`} · 💪 {m.prot}g · 🌾 {m.carb}g · 🥑 {m.fat}g</div>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <span style={{ fontWeight: 800, fontSize: 13, color: C.yellow }}>{m.kcal} kcal</span>
-                            <button onClick={() => handleDelete(e.id)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14 }}>✕</button>
+                            {/* Menu déplacement repas */}
+                            <div style={{ position: "relative" }}>
+                              <select
+                                value={e.meal_idx}
+                                onChange={ev => handleMoveMeal(e.id, parseInt(ev.target.value))}
+                                style={{ background: "#2a2a2a", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textMuted, fontSize: 10, padding: "3px 5px", cursor: "pointer", fontFamily: "inherit", maxWidth: 80 }}
+                                title="Déplacer vers un autre repas"
+                              >
+                                {MEALS.map((ml, idx) => (
+                                  <option key={idx} value={idx} style={{ background: "#1a1a1a" }}>{ml}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <button onClick={() => handleDelete(e.id)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, lineHeight: 1 }}>✕</button>
                           </div>
                         </div>
                       </div>
