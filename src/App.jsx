@@ -1944,46 +1944,48 @@ const CoachApp = ({ user, onLogout }) => {
                 </div>
               </Card>
             )}
-            {clientsLoading ? <Spinner /> : (() => {
-              const activeClients = clients.filter(c => !c.paused);
-              const pausedClients = clients.filter(c => c.paused);
-              const renderCard = (client, isPaused) => (
-                <Card key={client.id} onClick={() => setSelectedClient(client)} style={{ cursor: "pointer", borderColor: isPaused ? "#fb923c44" : "#2a2a2a", opacity: isPaused ? 0.5 : 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <Avatar initials={client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()} color={isPaused ? "#fb923c" : "#E8879C"} />
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 15 }}>{client.name}</div>
-                        <div style={{ fontSize: 12, color: "#888888", marginTop: 2 }}>
-                          {isPaused ? <span style={{ color: "#fb923c" }}>⏸ Pause jusqu'au {formatDate(client.pause_end)}</span> : client.next_payment ? <span style={{ color: daysUntil(client.next_payment) <= 7 ? "#f87171" : "#888888" }}>💳 {formatDate(client.next_payment)}</span> : <span>Active</span>}
-                        </div>
+            {clientsLoading ? <Spinner /> : clients.filter(c => !c.paused).map(client => (
+              <Card key={client.id} onClick={() => setSelectedClient(client)} style={{ cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Avatar initials={client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>{client.name}</div>
+                      <div style={{ fontSize: 12, color: "#888888", marginTop: 2 }}>
+                        {client.next_payment ? <span style={{ color: daysUntil(client.next_payment) <= 7 ? "#f87171" : "#888888" }}>💳 {formatDate(client.next_payment)}</span> : <span>Active</span>}
                       </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      {unreadCounts[client.id] > 0 && (
-                        <span style={{ background: "#f87171", color: "#ffffff", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>{unreadCounts[client.id]}</span>
-                      )}
-                      <span style={{ color: "#888888", fontSize: 20 }}>›</span>
                     </div>
                   </div>
-                </Card>
-              );
-              return (
-                <>
-                  {activeClients.map(c => renderCard(c, false))}
-                  {pausedClients.length > 0 && (
-                    <>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0" }}>
-                        <div style={{ flex: 1, height: 1, background: "#2a2a2a" }} />
-                        <span style={{ fontSize: 10, color: "#555555", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>En pause</span>
-                        <div style={{ flex: 1, height: 1, background: "#2a2a2a" }} />
-                      </div>
-                      {pausedClients.map(c => renderCard(c, true))}
-                    </>
-                  )}
-                </>
-              );
-            })()}
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    {unreadCounts[client.id] > 0 && (
+                      <span style={{ background: "#f87171", color: "#ffffff", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>{unreadCounts[client.id]}</span>
+                    )}
+                    <span style={{ color: "#888888", fontSize: 20 }}>›</span>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            {!clientsLoading && clients.some(c => c.paused) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0" }}>
+                <div style={{ flex: 1, height: 1, background: "#2a2a2a" }} />
+                <span style={{ fontSize: 10, color: "#555555", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>En pause</span>
+                <div style={{ flex: 1, height: 1, background: "#2a2a2a" }} />
+              </div>
+            )}
+            {!clientsLoading && clients.filter(c => c.paused).map(client => (
+              <Card key={client.id} onClick={() => setSelectedClient(client)} style={{ cursor: "pointer", opacity: 0.5, borderColor: "#fb923c44" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <Avatar initials={client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()} color="#fb923c" />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>{client.name}</div>
+                      <div style={{ fontSize: 12, color: "#fb923c", marginTop: 2 }}>⏸ Pause jusqu'au {formatDate(client.pause_end)}</div>
+                    </div>
+                  </div>
+                  <span style={{ color: "#888888", fontSize: 20 }}>›</span>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
 
