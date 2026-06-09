@@ -835,6 +835,112 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+const useClients = () => {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetch = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("clients").select("*").order("created_at");
+    setClients(data || []); setLoading(false);
+  };
+  useEffect(() => { fetch(); }, []);
+  const addClient = async (c) => { const { data } = await supabase.from("clients").insert([c]).select().single(); if (data) setClients(cl => [...cl, data]); return data; };
+  const updateClient = async (id, patch) => { const { data } = await supabase.from("clients").update(patch).eq("id", id).select().single(); if (data) setClients(c => c.map(x => x.id === id ? data : x)); return data; };
+  const deleteClient = async (id) => { await supabase.from("clients").delete().eq("id", id); setClients(c => c.filter(x => x.id !== id)); };
+  return { clients, loading, addClient, updateClient, deleteClient };
+};
+
+const useWorkouts = () => {
+  const [workouts, setWorkouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetch = async () => {
+    setLoading(true);
+    const [{ data: ws }, { data: exs }] = await Promise.all([
+      supabase.from("workouts").select("id, name, description, created_at").order("created_at"),
+      supabase.from("exercises").select("*").order("position"),
+    ]);
+    if (!ws) { setLoading(false); return; }
+    setWorkouts(ws.map(w => ({ ...w, exercises: (exs || []).filter(e => e.workout_id === w.id) })));
+    setLoading(false);
+  };
+  useEffect(() => { fetch(); }, []);
+  const saveWorkout = async (workout) => {
+    if (workout.id && workouts.find(w => w.id === workout.id)) {
+      await supabase.from("workouts").update({ name: workout.name, description: workout.description, blocks: workout.blocks || [] }).eq("id", workout.id);
+      await supabase.from("exercises").delete().eq("workout_id", workout.id);
+    } else {
+      const { data } = await supabase.from("workouts").insert([{ name: workout.name, description: workout.description, blocks: workout.blocks || [] }]).select().single();
+      workout.id = data.id;
+    }
+    if (workout.exercises?.length) {
+      await supabase.from("exercises").insert(workout.exercises.map((e, i) => ({ workout_id: workout.id, name: e.name, sets: e.sets, reps: e.reps, rest: e.rest, note: e.note, photo: e.photo, position: i, suggested_weight: e.suggested_weight, weight_type: e.weight_type, tempo: e.tempo || "" })));
+    }
+    await fetch();
+  };
+  const deleteWorkout = async (id) => { await supabase.from("workouts").delete().eq("id", id); setWorkouts(w => w.filter(x => x.id !== id)); };
+  return { workouts, loading, saveWorkout, deleteWorkout };
+};
+
+const useClientData = (clientId) => {
+  const [entries, setEntries] = useState([]);
+  const [weights, setWeights] = useState([]);
+  const [measurements, setMeasurements] = useState([]);
+  const [assignedWorkouts, setAssignedWorkouts] = useState([]);
+  const [progressPhotos, setProgressPhotos] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetch = async () => {
+    if (!clientId) return;
+    setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
+    setLoading(true);
+    const [e, w, m, cw, pp, pay] = await Promise.all([
+      supabase.from("entries").select("*").eq("client_id", clientId).order("date", { ascending: false }),
+      supabase.from("weights").select("*").eq("client_id", clientId).order("date"),
+      supabase.from("measurements").select("*").eq("client_id", clientId).order("date"),
+      supabase.from("client_workouts").select("*, workouts(*, blocks, exercises(*))").eq("client_id", clientId),
+      supabase.from("progress_photos").select("*").eq("client_id", clientId).order("date", { ascending: false }),
+      supabase.from("payments").select("*").eq("client_id", clientId).order("paid_date", { ascending: false }),
+    ]);
+    setEntries(e.data || []); setWeights(w.data || []); setMeasurements(m.data || []);
+    setAssignedWorkouts((cw.data || []).map(x => ({ workout_id: x.workout_id, scheduled_date: x.scheduled_date, workout: x.workouts })));
+    setProgressPhotos(pp.data || []); setPayments(pay.data || []);
+    setLoading(false);
+  };
+  useEffect(() => { fetch(); }, [clientId]);
+
+  const addEntry = async (entry) => {
+    const { data } = await supabase.from("entries").insert([{ ...entry, client_id: clientId }]).select().single();
+    if (data) { setEntries(e => [data, ...e]); await supabase.from("clients").update({ today_done: true }).eq("id", clientId); }
+    return data;
+  };
+  const updateEntry = async (id, patch) => {
+    const { data } = await supabase.from("entries").update(patch).eq("id", id).select().single();
+    if (data) setEntries(e => e.map(x => x.id === id ? data : x));
+    return data;
+  };
+  const addWeight = async (value) => { const { data } = await supabase.from("weights").insert([{ client_id: clientId, value, date: today }]).select().single(); if (data) setWeights(w => [...w, data]); };
+  const addMeasurement = async (m) => { const { data } = await supabase.from("measurements").insert([{ ...m, client_id: clientId, date: today }]).select().single(); if (data) setMeasurements(ms => [...ms, data]); };
+  const toggleWorkout = async (workoutId) => {
+    const has = assignedWorkouts.find(a => a.workout_id === workoutId);
+    if (has) { await supabase.from("client_workouts").delete().eq("client_id", clientId).eq("workout_id", workoutId); setAssignedWorkouts(a => a.filter(x => x.workout_id !== workoutId)); }
+    else { await supabase.from("client_workouts").insert([{ client_id: clientId, workout_id: workoutId, scheduled_date: null }]); fetch(); }
+  };
+  const updateScheduledDate = async (workoutId, date) => { await supabase.from("client_workouts").update({ scheduled_date: date }).eq("client_id", clientId).eq("workout_id", workoutId); fetch(); };
+  const addProgressPhoto = async (photo, note) => { const { data } = await supabase.from("progress_photos").insert([{ client_id: clientId, photo, note, date: today }]).select().single(); if (data) setProgressPhotos(pp => [data, ...pp]); };
+  const addPayment = async (amount, paidDate, note) => {
+    const nextDue = addDays(paidDate, 28);
+    const { data } = await supabase.from("payments").insert([{ client_id: clientId, amount, paid_date: paidDate, next_due_date: nextDue, note }]).select().single();
+    if (data) { setPayments(p => [data, ...p]); await supabase.from("clients").update({ next_payment: nextDue }).eq("id", clientId); }
+    return data;
+  };
+
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment };
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // JOURNAL FORM + PERF CARD + ENTRY COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 const JournalForm = ({ onSave, existingEntry }) => {
