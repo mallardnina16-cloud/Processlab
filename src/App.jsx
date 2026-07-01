@@ -133,141 +133,6 @@ const requestNotifications = async () => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CHAT SIDEBAR
-// ══════════════════════════════════════════════════════════════════════════════
-const ChatSidebar = ({ clientId, clientName, senderRole, onClose, allClients, onSelectClient, unreadCounts }) => {
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (!clientId) return;
-    setMessages([]);
-    supabase.from("messages").select("*").eq("client_id", clientId).order("created_at").then(({ data }) => setMessages(data || []));
-    const channel = supabase.channel("chat_sidebar_" + clientId)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `client_id=eq.${clientId}` },
-        (payload) => {
-          setMessages(m => m.find(x => x.id === payload.new.id) ? m : [...m, payload.new]);
-        }
-      ).subscribe();
-    return () => supabase.removeChannel(channel);
-  }, [clientId]);
-
-  useEffect(() => {
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
-  }, [messages]);
-
-  // Focus input when opened
-  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 100); }, [clientId]);
-
-  const handleSend = async () => {
-    if (!text.trim() || sending || !clientId) return;
-    setSending(true);
-    const content = text.trim();
-    setText("");
-    await supabase.from("messages").insert([{ client_id: clientId, sender: senderRole, content }]);
-    setSending(false);
-  };
-
-  const formatTime = (ts) => new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  const formatDay = (ts) => {
-    const d = new Date(ts);
-    const diff = Math.floor((new Date(today) - new Date(d.toISOString().slice(0,10))) / 86400000);
-    if (diff === 0) return "Aujourd'hui";
-    if (diff === 1) return "Hier";
-    return d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
-  };
-
-  // Group messages by day
-  const grouped = [];
-  let lastDay = null;
-  for (const msg of messages) {
-    const day = msg.created_at?.slice(0, 10);
-    if (day !== lastDay) { grouped.push({ type: "day", day, ts: msg.created_at }); lastDay = day; }
-    grouped.push({ type: "msg", msg });
-  }
-
-  const isCoach = senderRole === "coach";
-
-  return (
-    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 340, background: C.card, borderLeft: `1px solid ${C.border}`, display: "flex", flexDirection: "column", zIndex: 50, boxShadow: "-4px 0 30px #000a", fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
-      {/* Header */}
-      <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: isCoach && allClients?.length > 1 ? 10 : 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green, flexShrink: 0 }} />
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 14, color: C.white }}>{clientName || "Chat"}</div>
-              <div style={{ fontSize: 10, color: C.textMuted }}>{isCoach ? "Coach → Cliente" : "Toi → Coach"}</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: "#222", border: "none", color: C.textMuted, borderRadius: "50%", width: 28, height: 28, fontSize: 13, cursor: "pointer" }}>✕</button>
-        </div>
-        {/* Onglets clientes côté coach */}
-        {isCoach && allClients?.length > 0 && (
-          <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 2, marginTop: 8 }}>
-            {allClients.map(c => (
-              <button key={c.id} onClick={() => onSelectClient?.(c.id)} style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 99, border: `1.5px solid ${c.id === clientId ? C.pink : C.border}`, background: c.id === clientId ? C.pink + "22" : "transparent", color: c.id === clientId ? C.pink : C.textMuted, fontSize: 11, fontWeight: c.id === clientId ? 700 : 400, cursor: "pointer", position: "relative" }}>
-                {c.name.split(" ")[0]}
-                {unreadCounts?.[c.id] > 0 && c.id !== clientId && (
-                  <span style={{ position: "absolute", top: -4, right: -4, width: 14, height: 14, background: C.red, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 900, color: C.white }}>
-                    {unreadCounts[c.id]}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px 4px" }}>
-        {!clientId && <div style={{ textAlign: "center", color: C.textMuted, fontSize: 12, paddingTop: 40 }}>Sélectionne une cliente ci-dessus</div>}
-        {clientId && messages.length === 0 && <div style={{ textAlign: "center", color: C.textMuted, fontSize: 12, paddingTop: 40 }}>Aucun message pour l'instant 💬</div>}
-        {grouped.map((item, i) => {
-          if (item.type === "day") return (
-            <div key={`d${i}`} style={{ textAlign: "center", fontSize: 10, color: C.textMuted, fontWeight: 700, margin: "10px 0 6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              {formatDay(item.ts)}
-            </div>
-          );
-          const { msg } = item;
-          const isMe = msg.sender === senderRole;
-          return (
-            <div key={msg.id || i} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", marginBottom: 8 }}>
-              <div style={{ maxWidth: "80%" }}>
-                <div style={{ background: isMe ? C.pink : "#272727", color: isMe ? C.black : C.white, borderRadius: isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px", padding: "9px 12px", fontSize: 13, lineHeight: 1.45, fontWeight: isMe ? 500 : 400 }}>
-                  {msg.content}
-                </div>
-                <div style={{ fontSize: 9, color: C.textMuted, marginTop: 2, textAlign: isMe ? "right" : "left", paddingLeft: isMe ? 0 : 4 }}>
-                  {!isMe && isCoach && <span style={{ color: C.pink, fontWeight: 700, marginRight: 4 }}>Elle</span>}
-                  {formatTime(msg.created_at)}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Input */}
-      <div style={{ padding: "10px 12px 14px", borderTop: `1px solid ${C.border}`, flexShrink: 0, display: "flex", gap: 8 }}>
-        <input
-          ref={inputRef}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
-          placeholder={clientId ? "Écrire un message… (Entrée pour envoyer)" : "Sélectionne une cliente d'abord"}
-          disabled={!clientId}
-          style={{ ...inputSt, flex: 1, fontSize: 13, padding: "9px 12px", borderRadius: 20, opacity: clientId ? 1 : 0.4 }}
-        />
-        <button onClick={handleSend} disabled={sending || !text.trim() || !clientId} style={{ background: text.trim() && clientId ? C.pink : "#333", border: "none", borderRadius: "50%", width: 38, height: 38, color: text.trim() && clientId ? C.black : C.textMuted, fontSize: 17, cursor: "pointer", flexShrink: 0, transition: "background 0.2s", display: "flex", alignItems: "center", justifyContent: "center" }}>→</button>
-      </div>
-    </div>
-  );
-};
-// ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT BUILDER
 // ══════════════════════════════════════════════════════════════════════════════
 const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
@@ -596,13 +461,19 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const currentBlock = blocks[blockIdx];
   const allExercises = blocks.flatMap(b => b.type === "circuit" ? b.exercises : (b.type === "warmup" ? b.exercises : [b]));
 
+  // Nombre de séries attendues pour un exercice donné (pour générer les lignes de perf)
+  const getExpectedSets = (ex) => {
+    const n = parseInt(ex.sets, 10);
+    return n && n > 0 ? n : 1;
+  };
+
   const lastLog = sessionLogs.find(l => l.workout_id === workout.id);
   const lastExLogs = (() => { try { return JSON.parse(lastLog?.exercise_logs || "{}"); } catch { return {}; } })();
   const getLastPerf = (exName) => Object.values(lastExLogs).find(l => l.name === exName);
   const getAllPerfs = (exName) => sessionLogs
     .filter(l => l.workout_id === workout.id)
     .map(l => { try { const logs = JSON.parse(l.exercise_logs || "{}"); return { date: l.date, ...Object.values(logs).find(e => e.name === exName) }; } catch { return null; } })
-    .filter(l => l && (l.weight || l.reps)).slice(0, 5);
+    .filter(l => l && (l.weight || l.reps || (l.sets && l.sets.some(s => s.weight || s.reps)))).slice(0, 5);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
   useEffect(() => { setSimpleSets(0); setShowSimpleLog(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work"); }, [blockIdx]);
@@ -642,10 +513,22 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const saveAndFinish = async () => {
     if (clientId) {
       const logsWithNames = {};
-      allExercises.forEach(e => { logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, weight: exLogs[e.id]?.weight || "", reps: exLogs[e.id]?.reps || "" }; });
+      allExercises.forEach(e => {
+        const expected = getExpectedSets(e);
+        const setsArr = exLogs[e.id]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" }));
+        logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, sets: setsArr };
+      });
       await supabase.from("session_logs").insert([{ client_id: clientId, workout_id: workout.id, workout_name: workout.name, date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote }]);
     }
     onFinish();
+  };
+
+  const setSetField = (exId, setIdx, field, value, expected) => {
+    setExLogs(prev => {
+      const current = prev[exId]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" }));
+      const next = current.map((s, i) => i === setIdx ? { ...s, [field]: value } : s);
+      return { ...prev, [exId]: { ...prev[exId], sets: next } };
+    });
   };
 
   if (done) return (
@@ -658,16 +541,25 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       <Card style={{ marginBottom: 16 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📝 NOTE SUR LA SÉANCE</div><TA placeholder="Comment c'était ?" value={globalNote} onChange={e => setGlobalNote(e.target.value)} style={{ minHeight: 100 }} /></Card>
       <Card style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 16 }}>MES PERFORMANCES</div>
-        {allExercises.map(ex => (
-          <div key={ex.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ fontWeight: 700, marginBottom: 6 }}>{ex.name || "—"}</div>
-            {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 6 }}>⚖️ {ex.suggested_weight} {ex.weight_type}</div>}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>POIDS</div><input type="text" placeholder="ex: 10 kg" value={exLogs[ex.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} /></div>
-              <div><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>REPS</div><input type="text" placeholder={ex.reps || "—"} value={exLogs[ex.id]?.reps || ""} onChange={e => setExLogs({ ...exLogs, [ex.id]: { ...exLogs[ex.id], reps: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} /></div>
+        {allExercises.map(ex => {
+          const expected = getExpectedSets(ex);
+          const sets = exLogs[ex.id]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" }));
+          return (
+            <div key={ex.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>{ex.name || "—"}</div>
+              {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 6 }}>⚖️ {ex.suggested_weight} {ex.weight_type}</div>}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {Array.from({ length: expected }, (_, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr 1fr", gap: 8, alignItems: "center" }}>
+                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textAlign: "center" }}>S{i + 1}</div>
+                    <input type="text" placeholder="ex: 10 kg" value={sets[i]?.weight || ""} onChange={e => setSetField(ex.id, i, "weight", e.target.value, expected)} style={{ ...inputSt, fontSize: 13 }} />
+                    <input type="text" placeholder={ex.reps || "reps"} value={sets[i]?.reps || ""} onChange={e => setSetField(ex.id, i, "reps", e.target.value, expected)} style={{ ...inputSt, fontSize: 13 }} />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </Card>
       <Btn onClick={saveAndFinish} style={{ marginBottom: 30 }}>💾 Enregistrer et terminer</Btn>
     </div>
@@ -738,9 +630,17 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
           <Card style={{ borderColor: C.green + "44" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ {currentBlock.name} terminé !</div>
             {currentBlock.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 10 }}>⚖️ {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-              <div><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>POIDS</div><input type="text" placeholder="ex: 10 kg" value={exLogs[currentBlock.id]?.weight || ""} onChange={e => setExLogs({ ...exLogs, [currentBlock.id]: { ...exLogs[currentBlock.id], weight: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} /></div>
-              <div><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>REPS</div><input type="text" placeholder={currentBlock.reps} value={exLogs[currentBlock.id]?.reps || ""} onChange={e => setExLogs({ ...exLogs, [currentBlock.id]: { ...exLogs[currentBlock.id], reps: e.target.value } })} style={{ ...inputSt, fontSize: 13 }} /></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+              {Array.from({ length: getExpectedSets(currentBlock) }, (_, i) => {
+                const sets = exLogs[currentBlock.id]?.sets || Array.from({ length: getExpectedSets(currentBlock) }, () => ({ weight: "", reps: "" }));
+                return (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr 1fr", gap: 8, alignItems: "center" }}>
+                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textAlign: "center" }}>S{i + 1}</div>
+                    <input type="text" placeholder="ex: 10 kg" value={sets[i]?.weight || ""} onChange={e => setSetField(currentBlock.id, i, "weight", e.target.value, getExpectedSets(currentBlock))} style={{ ...inputSt, fontSize: 13 }} />
+                    <input type="text" placeholder={currentBlock.reps} value={sets[i]?.reps || ""} onChange={e => setSetField(currentBlock.id, i, "reps", e.target.value, getExpectedSets(currentBlock))} style={{ ...inputSt, fontSize: 13 }} />
+                  </div>
+                );
+              })}
             </div>
             <Btn onClick={() => { setShowSimpleLog(false); goNextBlock(); }}>Continuer →</Btn>
           </Card>
@@ -839,7 +739,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   return null;
 };
 // ══════════════════════════════════════════════════════════════════════════════
-// PERF CARD
+// DATA HOOKS
 // ══════════════════════════════════════════════════════════════════════════════
 const useClients = () => {
   const [clients, setClients] = useState([]);
@@ -943,12 +843,16 @@ const useClientData = (clientId) => {
 
   return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment };
 };
-const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) => {
+const JournalForm = ({ entries, onSave, onBack, clientId }) => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
   const [mealNote, setMealNote] = useState("");
   const [photos, setPhotos] = useState([]);
+  const [caloriesTotal, setCaloriesTotal] = useState("");
+  const [proteinTotal, setProteinTotal] = useState("");
+  const [carbTotal, setCarbTotal] = useState("");
+  const [fatTotal, setFatTotal] = useState("");
   const [sessionStatus, setSessionStatus] = useState(null);
   const [sessionNote, setSessionNote] = useState("");
   const [hydration, setHydration] = useState("");
@@ -956,7 +860,6 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
   const [nap, setNap] = useState(null);
   const [hadDifficulty, setHadDifficulty] = useState(null);
   const [difficultyNote, setDifficultyNote] = useState("");
-  const [proteinEstimate, setProteinEstimate] = useState("");
   const [saving, setSaving] = useState(false);
 
   const existing = entries.find(e => e.date === selectedDate) || null;
@@ -965,15 +868,18 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
     if (existing) {
       setFeeling(existing.feeling || null); setSteps(existing.steps?.toString() || "");
       setMealNote(existing.meal_note || ""); setPhotos(existing.photos || []);
+      setCaloriesTotal(existing.calories_total?.toString() || ""); setProteinTotal(existing.protein_total?.toString() || "");
+      setCarbTotal(existing.carb_total?.toString() || ""); setFatTotal(existing.fat_total?.toString() || "");
       setSessionStatus(existing.session_status || null); setSessionNote(existing.session_note || "");
       setHydration(existing.hydration?.toString() || ""); setSleepHours(existing.sleep_hours?.toString() || "");
       setNap(existing.nap ?? null); setHadDifficulty(existing.had_difficulty ?? null);
-      setDifficultyNote(existing.difficulty_note || ""); setProteinEstimate(existing.protein_estimate || "");
+      setDifficultyNote(existing.difficulty_note || "");
     } else {
       setFeeling(null); setSteps(""); setMealNote(""); setPhotos([]);
+      setCaloriesTotal(""); setProteinTotal(""); setCarbTotal(""); setFatTotal("");
       setSessionStatus(null); setSessionNote(""); setHydration("");
       setSleepHours(""); setNap(null); setHadDifficulty(null);
-      setDifficultyNote(""); setProteinEstimate("");
+      setDifficultyNote("");
     }
   }, [selectedDate]);
 
@@ -1016,7 +922,16 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave({ date: selectedDate, steps: parseInt(steps) || 0, feeling: feeling || 3, meal_note: mealNote, photos, session_status: sessionStatus || "rest", session_note: sessionNote, hydration: parseFloat(hydration) || 0, sleep_hours: parseFloat(sleepHours) || 0, nap: nap || false, had_difficulty: hadDifficulty || false, difficulty_note: difficultyNote, protein_estimate: proteinEstimate });
+    await onSave({
+      date: selectedDate, steps: parseInt(steps) || 0, feeling: feeling || 3, meal_note: mealNote, photos,
+      calories_total: caloriesTotal ? parseInt(caloriesTotal) : null,
+      protein_total: proteinTotal ? parseFloat(proteinTotal) : null,
+      carb_total: carbTotal ? parseFloat(carbTotal) : null,
+      fat_total: fatTotal ? parseFloat(fatTotal) : null,
+      session_status: sessionStatus || "rest", session_note: sessionNote,
+      hydration: parseFloat(hydration) || 0, sleep_hours: parseFloat(sleepHours) || 0,
+      nap: nap || false, had_difficulty: hadDifficulty || false, difficulty_note: difficultyNote,
+    });
     setSaving(false); onBack();
   };
 
@@ -1070,15 +985,17 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
             {[true, false].map(val => (<button key={String(val)} onClick={() => setNap(val)} style={{ flex: 1, padding: 12, borderRadius: 12, border: `2px solid ${nap === val ? C.purple : C.border}`, background: nap === val ? C.purple + "22" : "#111", color: nap === val ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "😴 Oui" : "❌ Non"}</button>))}
           </div>
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>📷 Photos repas</div>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer" }}>
+
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🍽️ Alimentation du jour</div>
+          <TA label="Commentaire repas" placeholder="Ce que tu as mangé aujourd'hui, ressenti, écarts..." value={mealNote} onChange={e => setMealNote(e.target.value)} style={{ marginBottom: 14 }} />
+          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer", marginBottom: 14 }}>
             <span style={{ fontSize: 20 }}>📷</span>
             <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter des photos repas</div><div style={{ fontSize: 11, color: C.textMuted }}>Pellicule ou appareil photo</div></div>
             <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handlePhoto} />
           </label>
           {photos.length > 0 && (
-            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
               {photos.map((p, i) => (
                 <div key={i} style={{ position: "relative" }}>
                   <img src={p} alt="" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 10 }} />
@@ -1087,7 +1004,15 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
               ))}
             </div>
           )}
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Totaux du jour (si tu les connais)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Inp label="Calories (kcal)" type="number" inputMode="numeric" placeholder="ex: 1750" value={caloriesTotal} onChange={e => setCaloriesTotal(e.target.value)} />
+            <Inp label="Protéines (g)" type="number" inputMode="numeric" placeholder="ex: 110" value={proteinTotal} onChange={e => setProteinTotal(e.target.value)} />
+            <Inp label="Glucides (g)" type="number" inputMode="numeric" placeholder="ex: 180" value={carbTotal} onChange={e => setCarbTotal(e.target.value)} />
+            <Inp label="Lipides (g)" type="number" inputMode="numeric" placeholder="ex: 60" value={fatTotal} onChange={e => setFatTotal(e.target.value)} />
+          </div>
         </div>
+
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Séance du jour</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1109,9 +1034,8 @@ const JournalForm = ({ entries, onSave, onBack, proteinTarget = 0, clientId }) =
     </div>
   );
 };
-
 // ══════════════════════════════════════════════════════════════════════════════
-// PERF CARD
+// PERF CARD — une ligne par série
 // ══════════════════════════════════════════════════════════════════════════════
 const PerfCard = ({ log, workout }) => {
   let exLogs = {};
@@ -1123,8 +1047,10 @@ const PerfCard = ({ log, workout }) => {
       const match = allEx.find(e => e.id === key) || workout.exercises?.find(e => e.id === key);
       name = match?.name || "—";
     }
-    return { ...exLog, name: name || "—" };
-  });
+    // Compat ancien format (weight/reps uniques) -> on le transforme en 1 ligne
+    const sets = exLog.sets && exLog.sets.length > 0 ? exLog.sets : (exLog.weight || exLog.reps ? [{ weight: exLog.weight, reps: exLog.reps }] : []);
+    return { ...exLog, name: name || "—", sets };
+  }).filter(l => l.sets.some(s => s.weight || s.reps));
   return (
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
@@ -1134,18 +1060,28 @@ const PerfCard = ({ log, workout }) => {
       {enrichedLogs.length > 0 && (
         <div style={{ marginBottom: log.note ? 14 : 0 }}>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 }}>DÉTAIL DES EXERCICES</div>
-          {enrichedLogs.filter(l => l.weight || l.reps).map((exLog, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 6 }}>
-              <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 13, marginBottom: 2 }}>{exLog.name}</div>{exLog.suggested_weight && <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>}</div>
-              <div style={{ display: "flex", gap: 12 }}>
-                {exLog.weight && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>POIDS</div><div style={{ fontWeight: 800, color: C.pink, fontSize: 14 }}>{exLog.weight}</div></div>}
-                {exLog.reps && <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 1 }}>REPS</div><div style={{ fontWeight: 800, color: C.purple, fontSize: 14 }}>{exLog.reps}</div></div>}
+          {enrichedLogs.map((exLog, i) => (
+            <div key={i} style={{ padding: "10px 12px", background: "#111", borderRadius: 10, marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{exLog.name}</div>
+                {exLog.suggested_weight && <div style={{ fontSize: 11, color: C.textMuted }}>Suggéré : {exLog.suggested_weight} {exLog.weight_type}</div>}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {exLog.sets.map((s, si) => (s.weight || s.reps) && (
+                  <div key={si} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 8px", background: "#1a1a1a", borderRadius: 8 }}>
+                    <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 700 }}>Série {si + 1}</span>
+                    <div style={{ display: "flex", gap: 12 }}>
+                      {s.weight && <span style={{ fontSize: 13, fontWeight: 800, color: C.pink }}>{s.weight}</span>}
+                      {s.reps && <span style={{ fontSize: 13, fontWeight: 800, color: C.purple }}>{s.reps} reps</span>}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
-          {enrichedLogs.filter(l => l.weight || l.reps).length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucune performance saisie</div>}
         </div>
       )}
+      {enrichedLogs.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucune performance saisie</div>}
       {log.note && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {log.note}</div>}
     </Card>
   );
@@ -1165,6 +1101,16 @@ const EntryDetail = ({ entry, onBack }) => (
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💧 HYDRATATION</div><div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{entry.hydration || "—"} L</div></div>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>😴 SOMMEIL</div><div style={{ fontSize: 20, fontWeight: 900 }}>{entry.sleep_hours || "—"}h{entry.nap ? <span style={{ fontSize: 13, color: C.purple }}> · sieste</span> : ""}</div></div>
     </div>
+    {(entry.calories_total || entry.protein_total || entry.carb_total || entry.fat_total) && (
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>🍽️ TOTAUX ALIMENTAIRES</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+          {[{ l: "KCAL", v: entry.calories_total, c: C.yellow, u: "" }, { l: "PROT", v: entry.protein_total, c: C.green, u: "g" }, { l: "GLUC", v: entry.carb_total, c: C.blue, u: "g" }, { l: "LIP", v: entry.fat_total, c: C.pink, u: "g" }].map(s => (
+            <div key={s.l} style={{ background: "#111", borderRadius: 10, padding: "8px 4px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 900, color: s.c }}>{s.v != null ? `${s.v}${s.u}` : "—"}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>{s.l}</div></div>
+          ))}
+        </div>
+      </div>
+    )}
     {entry.meal_note && <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>🍽️ REPAS</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.meal_note}</div></div>}
     {entry.photos && entry.photos.length > 0 && (
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
@@ -1189,12 +1135,18 @@ const EntryCard = ({ e, onClick }) => (
         <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
       </div>
     </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: e.photos?.length > 0 || e.meal_note || e.had_difficulty || e.coach_message ? 12 : 0 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: e.photos?.length > 0 || e.meal_note || e.had_difficulty || e.coach_message || e.calories_total ? 12 : 0 }}>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>PAS</div><div style={{ fontSize: 18, fontWeight: 900, color: C.pink }}>{(e.steps || 0).toLocaleString()}</div></div>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SÉANCE</div><div style={{ fontWeight: 700, fontSize: 13, color: sessionColor(e.session_status) }}>{sessionLabel(e.session_status)}</div></div>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>HYDRATATION</div><div style={{ fontSize: 18, fontWeight: 900, color: C.blue }}>{e.hydration || "—"} L</div></div>
       <div style={{ background: "#111", borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SOMMEIL</div><div style={{ fontSize: 15, fontWeight: 700 }}>{e.sleep_hours || "—"}h {e.nap ? "· 😴" : ""}</div></div>
     </div>
+    {e.calories_total != null && <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+      <Badge color={C.yellow}>{e.calories_total} kcal</Badge>
+      {e.protein_total != null && <Badge color={C.green}>💪 {e.protein_total}g</Badge>}
+      {e.carb_total != null && <Badge color={C.blue}>🌾 {e.carb_total}g</Badge>}
+      {e.fat_total != null && <Badge color={C.pink}>🥑 {e.fat_total}g</Badge>}
+    </div>}
     {e.photos && e.photos.length > 0 && <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>{e.photos.slice(0, 3).map((p, i) => <img key={i} src={p} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8 }} />)}{e.photos.length > 3 && <div style={{ width: 60, height: 60, borderRadius: 8, background: "#111", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.textMuted }}>+{e.photos.length - 3}</div>}</div>}
     {e.meal_note && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}><span style={{ color: C.white, fontWeight: 700 }}>Repas : </span>{e.meal_note.length > 80 ? e.meal_note.slice(0, 80) + "..." : e.meal_note}</div>}
     {e.had_difficulty && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: 10, marginBottom: 8 }}><div style={{ fontSize: 11, color: C.orange, fontWeight: 700, marginBottom: 4 }}>⚠️ DIFFICULTÉ</div><div style={{ fontSize: 13 }}>{e.difficulty_note}</div></div>}
@@ -1285,73 +1237,88 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
     </div>
   );
 };
+// ══════════════════════════════════════════════════════════════════════════════
+// WORKOUT CARD (liste des séances coach + assignation directe)
+// ══════════════════════════════════════════════════════════════════════════════
+const WorkoutCard = ({ workout: w, clients, onEdit, onDelete }) => {
+  const [assignments, setAssignments] = useState([]);
+  const [showAssign, setShowAssign] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-const NutritionDayHistory = ({ logs }) => {
-  const [openDay, setOpenDay] = useState(null);
-  const last7 = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().slice(0, 10); });
+  useEffect(() => {
+    supabase.from("client_workouts").select("client_id").eq("workout_id", w.id).then(({ data }) => setAssignments((data || []).map(x => x.client_id)));
+  }, [w.id]);
+
+  const toggle = async (clientId) => {
+    const has = assignments.includes(clientId);
+    if (has) {
+      await supabase.from("client_workouts").delete().eq("workout_id", w.id).eq("client_id", clientId);
+      setAssignments(prev => prev.filter(id => id !== clientId));
+    } else {
+      await supabase.from("client_workouts").insert([{ workout_id: w.id, client_id: clientId, scheduled_date: null }]);
+      setAssignments(prev => [...prev, clientId]);
+    }
+  };
+
+  const assignedClients = clients.filter(c => assignments.includes(c.id));
+
   return (
-    <Card>
-      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>HISTORIQUE 7 JOURS</div>
-      {last7.map(d => {
-        const dayLogs = logs.filter(l => l.date === d);
-        if (dayLogs.length === 0) return null;
-        const t = sumMacros(dayLogs);
-        const isOpen = openDay === d;
-        return (
-          <div key={d} style={{ borderBottom: `1px solid ${C.border}` }}>
-            <div onClick={() => setOpenDay(isOpen ? null : d)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", cursor: "pointer" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: isOpen ? C.pink : C.textMuted, fontWeight: isOpen ? 700 : 400 }}>{formatDate(d)}</span>
-                <span style={{ fontSize: 10, color: C.textMuted }}>({dayLogs.length} aliments)</span>
-              </div>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: C.yellow, fontWeight: 700 }}>{Math.round(t.kcal)} kcal</span>
-                <span style={{ fontSize: 12, color: C.green }}>💪 {Math.round(t.prot)}g</span>
-                <span style={{ fontSize: 12, color: C.textMuted }}>{isOpen ? "▲" : "▼"}</span>
-              </div>
-            </div>
-            {isOpen && (
-              <div style={{ paddingBottom: 10 }}>
-                {MEALS.map((mealLabel, mi) => {
-                  const mealLogs = dayLogs.filter(l => l.meal_idx === mi);
-                  if (mealLogs.length === 0) return null;
-                  const mealTotal = sumMacros(mealLogs);
-                  return (
-                    <div key={mi} style={{ marginBottom: 8 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                        <span style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{mealLabel}</span>
-                        <span style={{ fontSize: 10, color: C.yellow }}>{Math.round(mealTotal.kcal)} kcal</span>
-                      </div>
-                      {mealLogs.map((e, j) => {
-                        const m = getMacros(e);
-                        return (
-                          <div key={j} style={{ display: "flex", justifyContent: "space-between", padding: "5px 10px", background: "#111", borderRadius: 8, marginBottom: 3 }}>
-                            <span style={{ fontSize: 12, color: C.white }}>{e.name} <span style={{ color: C.textMuted, fontSize: 10 }}>{e.manual_macros ? "libre" : e.quantity_label || `${e.grams}g`}</span></span>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <span style={{ fontSize: 11, color: C.yellow, fontWeight: 700 }}>{m.kcal} kcal</span>
-                              <span style={{ fontSize: 11, color: C.green }}>💪{m.prot}g</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-                <div style={{ display: "flex", gap: 10, marginTop: 8, padding: "8px 10px", background: C.pink + "11", borderRadius: 8 }}>
-                  {[{ label: "KCAL", val: Math.round(t.kcal), color: C.yellow }, { label: "PROT", val: `${Math.round(t.prot)}g`, color: C.green }, { label: "GLUC", val: `${Math.round(t.carb)}g`, color: C.blue }, { label: "LIP", val: `${Math.round(t.fat)}g`, color: C.pink }].map(s => (
-                    <div key={s.label} style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 13, fontWeight: 900, color: s.color }}>{s.val}</div><div style={{ fontSize: 9, color: C.textMuted }}>{s.label}</div></div>
-                  ))}
+    <Card style={{ marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{w.name}</div>
+          {w.description && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 6 }}>{w.description}</div>}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn small variant="secondary" onClick={onEdit} style={{ width: "auto" }}>✏️</Btn>
+          <Btn small variant="danger" onClick={onDelete} style={{ width: "auto" }}>🗑️</Btn>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <Badge color={C.orange}>{(w.blocks?.length || w.exercises?.length || 0)} exercices</Badge>
+        <Badge color={C.purple}>{(w.blocks?.length > 0 ? w.blocks.filter(b => b.type === "exercise").reduce((a, b) => a + (b.sets || 0), 0) : w.exercises?.reduce((a, e) => a + (e.sets || 0), 0)) || 0} séries</Badge>
+      </div>
+      {/* Clientes assignées */}
+      {assignedClients.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+          {assignedClients.map(c => (
+            <span key={c.id} style={{ background: C.green + "22", color: C.green, borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>✓ {c.name.split(" ")[0]}</span>
+          ))}
+        </div>
+      )}
+      {/* Bouton assignation */}
+      <button
+        onClick={() => setShowAssign(v => !v)}
+        style={{ background: showAssign ? C.pink + "22" : "#111", border: `1px solid ${showAssign ? C.pink : C.border}`, color: showAssign ? C.pink : C.textMuted, borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%" }}
+      >
+        {showAssign ? "✕ Fermer" : `👩 Assigner à des clientes (${assignments.length}/${clients.length})`}
+      </button>
+      {showAssign && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+          {clients.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: 10 }}>Aucune cliente active</div>}
+          {clients.map(c => {
+            const assigned = assignments.includes(c.id);
+            return (
+              <div key={c.id} onClick={() => toggle(c.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: assigned ? C.green + "12" : "#111", border: `1px solid ${assigned ? C.green + "44" : C.border}`, borderRadius: 10, cursor: "pointer" }}>
+                <Avatar initials={c.avatar} size={28} color={C.pink} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.white }}>{c.name}</div>
+                </div>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", background: assigned ? C.green : "#222", border: `2px solid ${assigned ? C.green : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.black, fontWeight: 900 }}>
+                  {assigned ? "✓" : ""}
                 </div>
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
     </Card>
   );
 };
+
 // ══════════════════════════════════════════════════════════════════════════════
-// COACH APP — avec chat intégré
+// COACH APP
+// ══════════════════════════════════════════════════════════════════════════════
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
   const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout } = useWorkouts();
@@ -1362,7 +1329,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [buildingWorkout, setBuildingWorkout] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "", carb_target: "", fat_target: "" });
+  const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
   const [addingClient, setAddingClient] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [sessionLogs, setSessionLogs] = useState([]);
@@ -1372,65 +1339,49 @@ const CoachApp = ({ user, onLogout }) => {
   const [paymentNote, setPaymentNote] = useState("");
   const [addingPayment, setAddingPayment] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  const [clientNutritionLogs, setClientNutritionLogs] = useState([]);
-  const [showNutritionReport, setShowNutritionReport] = useState(false);
   const [showPauseModal, setShowPauseModal] = useState(false);
-  const [sharedMonths, setSharedMonths] = useState({});
-  // Chat state
-  const [showChat, setShowChat] = useState(false);
-  // Compteurs messages non-lus par cliente { [clientId]: number }
-  const [unreadCounts, setUnreadCounts] = useState({});
-  const audioRef = useRef(null);
+
+  const [todayEntries, setTodayEntries] = useState([]);
+  const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
   const client = clients.find(c => c.id === selected);
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
-  const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5; });
-  const totalUnread = Object.values(unreadCounts).reduce((s, n) => s + n, 0);
+  // Exclure les clientes en pause des alertes paiement
+  const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5 && !c.is_paused; });
 
-  // Abonnement global — écoute tous les messages entrants de toutes les clientes
+  // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
+  const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
+
+  // Chargement des entrées du jour + abonnement temps réel
   useEffect(() => {
-    const channel = supabase
-      .channel("coach_global_messages")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
-        (payload) => {
-          const msg = payload.new;
-          // Seulement les messages envoyés par les clientes (sender = "client")
-          if (msg.sender !== "client") return;
-          // Si le chat est ouvert sur cette cliente, pas de badge
-          if (showChat && selected === msg.client_id) return;
-          setUnreadCounts(prev => ({ ...prev, [msg.client_id]: (prev[msg.client_id] || 0) + 1 }));
-          // Son de notification (bip léger)
-          try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.value = 880; osc.type = "sine";
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
-          } catch {}
+    supabase.from("entries").select("client_id, date").eq("date", today).then(({ data }) => setTodayEntries(data || []));
+    const channel = supabase.channel("coach_entries_today")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "entries" }, (payload) => {
+        if (payload.new.date !== today) return;
+        setTodayEntries(prev => prev.some(e => e.client_id === payload.new.client_id) ? prev : [...prev, payload.new]);
+        // Notification navigateur coach
+        const newClient = clients.find(c => c.id === payload.new.client_id);
+        if (newClient) {
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            new Notification("process lab. 📋", { body: `${newClient.name} vient de remplir son journal !`, icon: "/icon.png" });
+          }
         }
-      ).subscribe();
+      })
+      .subscribe();
     return () => supabase.removeChannel(channel);
-  }, [showChat, selected]);
+  }, [clients]);
 
-  // Réinitialiser les non-lus quand on ouvre le chat d'une cliente
-  useEffect(() => {
-    if (showChat && selected) {
-      setUnreadCounts(prev => ({ ...prev, [selected]: 0 }));
-    }
-  }, [showChat, selected]);
+  const requestCoachNotifs = async () => {
+    if (!("Notification" in window)) return alert("Notifications non supportées sur ce navigateur.");
+    const perm = await Notification.requestPermission();
+    if (perm === "granted") { setNotifGranted(true); new Notification("process lab. ✅", { body: "Tu seras notifiée dès qu'une cliente remplit son journal !", icon: "/icon.png" }); }
+  };
 
   useEffect(() => {
     if (selected) {
       supabase.from("session_logs").select("*").eq("client_id", selected).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || []));
-      supabase.from("nutrition_logs").select("*").eq("client_id", selected).order("created_at").then(({ data }) => setClientNutritionLogs(data || []));
     }
   }, [selected]);
-
-  // Fermer le chat quand on change de cliente
-  useEffect(() => { setShowChat(false); }, [selected]);
 
   const handleAddClient = async () => {
     if (!newClientForm.name || !newClientForm.email || !newClientForm.password) return alert("Remplis au minimum le nom, l'email et le mot de passe.");
@@ -1439,9 +1390,9 @@ const CoachApp = ({ user, onLogout }) => {
     if (authErr) { alert("Erreur : " + authErr.message); setAddingClient(false); return; }
     const userId = authData.user?.id;
     const avatar = newClientForm.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, calories_target: parseInt(newClientForm.calories_target) || 0, protein_target: parseInt(newClientForm.protein_target) || 0, carb_target: parseInt(newClientForm.carb_target) || 0, fat_target: parseInt(newClientForm.fat_target) || 0, streak: 0, today_done: false, user_id: userId });
+    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, streak: 0, today_done: false, user_id: userId });
     setAddingClient(false); setShowAddClient(false);
-    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "", calories_target: "", protein_target: "", carb_target: "", fat_target: "" });
+    setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
     alert(`✅ Compte créé !\n\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
   };
 
@@ -1465,15 +1416,6 @@ const CoachApp = ({ user, onLogout }) => {
     setMsgText(""); alert("✅ Message envoyé !");
   };
 
-  const handleShareMonth = (clientId, monthKey) => {
-    setSharedMonths(prev => ({ ...prev, [clientId]: [...(prev[clientId] || []), monthKey] }));
-    alert("✅ Bilan partagé avec la cliente !");
-  };
-
-  if (showNutritionReport && client) return (
-    <NutritionReport client={client.name} clientInfo={client} nutritionLogs={clientNutritionLogs} isCoach={true} onShare={(mk) => handleShareMonth(client.id, mk)} onClose={() => setShowNutritionReport(false)} sharedMonths={sharedMonths[client.id] || []} />
-  );
-
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} />;
 
   if (buildingWorkout || editingWorkout) return (
@@ -1488,27 +1430,9 @@ const CoachApp = ({ user, onLogout }) => {
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <Logo />
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {/* Bouton chat global avec badge total non-lus */}
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => {
-                if (!client && clients.length > 0) {
-                  const withUnread = clients.find(c => unreadCounts[c.id] > 0);
-                  const target = withUnread || clients[0];
-                  setSelected(target.id); setMainTab("client"); setClientTab("journal");
-                }
-                setShowChat(v => !v);
-              }}
-              style={{ background: showChat ? C.pink + "22" : totalUnread > 0 ? C.pink + "15" : "#222", border: `1.5px solid ${showChat ? C.pink : totalUnread > 0 ? C.pink : C.border}`, color: showChat ? C.pink : totalUnread > 0 ? C.pink : C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}
-            >
-              💬 Chat
-            </button>
-            {totalUnread > 0 && !showChat && (
-              <div style={{ position: "absolute", top: -6, right: -6, minWidth: 18, height: 18, background: C.red, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: C.white, padding: "0 4px" }}>
-                {totalUnread}
-              </div>
-            )}
-          </div>
+          {!notifGranted && (
+            <button onClick={requestCoachNotifs} style={{ background: C.orange + "22", border: `1px solid ${C.orange}44`, color: C.orange, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>🔔 Activer notifs</button>
+          )}
           <span style={{ fontSize: 11, color: C.textMuted, background: C.card, padding: "4px 10px", borderRadius: 6 }}>Coach</span>
           <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
         </div>
@@ -1530,8 +1454,8 @@ const CoachApp = ({ user, onLogout }) => {
             const ClientRow = (c) => (
               <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); setClientTab("journal"); }} style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: selected === c.id ? C.pink + "15" : "transparent", borderLeft: `3px solid ${selected === c.id ? C.pink : "transparent"}`, opacity: c.is_paused ? 0.65 : 1 }}>
                 <div style={{ position: "relative" }}>
-                  <Avatar initials={c.avatar} size={28} color={c.is_paused ? C.orange : c.today_done ? C.pink : C.muted} />
-                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 7, height: 7, borderRadius: "50%", background: c.today_done ? C.green : C.red, border: `2px solid ${C.black}` }} />
+                  <Avatar initials={c.avatar} size={28} color={c.is_paused ? C.orange : isDoneToday(c.id) ? C.pink : C.muted} />
+                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 7, height: 7, borderRadius: "50%", background: isDoneToday(c.id) ? C.green : C.red, border: `2px solid ${C.black}` }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.is_paused ? C.textMuted : C.white }}>{c.name}</div>
@@ -1539,11 +1463,6 @@ const CoachApp = ({ user, onLogout }) => {
                     {c.is_paused ? "⏸ Pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}
                   </div>
                 </div>
-                {unreadCounts[c.id] > 0 && (
-                  <div style={{ minWidth: 16, height: 16, background: C.red, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: C.white, padding: "0 3px", flexShrink: 0 }}>
-                    {unreadCounts[c.id]}
-                  </div>
-                )}
               </div>
             );
             return (
@@ -1565,7 +1484,7 @@ const CoachApp = ({ user, onLogout }) => {
         </div>
 
         {/* MAIN CONTENT */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 24, marginRight: showChat ? 340 : 0, transition: "margin-right 0.3s" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
           {mainTab === "dashboard" && !selected && (
             <div>
               <h1 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 20px" }}>Tableau de bord 👋</h1>
@@ -1576,19 +1495,19 @@ const CoachApp = ({ user, onLogout }) => {
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
-                {[{ label: "Journal today", val: `${clients.filter(c => c.today_done).length}/${clients.length}`, color: C.pink }, { label: "Séances créées", val: workouts.length, color: C.orange }, { label: "Clientes actives", val: clients.length, color: C.green }].map(s => (
+                {[{ label: "Journal today", val: `${clients.filter(c => isDoneToday(c.id)).length}/${clients.filter(c => !c.is_paused).length}`, color: C.pink }, { label: "Séances créées", val: workouts.length, color: C.orange }, { label: "Clientes actives", val: clients.filter(c => !c.is_paused).length, color: C.green }].map(s => (
                   <Card key={s.label}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>{s.label}</div><div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.val}</div></Card>
                 ))}
               </div>
               <Card>
                 <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>JOURNAL DU JOUR</div>
                 {clients.length === 0 && <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune cliente. Clique sur "+" pour en ajouter une.</p>}
-                {clients.map(c => (
+                {clients.filter(c => !c.is_paused).map(c => (
                   <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
-                    <Avatar initials={c.avatar} size={32} color={c.today_done ? C.pink : C.muted} />
+                    <Avatar initials={c.avatar} size={32} color={isDoneToday(c.id) ? C.pink : C.muted} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 13 }}>{c.name}</div>
-                      {c.today_done ? <div style={{ fontSize: 12, color: C.textMuted }}>✅ Journal rempli</div> : <div style={{ fontSize: 12, color: C.red }}>Pas encore rempli</div>}
+                      {isDoneToday(c.id) ? <div style={{ fontSize: 12, color: C.green }}>✅ Journal rempli aujourd'hui</div> : <div style={{ fontSize: 12, color: C.red }}>Pas encore rempli</div>}
                     </div>
                   </div>
                 ))}
@@ -1603,19 +1522,13 @@ const CoachApp = ({ user, onLogout }) => {
                 <Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Nouvelle séance</Btn>
               </div>
               {loadingWorkouts ? <Spinner /> : workouts.map(w => (
-                <Card key={w.id} style={{ marginBottom: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                    <div><div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{w.name}</div>{w.description && <div style={{ fontSize: 13, color: C.textMuted }}>{w.description}</div>}</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <Btn small variant="secondary" onClick={() => setEditingWorkout(w)} style={{ width: "auto" }}>✏️</Btn>
-                      <Btn small variant="danger" onClick={() => deleteWorkout(w.id)} style={{ width: "auto" }}>🗑️</Btn>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <Badge color={C.orange}>{(w.blocks?.length || w.exercises?.length || 0)} exercices</Badge>
-                    <Badge color={C.purple}>{(w.blocks?.length > 0 ? w.blocks.filter(b => b.type === "exercise").reduce((a, b) => a + (b.sets || 0), 0) : w.exercises?.reduce((a, e) => a + (e.sets || 0), 0)) || 0} séries</Badge>
-                  </div>
-                </Card>
+                <WorkoutCard
+                  key={w.id}
+                  workout={w}
+                  clients={clients.filter(c => !c.is_paused)}
+                  onEdit={() => setEditingWorkout(w)}
+                  onDelete={() => deleteWorkout(w.id)}
+                />
               ))}
             </div>
           )}
@@ -1639,7 +1552,7 @@ const CoachApp = ({ user, onLogout }) => {
                 </button>
               </div>
 
-              <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["nutrition", "🍽️ Nutrition"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
+              <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
 
               {clientTab === "journal" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1692,34 +1605,6 @@ const CoachApp = ({ user, onLogout }) => {
               {clientTab === "perf" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {loadingData ? <Spinner /> : sessionLogs.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance enregistrée.</p></Card> : sessionLogs.map((log, i) => <PerfCard key={i} log={log} workout={workouts.find(w => w.id === log.workout_id)} />)}
-                </div>
-              )}
-
-              {clientTab === "nutrition" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ fontSize: 13, color: C.textMuted }}>Logs nutrition de {client.name}</div>
-                    <button onClick={() => setShowNutritionReport(true)} style={{ background: C.pink, border: "none", color: C.black, borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📊 Bilan mensuel</button>
-                  </div>
-                  {(() => {
-                    const todayLogs = clientNutritionLogs.filter(l => l.date === today);
-                    const totals = sumMacros(todayLogs);
-                    const goals = { kcal: client.calories_target || 1800, prot: client.protein_target || 100, carb: client.carb_target || 180, fat: client.fat_target || 60 };
-                    return (
-                      <Card>
-                        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AUJOURD'HUI — {todayLogs.length} aliments saisis</div>
-                        {todayLogs.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Rien de saisi aujourd'hui.</p> : (
-                          <>
-                            <MacroBar label="Calories" value={Math.round(totals.kcal)} max={goals.kcal} color={C.yellow} unit=" kcal" />
-                            <MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} />
-                            <MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} />
-                            <MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} />
-                          </>
-                        )}
-                      </Card>
-                    );
-                  })()}
-                  <NutritionDayHistory logs={clientNutritionLogs} />
                 </div>
               )}
 
@@ -1795,19 +1680,6 @@ const CoachApp = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {/* CHAT SIDEBAR COACH — s'ouvre sur la cliente sélectionnée */}
-      {showChat && (
-        <ChatSidebar
-          clientId={selected}
-          clientName={clients.find(c => c.id === selected)?.name || (clients[0]?.name || "Cliente")}
-          senderRole="coach"
-          onClose={() => setShowChat(false)}
-          allClients={clients}
-          onSelectClient={(cid) => { setSelected(cid); setMainTab("client"); setClientTab("journal"); }}
-          unreadCounts={unreadCounts}
-        />
-      )}
-
       {/* MODALS */}
       {showAddClient && (
         <div style={{ position: "fixed", inset: 0, background: "#000c", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
@@ -1823,15 +1695,6 @@ const CoachApp = ({ user, onLogout }) => {
               <Inp label="Montant toutes les 4 semaines (€)" type="number" placeholder="150" value={newClientForm.monthly_amount} onChange={e => setNewClientForm({ ...newClientForm, monthly_amount: e.target.value })} />
               <Inp label="Date de début" type="date" value={newClientForm.start_date} onChange={e => setNewClientForm({ ...newClientForm, start_date: e.target.value })} />
               <Inp label="Premier paiement dû le" type="date" value={newClientForm.next_payment} onChange={e => setNewClientForm({ ...newClientForm, next_payment: e.target.value })} />
-              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
-                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🍽️ OBJECTIFS NUTRITIONNELS (optionnel)</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <Inp label="Calories / jour" type="number" placeholder="ex: 1800" value={newClientForm.calories_target} onChange={e => setNewClientForm({ ...newClientForm, calories_target: e.target.value })} />
-                  <Inp label="Protéines / jour (g)" type="number" placeholder="ex: 100" value={newClientForm.protein_target} onChange={e => setNewClientForm({ ...newClientForm, protein_target: e.target.value })} />
-                  <Inp label="Glucides / jour (g)" type="number" placeholder="ex: 180" value={newClientForm.carb_target} onChange={e => setNewClientForm({ ...newClientForm, carb_target: e.target.value })} />
-                  <Inp label="Lipides / jour (g)" type="number" placeholder="ex: 60" value={newClientForm.fat_target} onChange={e => setNewClientForm({ ...newClientForm, fat_target: e.target.value })} />
-                </div>
-              </div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <Btn variant="secondary" onClick={() => setShowAddClient(false)} style={{ flex: 1 }}>Annuler</Btn>
@@ -1842,16 +1705,14 @@ const CoachApp = ({ user, onLogout }) => {
       )}
       {editingClient && <EditClientModal client={editingClient} onSave={handleSaveClient} onDelete={handleDeleteClient} onClose={() => setEditingClient(null)} />}
       {showPauseModal && client && <PauseModal client={client} onClose={() => setShowPauseModal(false)} onUpdate={async () => {
-        // Re-fetch le client depuis Supabase pour avoir les vraies données à jour
         const { data } = await supabase.from("clients").select("*").eq("id", client.id).single();
         if (data) updateClient(client.id, data);
       }} />}
     </div>
   );
 };
-
 // ══════════════════════════════════════════════════════════════════════════════
-// CLIENT APP — avec bulle chat flottante
+// CLIENT APP
 // ══════════════════════════════════════════════════════════════════════════════
 const ClientApp = ({ user, onLogout }) => {
   const [clientInfo, setClientInfo] = useState(null);
@@ -1866,9 +1727,6 @@ const ClientApp = ({ user, onLogout }) => {
   const [newMeasure, setNewMeasure] = useState({ chest: "", waist: "", hips: "", thighs: "" });
   const [newPhotoNote, setNewPhotoNote] = useState("");
   const [notifEnabled, setNotifEnabled] = useState(typeof Notification !== "undefined" && Notification?.permission === "granted");
-  // Chat state
-  const [showChat, setShowChat] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     supabase.from("clients").select("*").eq("user_id", user.id).single().then(({ data }) => {
@@ -1881,40 +1739,6 @@ const ClientApp = ({ user, onLogout }) => {
       supabase.from("session_logs").select("*").eq("client_id", clientId).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || []));
     }
   }, [clientId]);
-
-  // Écouter les nouveaux messages coach quand le chat est fermé
-  useEffect(() => {
-    if (!clientId || showChat) return;
-    const channel = supabase
-      .channel(`unread_${clientId}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `client_id=eq.${clientId}`,
-      }, (payload) => {
-        if (payload.new.sender === "coach") {
-          setUnreadCount(n => n + 1);
-          // Son de notification
-          try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.value = 660; osc.type = "sine";
-            gain.gain.setValueAtTime(0.25, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
-          } catch {}
-          // Notification navigateur si autorisée
-          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-            new Notification("process lab. 💬", { body: "Nouveau message de ton coach !", icon: "/icon.png" });
-          }
-        }
-      })
-      .subscribe();
-    return () => supabase.removeChannel(channel);
-  }, [clientId, showChat]);
 
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientId);
 
@@ -1946,12 +1770,11 @@ const ClientApp = ({ user, onLogout }) => {
   };
 
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} />;
-  if (screen === "nutrition") return <NutritionTracker clientId={clientId} clientInfo={clientInfo} onBack={() => setScreen("home")} />;
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => { setActiveWorkout(null); supabase.from("session_logs").select("*").eq("client_id", clientId).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || [])); }} clientId={clientId} sessionLogs={sessionLogs} />;
 
   if (screen === "journal") {
     if (!clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
-    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} proteinTarget={clientInfo?.protein_target || 0} clientId={clientId} />;
+    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} clientId={clientId} />;
   }
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
@@ -2002,32 +1825,6 @@ const ClientApp = ({ user, onLogout }) => {
         <Logo />
         <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
       </div>
-
-      {/* CHAT SIDEBAR CLIENT */}
-      {showChat && clientId && (
-        <ChatSidebar
-          clientId={clientId}
-          clientName="Mon Coach"
-          senderRole="client"
-          onClose={() => { setShowChat(false); setUnreadCount(0); }}
-          onUnreadChange={() => setUnreadCount(0)}
-        />
-      )}
-
-      {/* Bulle chat flottante */}
-      {!showChat && (
-        <button
-          onClick={() => { setShowChat(true); setUnreadCount(0); }}
-          style={{ position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%", background: C.pink, border: "none", cursor: "pointer", zIndex: 40, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 20px rgba(232,135,156,0.4)" }}
-        >
-          💬
-          {unreadCount > 0 && (
-            <div style={{ position: "absolute", top: -4, right: -4, width: 20, height: 20, borderRadius: "50%", background: C.red, border: `2px solid ${C.black}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: C.white }}>
-              {unreadCount}
-            </div>
-          )}
-        </button>
-      )}
 
       <div style={{ padding: 20 }}>
         <div style={{ marginBottom: 22 }}>
@@ -2096,7 +1893,7 @@ const ClientApp = ({ user, onLogout }) => {
                   {myLogs.length > 0 && (
                     <div style={{ background: C.purple + "12", borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}>
                       <div style={{ fontSize: 11, color: C.purple, fontWeight: 700, marginBottom: 6 }}>📊 DERNIÈRE FOIS — {formatDate(myLogs[0].date)}</div>
-                      {(() => { let logs = {}; try { logs = JSON.parse(myLogs[0].exercise_logs || "{}"); } catch {} return Object.values(logs).slice(0, 3).map((l, i) => l.weight || l.reps ? <div key={i} style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}><span style={{ color: C.white, fontWeight: 600 }}>{l.name}</span> {l.weight ? `· ${l.weight}` : ""} {l.reps ? `· ${l.reps} reps` : ""}</div> : null); })()}
+                      {(() => { let logs = {}; try { logs = JSON.parse(myLogs[0].exercise_logs || "{}"); } catch {} return Object.values(logs).slice(0, 3).map((l, i) => { const s0 = (l.sets && l.sets[0]) || l; return (s0.weight || s0.reps) ? <div key={i} style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}><span style={{ color: C.white, fontWeight: 600 }}>{l.name}</span> {s0.weight ? `· ${s0.weight}` : ""} {s0.reps ? `· ${s0.reps} reps` : ""}</div> : null; }); })()}
                       <button onClick={() => setViewingWorkoutPerfs(w)} style={{ fontSize: 12, color: C.purple, background: "none", border: "none", cursor: "pointer", fontWeight: 700, marginTop: 4, padding: 0 }}>Voir tout l'historique →</button>
                     </div>
                   )}
@@ -2113,10 +1910,9 @@ const ClientApp = ({ user, onLogout }) => {
         </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
           <Btn variant="ghost" onClick={() => setScreen("history")} style={{ flex: 1 }}>📋 Journal</Btn>
-          <Btn variant="ghost" onClick={() => setScreen("nutrition")} style={{ flex: 1 }}>🍽️ Nutrition</Btn>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
           <Btn variant="ghost" onClick={() => setScreen("perfs")} style={{ flex: 1 }}>📊 Performances</Btn>
+        </div>
+        <div style={{ display: "flex" }}>
           <Btn variant="ghost" onClick={() => setScreen("contrat")} style={{ flex: 1 }}>📄 Contrat</Btn>
         </div>
       </div>
@@ -2136,17 +1932,6 @@ const ClientApp = ({ user, onLogout }) => {
               ))}
             </div>
           </Card>
-          {(clientInfo.calories_target > 0 || clientInfo.protein_target > 0) && (
-            <Card style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>🍽️ MES OBJECTIFS NUTRITIONNELS</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {clientInfo.calories_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🔥 CALORIES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.orange }}>{clientInfo.calories_target}</div><div style={{ fontSize: 11, color: C.textMuted }}>kcal / jour</div></div>}
-                {clientInfo.protein_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💪 PROTÉINES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.green }}>{clientInfo.protein_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
-                {clientInfo.carb_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🌾 GLUCIDES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{clientInfo.carb_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
-                {clientInfo.fat_target > 0 && <div style={{ background: "#111", borderRadius: 12, padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥑 LIPIDES</div><div style={{ fontSize: 24, fontWeight: 900, color: C.pink }}>{clientInfo.fat_target}g</div><div style={{ fontSize: 11, color: C.textMuted }}>/ jour</div></div>}
-              </div>
-            </Card>
-          )}
           {daysUntil(clientInfo.next_payment) <= 7 && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}><div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div><div style={{ fontSize: 13 }}>Ton prochain paiement de <strong>{clientInfo.monthly_amount} €</strong> est dû le <strong>{formatDate(clientInfo.next_payment)}</strong>.</div></div>}
           <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div><PaymentHistory payments={payments} /></Card>
         </div>
@@ -2216,659 +2001,6 @@ const ClientApp = ({ user, onLogout }) => {
   );
 };
 
-
-// ══════════════════════════════════════════════════════════════════════════════
-// COACH APP — avec chat sidebar
-// ══════════════════════════════════════════════════════════════════════════════
-const LOCAL_DB = [
-  {id:"l1",name:"Blanc de poulet cuit",unit:"g",per100:{kcal:110,prot:23,carb:0,fat:2}},
-  {id:"l2",name:"Cuisse de poulet cuite",unit:"g",per100:{kcal:185,prot:20,carb:0,fat:11}},
-  {id:"l3",name:"Blanc de dinde cuit",unit:"g",per100:{kcal:135,prot:29,carb:0,fat:1}},
-  {id:"l4",name:"Dinde hachée cuite",unit:"g",per100:{kcal:149,prot:20,carb:0,fat:7}},
-  {id:"l5",name:"Escalope de dinde",unit:"g",per100:{kcal:104,prot:22,carb:0,fat:1}},
-  {id:"l6",name:"Poulet rôti sans peau",unit:"g",per100:{kcal:165,prot:25,carb:0,fat:7}},
-  {id:"l7",name:"Boeuf haché 5% MG",unit:"g",per100:{kcal:137,prot:20,carb:0,fat:5}},
-  {id:"l8",name:"Boeuf haché 10% MG",unit:"g",per100:{kcal:176,prot:18,carb:0,fat:10}},
-  {id:"l9",name:"Steak de boeuf cuit",unit:"g",per100:{kcal:180,prot:26,carb:0,fat:8}},
-  {id:"l10",name:"Filet de boeuf",unit:"g",per100:{kcal:158,prot:24,carb:0,fat:6}},
-  {id:"l11",name:"Filet de porc cuit",unit:"g",per100:{kcal:143,prot:22,carb:0,fat:6}},
-  {id:"l12",name:"Cotelette de porc",unit:"g",per100:{kcal:195,prot:20,carb:0,fat:12}},
-  {id:"l13",name:"Jambon blanc",unit:"g",per100:{kcal:107,prot:18,carb:1,fat:3}},
-  {id:"l14",name:"Jambon de Bayonne",unit:"g",per100:{kcal:196,prot:26,carb:0,fat:10}},
-  {id:"l15",name:"Veau escalope cuit",unit:"g",per100:{kcal:150,prot:25,carb:0,fat:5}},
-  {id:"l16",name:"Agneau gigot cuit",unit:"g",per100:{kcal:218,prot:25,carb:0,fat:13}},
-  {id:"l17",name:"Saumon frais cuit",unit:"g",per100:{kcal:208,prot:20,carb:0,fat:13}},
-  {id:"l18",name:"Saumon fume",unit:"g",per100:{kcal:172,prot:25,carb:0,fat:8}},
-  {id:"l19",name:"Thon boite au naturel",unit:"g",per100:{kcal:116,prot:26,carb:0,fat:1}},
-  {id:"l20",name:"Thon boite a l huile egoutte",unit:"g",per100:{kcal:198,prot:25,carb:0,fat:10}},
-  {id:"l21",name:"Cabillaud cuit",unit:"g",per100:{kcal:82,prot:18,carb:0,fat:1}},
-  {id:"l22",name:"Lieu noir cuit",unit:"g",per100:{kcal:90,prot:19,carb:0,fat:1}},
-  {id:"l23",name:"Truite cuite",unit:"g",per100:{kcal:151,prot:21,carb:0,fat:7}},
-  {id:"l24",name:"Crevettes cuites",unit:"g",per100:{kcal:99,prot:21,carb:1,fat:1}},
-  {id:"l25",name:"Sardines huile egouttees",unit:"g",per100:{kcal:208,prot:25,carb:0,fat:12}},
-  {id:"l26",name:"Maquereau fume",unit:"g",per100:{kcal:305,prot:19,carb:0,fat:25}},
-  {id:"l27",name:"Dorade cuite",unit:"g",per100:{kcal:109,prot:20,carb:0,fat:3}},
-  {id:"l28",name:"Bar cuit",unit:"g",per100:{kcal:97,prot:19,carb:0,fat:2}},
-  {id:"l29",name:"Thon mi-cuit",unit:"g",per100:{kcal:124,prot:24,carb:0,fat:3}},
-  {id:"l30",name:"Oeuf entier cuit",unit:"g",piece_weight:60,per100:{kcal:155,prot:13,carb:1,fat:11}},
-  {id:"l31",name:"Blanc d oeuf cuit",unit:"g",piece_weight:35,per100:{kcal:52,prot:11,carb:1,fat:0}},
-  {id:"l32",name:"Omelette nature",unit:"g",per100:{kcal:154,prot:11,carb:0,fat:12}},
-  {id:"l33",name:"Fromage blanc 0%",unit:"g",per100:{kcal:46,prot:8,carb:4,fat:0}},
-  {id:"l34",name:"Fromage blanc 3%",unit:"g",per100:{kcal:77,prot:7,carb:4,fat:3}},
-  {id:"l35",name:"Skyr nature",unit:"g",per100:{kcal:63,prot:11,carb:4,fat:0}},
-  {id:"l36",name:"Yaourt grec 0%",unit:"g",per100:{kcal:57,prot:10,carb:4,fat:0}},
-  {id:"l37",name:"Yaourt grec entier",unit:"g",per100:{kcal:115,prot:9,carb:4,fat:7}},
-  {id:"l38",name:"Yaourt nature entier",unit:"g",per100:{kcal:61,prot:3,carb:5,fat:3}},
-  {id:"l39",name:"Cottage cheese",unit:"g",per100:{kcal:98,prot:11,carb:3,fat:4}},
-  {id:"l40",name:"Ricotta",unit:"g",per100:{kcal:174,prot:11,carb:3,fat:13}},
-  {id:"l41",name:"Mozzarella light",unit:"g",per100:{kcal:149,prot:22,carb:2,fat:6}},
-  {id:"l42",name:"Mozzarella classique",unit:"g",per100:{kcal:254,prot:18,carb:2,fat:19}},
-  {id:"l43",name:"Emmental rape",unit:"g",per100:{kcal:382,prot:29,carb:0,fat:29}},
-  {id:"l44",name:"Gruyere",unit:"g",per100:{kcal:413,prot:30,carb:0,fat:32}},
-  {id:"l45",name:"Feta",unit:"g",per100:{kcal:264,prot:14,carb:4,fat:21}},
-  {id:"l46",name:"Camembert",unit:"g",per100:{kcal:299,prot:20,carb:0,fat:24}},
-  {id:"l47",name:"Lait demi-ecreme",unit:"ml",per100:{kcal:47,prot:3,carb:5,fat:2}},
-  {id:"l48",name:"Lait ecreme",unit:"ml",per100:{kcal:34,prot:3,carb:5,fat:0}},
-  {id:"l49",name:"Lait entier",unit:"ml",per100:{kcal:64,prot:3,carb:5,fat:3}},
-  {id:"l50",name:"Lait de soja",unit:"ml",per100:{kcal:33,prot:3,carb:2,fat:2}},
-  {id:"l51",name:"Lait d avoine",unit:"ml",per100:{kcal:46,prot:1,carb:8,fat:1}},
-  {id:"l52",name:"Whey proteine vanille",unit:"g",per100:{kcal:380,prot:74,carb:8,fat:5}},
-  {id:"l53",name:"Whey isolat",unit:"g",per100:{kcal:360,prot:85,carb:3,fat:1}},
-  {id:"l54",name:"Caseine",unit:"g",per100:{kcal:370,prot:78,carb:5,fat:2}},
-  {id:"l55",name:"Riz blanc cuit",unit:"g",per100:{kcal:130,prot:3,carb:28,fat:0}},
-  {id:"l56",name:"Riz complet cuit",unit:"g",per100:{kcal:111,prot:2,carb:23,fat:1}},
-  {id:"l57",name:"Pates blanches cuites",unit:"g",per100:{kcal:158,prot:5,carb:31,fat:1}},
-  {id:"l58",name:"Pates completes cuites",unit:"g",per100:{kcal:149,prot:5,carb:29,fat:1}},
-  {id:"l59",name:"Quinoa cuit",unit:"g",per100:{kcal:120,prot:4,carb:22,fat:2}},
-  {id:"l60",name:"Patate douce cuite",unit:"g",per100:{kcal:90,prot:2,carb:21,fat:0}},
-  {id:"l61",name:"Pomme de terre cuite",unit:"g",per100:{kcal:87,prot:2,carb:20,fat:0}},
-  {id:"l62",name:"Flocons d avoine",unit:"g",per100:{kcal:370,prot:13,carb:60,fat:7}},
-  {id:"l63",name:"Pain complet",unit:"g",per100:{kcal:246,prot:9,carb:43,fat:4}},
-  {id:"l64",name:"Pain de mie complet",unit:"g",per100:{kcal:236,prot:9,carb:41,fat:3}},
-  {id:"l65",name:"Baguette blanche",unit:"g",per100:{kcal:270,prot:9,carb:55,fat:1}},
-  {id:"l66",name:"Galette de riz souffle",unit:"g",per100:{kcal:385,prot:7,carb:83,fat:1}},
-  {id:"l67",name:"Couscous cuit",unit:"g",per100:{kcal:112,prot:4,carb:23,fat:0}},
-  {id:"l68",name:"Boulgour cuit",unit:"g",per100:{kcal:83,prot:3,carb:19,fat:0}},
-  {id:"l69",name:"Orge perle cuit",unit:"g",per100:{kcal:123,prot:2,carb:28,fat:0}},
-  {id:"l70",name:"Lentilles cuites",unit:"g",per100:{kcal:116,prot:9,carb:20,fat:1}},
-  {id:"l71",name:"Lentilles corail cuites",unit:"g",per100:{kcal:100,prot:8,carb:17,fat:0}},
-  {id:"l72",name:"Pois chiches cuits",unit:"g",per100:{kcal:164,prot:9,carb:27,fat:3}},
-  {id:"l73",name:"Haricots rouges cuits",unit:"g",per100:{kcal:127,prot:8,carb:22,fat:1}},
-  {id:"l74",name:"Haricots blancs cuits",unit:"g",per100:{kcal:114,prot:7,carb:20,fat:1}},
-  {id:"l75",name:"Edamame",unit:"g",per100:{kcal:122,prot:11,carb:10,fat:5}},
-  {id:"l76",name:"Tofu ferme",unit:"g",per100:{kcal:76,prot:8,carb:2,fat:4}},
-  {id:"l77",name:"Tofu soyeux",unit:"g",per100:{kcal:55,prot:5,carb:2,fat:3}},
-  {id:"l78",name:"Tempeh",unit:"g",per100:{kcal:193,prot:19,carb:9,fat:11}},
-  {id:"l79",name:"Epinards crus",unit:"g",per100:{kcal:23,prot:3,carb:4,fat:0}},
-  {id:"l80",name:"Brocoli cuit",unit:"g",per100:{kcal:35,prot:3,carb:7,fat:0}},
-  {id:"l81",name:"Chou-fleur cuit",unit:"g",per100:{kcal:23,prot:2,carb:5,fat:0}},
-  {id:"l82",name:"Haricots verts cuits",unit:"g",per100:{kcal:31,prot:2,carb:7,fat:0}},
-  {id:"l83",name:"Courgette cuite",unit:"g",per100:{kcal:17,prot:1,carb:3,fat:0}},
-  {id:"l84",name:"Tomate",unit:"g",per100:{kcal:18,prot:1,carb:4,fat:0}},
-  {id:"l85",name:"Concombre",unit:"g",per100:{kcal:15,prot:1,carb:3,fat:0}},
-  {id:"l86",name:"Carotte crue",unit:"g",per100:{kcal:41,prot:1,carb:10,fat:0}},
-  {id:"l87",name:"Poivron rouge",unit:"g",per100:{kcal:31,prot:1,carb:6,fat:0}},
-  {id:"l88",name:"Champignons de Paris crus",unit:"g",per100:{kcal:22,prot:3,carb:3,fat:0}},
-  {id:"l89",name:"Avocat",unit:"g",per100:{kcal:160,prot:2,carb:9,fat:15}},
-  {id:"l90",name:"Salade verte",unit:"g",per100:{kcal:15,prot:1,carb:2,fat:0}},
-  {id:"l91",name:"Celeri branche",unit:"g",per100:{kcal:16,prot:1,carb:3,fat:0}},
-  {id:"l92",name:"Aubergine cuite",unit:"g",per100:{kcal:25,prot:1,carb:6,fat:0}},
-  {id:"l93",name:"Poireau cuit",unit:"g",per100:{kcal:31,prot:2,carb:7,fat:0}},
-  {id:"l94",name:"Asperge cuite",unit:"g",per100:{kcal:20,prot:2,carb:4,fat:0}},
-  {id:"l95",name:"Petits pois cuits",unit:"g",per100:{kcal:84,prot:5,carb:14,fat:0}},
-  {id:"l96",name:"Mais doux en boite",unit:"g",per100:{kcal:89,prot:3,carb:19,fat:1}},
-  {id:"l97",name:"Betterave cuite",unit:"g",per100:{kcal:44,prot:2,carb:10,fat:0}},
-  {id:"l98",name:"Radis",unit:"g",per100:{kcal:16,prot:1,carb:3,fat:0}},
-  {id:"l99",name:"Chou rouge cru",unit:"g",per100:{kcal:31,prot:1,carb:7,fat:0}},
-  {id:"l100",name:"Fenouil cru",unit:"g",per100:{kcal:31,prot:1,carb:7,fat:0}},
-  {id:"l101",name:"Banane",unit:"g",piece_weight:120,per100:{kcal:89,prot:1,carb:23,fat:0}},
-  {id:"l102",name:"Pomme",unit:"g",piece_weight:150,per100:{kcal:52,prot:0,carb:14,fat:0}},
-  {id:"l103",name:"Orange",unit:"g",piece_weight:180,per100:{kcal:47,prot:1,carb:12,fat:0}},
-  {id:"l104",name:"Fraises",unit:"g",per100:{kcal:32,prot:1,carb:8,fat:0}},
-  {id:"l105",name:"Myrtilles",unit:"g",per100:{kcal:57,prot:1,carb:14,fat:0}},
-  {id:"l106",name:"Framboises",unit:"g",per100:{kcal:52,prot:1,carb:12,fat:1}},
-  {id:"l107",name:"Mangue",unit:"g",per100:{kcal:60,prot:1,carb:15,fat:0}},
-  {id:"l108",name:"Ananas",unit:"g",per100:{kcal:50,prot:1,carb:13,fat:0}},
-  {id:"l109",name:"Kiwi",unit:"g",piece_weight:70,per100:{kcal:61,prot:1,carb:15,fat:1}},
-  {id:"l110",name:"Raisin",unit:"g",per100:{kcal:69,prot:1,carb:18,fat:0}},
-  {id:"l111",name:"Poire",unit:"g",per100:{kcal:57,prot:0,carb:15,fat:0}},
-  {id:"l112",name:"Peche",unit:"g",per100:{kcal:39,prot:1,carb:10,fat:0}},
-  {id:"l113",name:"Melon",unit:"g",per100:{kcal:34,prot:1,carb:8,fat:0}},
-  {id:"l114",name:"Pasteque",unit:"g",per100:{kcal:30,prot:1,carb:8,fat:0}},
-  {id:"l115",name:"Cerise",unit:"g",per100:{kcal:63,prot:1,carb:16,fat:0}},
-  {id:"l116",name:"Abricot",unit:"g",piece_weight:40,per100:{kcal:48,prot:1,carb:11,fat:0}},
-  {id:"l117",name:"Prune",unit:"g",piece_weight:50,per100:{kcal:46,prot:1,carb:11,fat:0}},
-  {id:"l118",name:"Huile d olive",unit:"g",per100:{kcal:884,prot:0,carb:0,fat:100}},
-  {id:"l119",name:"Huile de coco",unit:"g",per100:{kcal:862,prot:0,carb:0,fat:100}},
-  {id:"l120",name:"Beurre",unit:"g",per100:{kcal:717,prot:1,carb:1,fat:81}},
-  {id:"l121",name:"Beurre de cacahuete",unit:"g",per100:{kcal:588,prot:25,carb:20,fat:50}},
-  {id:"l122",name:"Beurre d amande",unit:"g",per100:{kcal:614,prot:21,carb:19,fat:56}},
-  {id:"l123",name:"Amandes",unit:"g",per100:{kcal:575,prot:21,carb:22,fat:49}},
-  {id:"l124",name:"Noix",unit:"g",per100:{kcal:654,prot:15,carb:14,fat:65}},
-  {id:"l125",name:"Noix de cajou",unit:"g",per100:{kcal:553,prot:18,carb:30,fat:44}},
-  {id:"l126",name:"Noisettes",unit:"g",per100:{kcal:628,prot:15,carb:17,fat:61}},
-  {id:"l127",name:"Graines de chia",unit:"g",per100:{kcal:490,prot:17,carb:42,fat:31}},
-  {id:"l128",name:"Graines de lin",unit:"g",per100:{kcal:534,prot:18,carb:29,fat:42}},
-  {id:"l129",name:"Graines de courge",unit:"g",per100:{kcal:559,prot:30,carb:11,fat:49}},
-  {id:"l130",name:"Tahini puree de sesame",unit:"g",per100:{kcal:595,prot:17,carb:21,fat:54}},
-  {id:"l131",name:"Sauce soja",unit:"ml",per100:{kcal:60,prot:10,carb:6,fat:0}},
-  {id:"l132",name:"Ketchup",unit:"g",per100:{kcal:100,prot:1,carb:25,fat:0}},
-  {id:"l133",name:"Moutarde",unit:"g",per100:{kcal:66,prot:4,carb:6,fat:3}},
-  {id:"l134",name:"Mayonnaise allegee",unit:"g",per100:{kcal:265,prot:1,carb:12,fat:23}},
-  {id:"l135",name:"Hummus",unit:"g",per100:{kcal:166,prot:8,carb:14,fat:10}},
-  {id:"l136",name:"Vinaigrette",unit:"g",per100:{kcal:462,prot:0,carb:5,fat:48}},
-  {id:"l137",name:"Muesli sans sucre",unit:"g",per100:{kcal:364,prot:10,carb:59,fat:8}},
-  {id:"l138",name:"Corn flakes",unit:"g",per100:{kcal:357,prot:7,carb:84,fat:1}},
-  {id:"l139",name:"Crepe nature",unit:"g",per100:{kcal:200,prot:5,carb:27,fat:8}},
-  {id:"l140",name:"Jus d orange",unit:"ml",per100:{kcal:45,prot:1,carb:10,fat:0}},
-  {id:"l141",name:"Shaker proteine",unit:"ml",per100:{kcal:40,prot:6,carb:3,fat:0}},
-  {id:"l142",name:"Seitan",unit:"g",per100:{kcal:370,prot:75,carb:14,fat:2}},
-  {id:"l143",name:"Proteines soja texturees",unit:"g",per100:{kcal:345,prot:52,carb:30,fat:1}},
-  {id:"l144",name:"Surimi",unit:"g",per100:{kcal:99,prot:8,carb:13,fat:1}},
-  {id:"l145",name:"Chocolat noir 70%",unit:"g",per100:{kcal:578,prot:8,carb:45,fat:43}},
-  {id:"l146",name:"Miel",unit:"g",per100:{kcal:304,prot:0,carb:82,fat:0}},
-  {id:"l147",name:"Confiture allegee",unit:"g",per100:{kcal:120,prot:0,carb:30,fat:0}},
-  {id:"l148",name:"Sirop d erable",unit:"g",per100:{kcal:260,prot:0,carb:67,fat:0}},
-  {id:"l149",name:"Compote pommes sans sucre",unit:"g",per100:{kcal:47,prot:0,carb:12,fat:0}},
-  {id:"l150",name:"Barre proteinee",unit:"g",piece_weight:60,per100:{kcal:380,prot:30,carb:40,fat:10}},
-  {id:"l151",name:"Yaourt aux fruits allege",unit:"g",per100:{kcal:74,prot:4,carb:13,fat:1}},
-  {id:"l152",name:"Creme fraiche allegee",unit:"g",per100:{kcal:113,prot:3,carb:4,fat:10}},
-  {id:"l153",name:"Creme fraiche entiere",unit:"g",per100:{kcal:292,prot:2,carb:3,fat:30}},
-  {id:"l154",name:"Farine de ble",unit:"g",per100:{kcal:340,prot:10,carb:71,fat:1}},
-  {id:"l155",name:"Farine d avoine",unit:"g",per100:{kcal:375,prot:13,carb:62,fat:7}},
-];
-
-const MEALS = ["Petit-déjeuner", "Déjeuner", "Dîner", "Collation"];
-
-const calcMacros = (per100, grams) => {
-  const r = grams / 100;
-  return { kcal: Math.round(per100.kcal * r), prot: Math.round(per100.prot * r * 10) / 10, carb: Math.round(per100.carb * r * 10) / 10, fat: Math.round(per100.fat * r * 10) / 10 };
-};
-
-const getMacros = (entry) => {
-  if (entry.manual_macros) return entry.manual_macros;
-  if (entry.per100) return calcMacros(entry.per100, entry.grams);
-  const f = LOCAL_DB.find(f => f.id === entry.food_id);
-  return f ? calcMacros(f.per100, entry.grams) : { kcal: 0, prot: 0, carb: 0, fat: 0 };
-};
-
-const sumMacros = (logs = []) => logs.reduce((acc, e) => {
-  const m = getMacros(e);
-  return { kcal: acc.kcal + m.kcal, prot: acc.prot + m.prot, carb: acc.carb + m.carb, fat: acc.fat + m.fat };
-}, { kcal: 0, prot: 0, carb: 0, fat: 0 });
-
-const parseOFF = (p) => {
-  const n = p.nutriments || {};
-  return {
-    id: "off_" + p.code, name: p.product_name_fr || p.product_name || "Produit inconnu",
-    brand: p.brands || "", unit: "g",
-    per100: { kcal: Math.round(n["energy-kcal_100g"] || (n["energy_100g"] || 0) / 4.184), prot: Math.round((n.proteins_100g || 0) * 10) / 10, carb: Math.round((n.carbohydrates_100g || 0) * 10) / 10, fat: Math.round((n.fat_100g || 0) * 10) / 10 },
-    source: "off", image: p.image_small_url || null
-  };
-};
-
-const getMonthDays = (year, month) => {
-  const days = [], d = new Date(year, month - 1, 1);
-  while (d.getMonth() === month - 1) { days.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1); }
-  return days;
-};
-
-const MacroBar = ({ label, value, max, color, unit = "g" }) => {
-  const pct = Math.min((value / max) * 100, 100);
-  const over = value > max;
-  return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-        <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textTransform: "uppercase" }}>{label}</span>
-        <span style={{ fontSize: 11, color: over ? C.red : C.white, fontWeight: 700 }}>{value}{unit} / {max}{unit}</span>
-      </div>
-      <div style={{ height: 6, background: "#111", borderRadius: 99, overflow: "hidden" }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: over ? C.red : color, borderRadius: 99, transition: "width 0.5s" }} />
-      </div>
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// LOGIN
-// ══════════════════════════════════════════════════════════════════════════════
-const FoodModal = ({ onAdd, onClose, customFoods = [] }) => {
-  const [tab, setTab] = useState("search");
-  const [query, setQuery] = useState("");
-  const [localRes, setLR] = useState([]);
-  const [offRes, setOR] = useState([]);
-  const [offLoading, setOL] = useState(false);
-  const [selected, setSel] = useState(null);
-  const [grams, setGrams] = useState("");
-  const [pieceCount, setPieceCount] = useState("1");
-  const [meal, setMeal] = useState(0);
-  const [manual, setManual] = useState({ name: "", kcal: "", prot: "", carb: "", fat: "" });
-  const [favorites, setFavorites] = useState([]);
-  const debRef = useRef(null);
-
-  useEffect(() => {
-    supabase.from("food_favorites").select("*").order("created_at", { ascending: false }).then(({ data }) => {
-      setFavorites((data || []).map(f => ({ ...JSON.parse(JSON.stringify(f.food_data)), favId: f.id })));
-    });
-  }, []);
-
-  const isFav = selected ? favorites.some(f => f.id === selected.id) : false;
-
-  const toggleFav = async (food) => {
-    const existing = favorites.find(f => f.id === food.id);
-    if (existing) {
-      await supabase.from("food_favorites").delete().eq("id", existing.favId);
-      setFavorites(favs => favs.filter(f => f.id !== food.id));
-    } else {
-      const { data } = await supabase.from("food_favorites").insert([{ user_id: (await supabase.auth.getUser()).data.user?.id, food_id: food.id, food_name: food.name, food_data: food }]).select().single();
-      if (data) setFavorites(favs => [...favs, { ...food, favId: data.id }]);
-    }
-  };
-
-  const saveToCustomFoods = async (food) => {
-    if (food.source === "local" || food.source === "custom") return;
-    const exists = customFoods.find(f => f.name.toLowerCase() === food.name.toLowerCase());
-    if (exists) return;
-    await supabase.from("custom_foods").insert([{ name: food.name, brand: food.brand || "", unit: food.unit || "g", piece_weight: food.piece_weight || null, kcal_100: food.per100.kcal, prot_100: food.per100.prot, carb_100: food.per100.carb, fat_100: food.per100.fat, source: food.source || "off" }]);
-  };
-
-  const isPiece = selected && selected.piece_weight;
-  const effectiveGrams = isPiece ? (selected.piece_weight * Number(pieceCount || 1)) : Number(grams);
-
-  const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/['']/g, " ").trim();
-  const scoreFood = (foodName, q) => {
-    const n = normalize(foodName); const query = normalize(q);
-    if (n === query) return 100;
-    if (n.startsWith(query)) return 90;
-    const words = n.split(" ");
-    if (words.some(w => w.startsWith(query))) return 70;
-    if (n.includes(query)) return 50;
-    const queryWords = query.split(" ").filter(w => w.length > 1);
-    if (queryWords.length > 1 && queryWords.every(qw => n.includes(qw))) return 60;
-    if (queryWords.some(qw => n.includes(qw))) return 30;
-    return 0;
-  };
-
-  useEffect(() => {
-    if (tab !== "search") return;
-    const q = query.trim();
-    if (q.length < 2) { setLR([]); setOR([]); return; }
-    const localScored = LOCAL_DB.map(f => ({ ...f, score: scoreFood(f.name, q) })).filter(f => f.score > 0).sort((a, b) => b.score - a.score).slice(0, 6);
-    const customScored = customFoods.map(f => ({ ...f, score: scoreFood(f.name, q) })).filter(f => f.score > 0 && !localScored.find(l => normalize(l.name) === normalize(f.name))).sort((a, b) => b.score - a.score).slice(0, 4);
-    setLR([...localScored, ...customScored]);
-    clearTimeout(debRef.current); setOL(true);
-    debRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&lc=fr&cc=fr&fields=code,product_name,product_name_fr,brands,nutriments,image_small_url`);
-        const data = await res.json();
-        setOR((data.products || []).filter(p => p.product_name_fr || p.product_name).map(parseOFF).filter(p => p.per100.kcal > 0).slice(0, 7));
-      } catch { setOR([]); } finally { setOL(false); }
-    }, 700);
-  }, [query, tab, customFoods]);
-
-  const preview = selected && effectiveGrams > 0 ? calcMacros(selected.per100, effectiveGrams) : null;
-
-  const handleAdd = async () => {
-    if (tab === "manual") {
-      if (!manual.name || !manual.kcal) return;
-      await supabase.from("custom_foods").insert([{ name: manual.name, kcal_100: +manual.kcal, prot_100: +manual.prot || 0, carb_100: +manual.carb || 0, fat_100: +manual.fat || 0, source: "manual" }]);
-      onAdd({ name: manual.name, grams: 100, meal_idx: meal, manual_macros: { kcal: +manual.kcal, prot: +manual.prot || 0, carb: +manual.carb || 0, fat: +manual.fat || 0 }, source: "manual" });
-    } else {
-      if (!selected || effectiveGrams <= 0) return;
-      await saveToCustomFoods(selected);
-      const label = isPiece ? `${pieceCount} pièce${Number(pieceCount) > 1 ? "s" : ""}` : `${effectiveGrams}g`;
-      onAdd({ name: selected.name, food_id: selected.id, grams: effectiveGrams, meal_idx: meal, per100: selected.per100, source: selected.source || "local", quantity_label: label });
-    }
-    onClose();
-  };
-
-  const FoodItem = ({ food }) => (
-    <div onClick={() => { setSel(food); setGrams(""); setPieceCount("1"); }} style={{ padding: "10px 14px", borderBottom: `1px solid ${C.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: "transparent" }} onMouseEnter={e => e.currentTarget.style.background = "#222"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-      {food.image && <img src={food.image} alt="" style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 6, background: "#fff", flexShrink: 0 }} onError={e => e.target.style.display = "none"} />}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: C.white, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{food.name}</div>
-        {food.brand && <div style={{ color: C.textMuted, fontSize: 10 }}>{food.brand}</div>}
-        <div style={{ color: C.textMuted, fontSize: 10 }}>{food.per100.kcal} kcal · 💪 {food.per100.prot}g{food.piece_weight ? ` · 🔢 ${food.piece_weight}g/pièce` : ""}</div>
-      </div>
-      <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 6, fontWeight: 700, flexShrink: 0, background: food.source === "off" ? C.blue + "22" : food.source === "custom" ? C.green + "22" : C.purple + "22", color: food.source === "off" ? C.blue : food.source === "custom" ? C.green : C.purple }}>{food.source === "off" ? "OFF" : food.source === "custom" ? "PERSO" : "BASE"}</span>
-    </div>
-  );
-
-  const QuantityInput = () => (
-    <div>
-      <label style={{ fontSize: 11, color: C.textMuted, display: "block", marginBottom: 8 }}>{isPiece ? `NOMBRE DE PIÈCES (≈ ${selected.piece_weight}g / pièce)` : "QUANTITÉ (g)"}</label>
-      {isPiece ? (
-        <div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-            <button onClick={() => setPieceCount(c => String(Math.max(1, Number(c) - 1)))} style={{ width: 44, height: 44, borderRadius: "50%", background: "#222", border: "none", color: C.white, fontSize: 22, cursor: "pointer", flexShrink: 0 }}>−</button>
-            <input type="number" value={pieceCount} onChange={e => setPieceCount(e.target.value)} style={{ ...inputSt, fontSize: 24, textAlign: "center", fontWeight: 900 }} autoFocus />
-            <button onClick={() => setPieceCount(c => String(Number(c) + 1))} style={{ width: 44, height: 44, borderRadius: "50%", background: C.pink, border: "none", color: C.black, fontSize: 22, cursor: "pointer", flexShrink: 0 }}>+</button>
-          </div>
-          <div style={{ fontSize: 11, color: C.textMuted, textAlign: "center", marginBottom: 8 }}>= {selected.piece_weight * Number(pieceCount || 1)}g au total</div>
-        </div>
-      ) : (
-        <input type="number" value={grams} onChange={e => setGrams(e.target.value)} placeholder="Ex : 150" autoFocus style={{ ...inputSt, fontSize: 20, marginBottom: 8 }} />
-      )}
-      {preview && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-        {[["⚡", `${preview.kcal} kcal`, C.yellow], ["💪", `${preview.prot}g prot`, C.green], ["🌾", `${preview.carb}g gluc`, C.blue], ["🥑", `${preview.fat}g lip`, C.pink]].map(([ico, val, color]) => (
-          <div key={val} style={{ background: color + "22", border: `1px solid ${color}44`, borderRadius: 8, padding: "4px 8px", fontSize: 11, color, fontWeight: 600 }}>{ico} {val}</div>
-        ))}
-      </div>}
-    </div>
-  );
-
-  const FoodDetail = ({ showFav = true }) => (
-    <div>
-      <button onClick={() => setSel(null)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 12, cursor: "pointer", marginBottom: 10 }}>← Retour</button>
-      <div style={{ background: "#111", borderRadius: 14, padding: "11px 14px", marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>{selected.name}</div>
-            {selected.brand && <div style={{ color: C.textMuted, fontSize: 11 }}>{selected.brand}</div>}
-            <div style={{ color: C.textMuted, fontSize: 11, marginTop: 2 }}>Pour 100g — {selected.per100.kcal} kcal · 💪 {selected.per100.prot}g</div>
-          </div>
-          {showFav && <button onClick={() => toggleFav(selected)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", opacity: isFav ? 1 : 0.3, marginLeft: 8, flexShrink: 0 }}>⭐</button>}
-        </div>
-      </div>
-      <QuantityInput />
-    </div>
-  );
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.9)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: C.card, borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 500, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}><div style={{ width: 40, height: 4, background: C.border, borderRadius: 99 }} /></div>
-        <div style={{ padding: "14px 20px 0", flexShrink: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ color: C.white, margin: 0, fontSize: 16, fontWeight: 900 }}>Ajouter un aliment</h3>
-            <button onClick={onClose} style={{ background: "#222", border: "none", color: C.textMuted, fontSize: 15, cursor: "pointer", width: 30, height: 30, borderRadius: "50%" }}>✕</button>
-          </div>
-          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-            {MEALS.map((m, i) => <button key={i} onClick={() => setMeal(i)} style={{ padding: "5px 12px", borderRadius: 99, fontSize: 11, cursor: "pointer", fontWeight: 700, background: meal === i ? C.pink : "#222", color: meal === i ? C.black : C.textMuted, border: "none" }}>{m}</button>)}
-          </div>
-          <div style={{ display: "flex", background: "#111", borderRadius: 12, padding: 3, marginBottom: 12 }}>
-            {[["🔍 Recherche", "search"], ["⭐ Favoris", "favorites"], ["✏️ Manuel", "manual"]].map(([label, t]) => (
-              <button key={t} onClick={() => { setTab(t); setSel(null); setQuery(""); }} style={{ flex: 1, padding: "7px 4px", borderRadius: 9, fontSize: 11, fontWeight: 700, cursor: "pointer", border: "none", background: tab === t ? C.card : "transparent", color: tab === t ? C.pink : C.textMuted }}>{label}</button>
-            ))}
-          </div>
-        </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px" }}>
-          {tab === "search" && !selected && (
-            <>
-              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Poulet, skyr, oeufs…" style={{ ...inputSt, marginBottom: 10 }} autoFocus />
-              {localRes.length > 0 && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 9, color: C.textMuted, letterSpacing: 1, marginBottom: 6, textTransform: "uppercase" }}>Base d'aliments</div><div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{localRes.map(f => <FoodItem key={f.id} food={f} />)}</div></div>}
-              {query.length >= 2 && <div style={{ marginBottom: 14 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><div style={{ fontSize: 9, color: C.textMuted, letterSpacing: 1 }}>OPEN FOOD FACTS</div>{offLoading && <div style={{ width: 12, height: 12, border: `2px solid ${C.border}`, borderTopColor: C.blue, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />}</div>{offRes.length > 0 ? <div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{offRes.map(f => <FoodItem key={f.id} food={f} />)}</div> : !offLoading && <div style={{ color: C.textMuted, fontSize: 12, textAlign: "center", padding: "8px 0" }}>Aucun résultat</div>}</div>}
-              {query.length < 2 && <div style={{ textAlign: "center", padding: "20px 0", color: C.textMuted, fontSize: 12 }}><div style={{ fontSize: 26, marginBottom: 6 }}>🔍</div>Tape au moins 2 lettres</div>}
-            </>
-          )}
-          {tab === "search" && selected && <FoodDetail showFav={true} />}
-          {tab === "favorites" && !selected && (
-            <div>
-              {favorites.length === 0 ? (<div style={{ textAlign: "center", padding: "30px 0", color: C.textMuted }}><div style={{ fontSize: 36, marginBottom: 10 }}>⭐</div><div style={{ fontSize: 13, marginBottom: 6 }}>Pas encore de favoris</div><div style={{ fontSize: 11 }}>Recherche un aliment et clique sur ⭐</div></div>) : <div style={{ background: "#111", border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>{favorites.map(f => <FoodItem key={f.id} food={f} />)}</div>}
-            </div>
-          )}
-          {tab === "favorites" && selected && <FoodDetail showFav={true} />}
-          {tab === "manual" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingBottom: 10 }}>
-              {[["Nom de l'aliment *", "name", "text"], ["Calories (kcal) *", "kcal", "number"], ["Protéines (g)", "prot", "number"], ["Glucides (g)", "carb", "number"], ["Lipides (g)", "fat", "number"]].map(([label, key, type]) => (
-                <div key={key}><label style={{ fontSize: 10, color: C.textMuted, display: "block", marginBottom: 3 }}>{label}</label><input type={type} value={manual[key]} onChange={e => setManual(p => ({ ...p, [key]: e.target.value }))} style={inputSt} /></div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ padding: "12px 20px 26px", flexShrink: 0 }}>
-          <button onClick={handleAdd} style={{ width: "100%", padding: 13, borderRadius: 16, background: C.pink, color: C.black, fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer", opacity: ((tab === "manual" && manual.name && manual.kcal) || (tab !== "manual" && selected && effectiveGrams > 0)) ? 1 : 0.4 }}>
-            + Ajouter au journal
-          </button>
-        </div>
-        <style>{"@keyframes spin{to{transform:rotate(360deg);}}"}</style>
-      </div>
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// NUTRITION TRACKER
-// ══════════════════════════════════════════════════════════════════════════════
-const NutritionTracker = ({ clientId, clientInfo, onBack }) => {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [activeDay, setActiveDay] = useState(today);
-  const [customFoods, setCustomFoods] = useState([]);
-
-  const goals = { kcal: clientInfo?.calories_target || 1800, prot: clientInfo?.protein_target || 100, carb: clientInfo?.carb_target || 180, fat: clientInfo?.fat_target || 60 };
-
-  const loadCustomFoods = async () => {
-    const { data } = await supabase.from("custom_foods").select("*").order("created_at", { ascending: false });
-    setCustomFoods((data || []).map(f => ({ id: "custom_" + f.id, dbId: f.id, name: f.name, brand: f.brand || "", unit: f.unit || "g", piece_weight: f.piece_weight || null, per100: { kcal: f.kcal_100, prot: f.prot_100, carb: f.carb_100, fat: f.fat_100 }, source: "custom" })));
-  };
-
-  useEffect(() => {
-    if (!clientId) return;
-    setLoading(true);
-    Promise.all([supabase.from("nutrition_logs").select("*").eq("client_id", clientId).order("created_at"), supabase.from("custom_foods").select("*").order("created_at", { ascending: false })]).then(([{ data: logData }, { data: foodData }]) => {
-      setLogs(logData || []);
-      setCustomFoods((foodData || []).map(f => ({ id: "custom_" + f.id, dbId: f.id, name: f.name, brand: f.brand || "", unit: f.unit || "g", piece_weight: f.piece_weight || null, per100: { kcal: f.kcal_100, prot: f.prot_100, carb: f.carb_100, fat: f.fat_100 }, source: "custom" })));
-      setLoading(false);
-    });
-  }, [clientId]);
-
-  const dayLogs = logs.filter(l => l.date === activeDay);
-  const totals = sumMacros(dayLogs);
-  const byMeal = MEALS.map((label, i) => ({ label, entries: dayLogs.filter(e => e.meal_idx === i) }));
-  const getLast7 = () => Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().slice(0, 10); }).reverse();
-
-  const handleAdd = async (entry) => {
-    const { data } = await supabase.from("nutrition_logs").insert([{ ...entry, client_id: clientId, date: activeDay }]).select().single();
-    if (data) setLogs(l => [...l, data]);
-    loadCustomFoods();
-  };
-  const handleDelete = async (id) => { await supabase.from("nutrition_logs").delete().eq("id", id); setLogs(l => l.filter(x => x.id !== id)); };
-  const handleMoveMeal = async (id, newMealIdx) => {
-    await supabase.from("nutrition_logs").update({ meal_idx: newMealIdx }).eq("id", id);
-    setLogs(l => l.map(x => x.id === id ? { ...x, meal_idx: newMealIdx } : x));
-  };
-
-  const kcalLeft = goals.kcal - totals.kcal;
-  const kcalPct = Math.min((totals.kcal / goals.kcal) * 100, 100);
-
-  return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
-      {showModal && <FoodModal onAdd={handleAdd} onClose={() => setShowModal(false)} customFoods={customFoods} />}
-      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-      <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>🍽️ Mon journal nutrition</h2>
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, overflowX: "auto", paddingBottom: 4 }}>
-        {getLast7().map(d => {
-          const hasLogs = logs.some(l => l.date === d);
-          const isToday = d === today;
-          const label = isToday ? "Auj." : new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
-          return (
-            <button key={d} onClick={() => setActiveDay(d)} style={{ padding: "8px 12px", borderRadius: 12, border: `2px solid ${activeDay === d ? C.pink : C.border}`, background: activeDay === d ? C.pink + "22" : "#111", color: activeDay === d ? C.pink : C.textMuted, fontWeight: activeDay === d ? 700 : 400, fontSize: 12, cursor: "pointer", flexShrink: 0, position: "relative" }}>
-              {label}
-              {hasLogs && <span style={{ position: "absolute", top: -3, right: -3, width: 7, height: 7, borderRadius: "50%", background: C.green, border: `2px solid ${C.black}` }} />}
-            </button>
-          );
-        })}
-      </div>
-      {loading ? <Spinner /> : (
-        <>
-          <Card style={{ marginBottom: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <svg width={90} height={90} style={{ transform: "rotate(-90deg)" }}>
-                  <circle cx={45} cy={45} r={37} fill="none" stroke="#222" strokeWidth={7} />
-                  <circle cx={45} cy={45} r={37} fill="none" stroke={kcalPct >= 100 ? C.red : C.yellow} strokeWidth={7} strokeDasharray={`${kcalPct / 100 * 2 * Math.PI * 37} ${2 * Math.PI * 37}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.8s" }} />
-                </svg>
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: C.yellow, lineHeight: 1 }}>{Math.round(totals.kcal)}</div>
-                  <div style={{ fontSize: 9, color: C.textMuted }}>KCAL</div>
-                </div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 4 }}>Objectif : {goals.kcal} kcal</div>
-                <div style={{ padding: "8px 12px", background: kcalLeft < 0 ? C.red + "22" : C.green + "22", border: `1px solid ${kcalLeft < 0 ? C.red : C.green}44`, borderRadius: 10 }}>
-                  <div style={{ fontSize: 9, color: C.textMuted, marginBottom: 1 }}>{kcalLeft < 0 ? "DÉPASSEMENT" : "RESTANT"}</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: kcalLeft < 0 ? C.red : C.green }}>{Math.abs(Math.round(kcalLeft))} kcal</div>
-                </div>
-              </div>
-            </div>
-            <MacroBar label="Protéines 💪" value={Math.round(totals.prot)} max={goals.prot} color={C.green} />
-            <MacroBar label="Glucides" value={Math.round(totals.carb)} max={goals.carb} color={C.blue} />
-            <MacroBar label="Lipides" value={Math.round(totals.fat)} max={goals.fat} color={C.pink} />
-          </Card>
-          <button onClick={() => setShowModal(true)} style={{ width: "100%", padding: 13, borderRadius: 14, background: C.pink, color: C.black, fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer", marginBottom: 16 }}>+ Ajouter un aliment</button>
-          {byMeal.map(({ label, entries }, mi) => (
-            <div key={mi} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>{label}</span>
-                {entries.length > 0 && <span style={{ background: C.yellow + "22", color: C.yellow, borderRadius: 99, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>{entries.reduce((s, e) => s + getMacros(e).kcal, 0)} kcal</span>}
-              </div>
-              {entries.length === 0 ? <div style={{ padding: "9px 14px", border: `1px dashed ${C.border}`, borderRadius: 12, color: C.textMuted, fontSize: 12, textAlign: "center" }}>Rien de saisi</div> :
-                <Card style={{ padding: 0, overflow: "hidden" }}>
-                  {entries.map((e, i) => {
-                    const m = getMacros(e);
-                    return (
-                      <div key={i} style={{ padding: "10px 14px", borderBottom: i < entries.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ color: C.white, fontSize: 13, fontWeight: 600 }}>{e.name}</div>
-                            <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{e.manual_macros ? "saisie libre" : e.quantity_label || `${e.grams}g`} · 💪 {m.prot}g · 🌾 {m.carb}g · 🥑 {m.fat}g</div>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ fontWeight: 800, fontSize: 13, color: C.yellow }}>{m.kcal} kcal</span>
-                            {/* Menu déplacement repas */}
-                            <div style={{ position: "relative" }}>
-                              <select
-                                value={e.meal_idx}
-                                onChange={ev => handleMoveMeal(e.id, parseInt(ev.target.value))}
-                                style={{ background: "#2a2a2a", border: `1px solid ${C.border}`, borderRadius: 6, color: C.textMuted, fontSize: 10, padding: "3px 5px", cursor: "pointer", fontFamily: "inherit", maxWidth: 80 }}
-                                title="Déplacer vers un autre repas"
-                              >
-                                {MEALS.map((ml, idx) => (
-                                  <option key={idx} value={idx} style={{ background: "#1a1a1a" }}>{ml}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <button onClick={() => handleDelete(e.id)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, lineHeight: 1 }}>✕</button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </Card>
-              }
-            </div>
-          ))}
-        </>
-      )}
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// NUTRITION MONTHLY REPORT
-// ══════════════════════════════════════════════════════════════════════════════
-const NutritionReport = ({ client, clientInfo, nutritionLogs, isCoach, onShare, onClose, sharedMonths = [] }) => {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const days = getMonthDays(year, month);
-  const monthKey = `${year}-${String(month).padStart(2, "0")}`;
-  const isShared = sharedMonths.includes(monthKey);
-  const goals = { kcal: clientInfo?.calories_target || 1800, prot: clientInfo?.protein_target || 100, carb: clientInfo?.carb_target || 180, fat: clientInfo?.fat_target || 60 };
-  const daysWithLogs = days.filter(d => nutritionLogs.some(l => l.date === d));
-  const loggedDays = daysWithLogs.length;
-  const totalDays = days.length;
-  const macroAvgs = loggedDays === 0 ? { kcal: 0, prot: 0, carb: 0, fat: 0 } : (() => {
-    const sums = daysWithLogs.reduce((acc, d) => { const t = sumMacros(nutritionLogs.filter(l => l.date === d)); return { kcal: acc.kcal + t.kcal, prot: acc.prot + t.prot, carb: acc.carb + t.carb, fat: acc.fat + t.fat }; }, { kcal: 0, prot: 0, carb: 0, fat: 0 });
-    return { kcal: Math.round(sums.kcal / loggedDays), prot: Math.round(sums.prot / loggedDays * 10) / 10, carb: Math.round(sums.carb / loggedDays * 10) / 10, fat: Math.round(sums.fat / loggedDays * 10) / 10 };
-  })();
-  const protGoalDays = daysWithLogs.filter(d => sumMacros(nutritionLogs.filter(l => l.date === d)).prot >= goals.prot).length;
-  const maxKcal = Math.max(goals.kcal * 1.2, ...days.map(d => sumMacros(nutritionLogs.filter(l => l.date === d)).kcal));
-  const prevMonth = () => { if (month === 1) { setMonth(12); setYear(y => y - 1); } else setMonth(m => m - 1); };
-  const nextMonth = () => { if (month === 12) { setMonth(1); setYear(y => y + 1); } else setMonth(m => m + 1); };
-  const canNext = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
-  const generatePDF = () => {
-    const lines = [`BILAN MENSUEL NUTRITION — ${client}`, `Mois : ${new Date(year, month - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`, "", `Jours renseignés : ${loggedDays} / ${totalDays}`, `Calories moy : ${macroAvgs.kcal} kcal`, `Protéines moy : ${macroAvgs.prot}g`, `Objectif protéines atteint : ${protGoalDays}/${loggedDays} jours`];
-    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `bilan-${client}-${monthKey}.txt`; a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.97)", zIndex: 300, overflowY: "auto" }}>
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "20px 16px 60px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <button onClick={onClose} style={{ background: C.card, border: "none", color: C.textMuted, fontSize: 13, cursor: "pointer", padding: "7px 14px", borderRadius: 10, fontWeight: 600 }}>← Retour</button>
-          <div style={{ textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>BILAN MENSUEL</div><div style={{ fontSize: 14, fontWeight: 900, color: C.white }}>{client}</div></div>
-          {isCoach ? <button onClick={generatePDF} style={{ background: C.pink, border: "none", color: C.black, fontSize: 11, cursor: "pointer", padding: "7px 12px", borderRadius: 10, fontWeight: 700 }}>📄 Export</button> : <div style={{ width: 70 }} />}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 20 }}>
-          <button onClick={prevMonth} style={{ background: C.card, border: `1px solid ${C.border}`, color: C.textMuted, width: 32, height: 32, borderRadius: "50%", cursor: "pointer", fontSize: 14 }}>‹</button>
-          <div style={{ fontSize: 16, fontWeight: 900, color: C.white, minWidth: 180, textAlign: "center", textTransform: "capitalize" }}>{new Date(year, month - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</div>
-          <button onClick={nextMonth} disabled={!canNext} style={{ background: canNext ? C.card : "transparent", border: `1px solid ${canNext ? C.border : "#222"}`, color: canNext ? C.textMuted : "#333", width: 32, height: 32, borderRadius: "50%", cursor: canNext ? "pointer" : "default", fontSize: 14 }}>›</button>
-        </div>
-        {loggedDays === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: C.textMuted }}><div style={{ fontSize: 40, marginBottom: 12 }}>📭</div><div>Aucune donnée pour ce mois</div></div>
-        ) : (
-          <>
-            <Card style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📋 ASSIDUITÉ DU SUIVI</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  <svg width={80} height={80} style={{ transform: "rotate(-90deg)" }}><circle cx={40} cy={40} r={33} fill="none" stroke="#222" strokeWidth={7} /><circle cx={40} cy={40} r={33} fill="none" stroke={C.purple} strokeWidth={7} strokeDasharray={`${(loggedDays / totalDays) * 2 * Math.PI * 33} ${2 * Math.PI * 33}`} strokeLinecap="round" /></svg>
-                  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}><div style={{ fontSize: 16, fontWeight: 900, color: C.purple }}>{Math.round(loggedDays / totalDays * 100)}%</div></div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-                    <div style={{ flex: 1, background: C.purple + "22", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "8px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 900, color: C.purple }}>{loggedDays}</div><div style={{ fontSize: 9, color: C.textMuted }}>JOURS SAISIS</div></div>
-                    <div style={{ flex: 1, background: "#111", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 900, color: C.textMuted }}>{totalDays - loggedDays}</div><div style={{ fontSize: 9, color: C.textMuted }}>MANQUANTS</div></div>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                    {days.map(d => { const hasLog = nutritionLogs.some(l => l.date === d); const isFuture = d > today; return <div key={d} style={{ width: 10, height: 10, borderRadius: 2, background: isFuture ? "#111" : hasLog ? C.purple : "#333", opacity: isFuture ? 0.3 : 1, border: d === today ? `1px solid ${C.pink}` : "none" }} />; })}
-                  </div>
-                </div>
-              </div>
-            </Card>
-            <Card style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📊 MOYENNES / JOUR RENSEIGNÉ</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
-                {[{ l: "KCAL", v: macroAvgs.kcal, obj: goals.kcal, c: C.yellow, u: "" }, { l: "PROT", v: macroAvgs.prot, obj: goals.prot, c: C.green, u: "g" }, { l: "GLUC", v: macroAvgs.carb, obj: goals.carb, c: C.blue, u: "g" }, { l: "LIP", v: macroAvgs.fat, obj: goals.fat, c: C.pink, u: "g" }].map(s => (
-                  <div key={s.l} style={{ background: s.c + "15", border: `1px solid ${s.c}33`, borderRadius: 10, padding: "8px 6px", textAlign: "center" }}><div style={{ fontSize: 14, fontWeight: 900, color: s.c }}>{s.v}{s.u}</div><div style={{ fontSize: 8, color: C.textMuted }}>obj. {s.obj}{s.u}</div><div style={{ fontSize: 8, color: C.textMuted, marginTop: 2 }}>{s.l}</div></div>
-                ))}
-              </div>
-              <MacroBar label="Kcal moy. vs objectif" value={macroAvgs.kcal} max={goals.kcal} color={C.yellow} unit=" kcal" />
-              <MacroBar label="Protéines moy. vs objectif" value={macroAvgs.prot} max={goals.prot} color={C.green} />
-            </Card>
-            <Card style={{ marginBottom: 14, borderColor: C.green + "44" }}>
-              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>💪 ANALYSE PROTÉINES</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
-                {[{ l: "Objectif atteint", v: protGoalDays, c: C.green }, { l: "En dessous", v: loggedDays - protGoalDays, c: C.red }, { l: "Taux réussite", v: `${loggedDays > 0 ? Math.round(protGoalDays / loggedDays * 100) : 0}%`, c: C.purple }].map(s => (
-                  <div key={s.l} style={{ background: s.c + "15", border: `1px solid ${s.c}33`, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}><div style={{ fontSize: 20, fontWeight: 900, color: s.c }}>{s.v}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>{s.l}</div></div>
-                ))}
-              </div>
-            </Card>
-            <Card style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📈 CALORIES — VUE MENSUELLE</div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 70, marginBottom: 6 }}>
-                {days.map(d => { const kcal = sumMacros(nutritionLogs.filter(l => l.date === d)).kcal; const pct = Math.min((kcal / maxKcal) * 100, 100); const over = kcal > goals.kcal; const isEmpty = kcal === 0; const isFuture = d > today; return <div key={d} style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end" }}><div style={{ width: "100%", height: isFuture || isEmpty ? 3 : `${Math.max(pct / 100 * 70, 3)}px`, background: isFuture ? "#111" : isEmpty ? "#222" : over ? C.red : C.yellow, borderRadius: "2px 2px 0 0", opacity: isFuture ? 0.3 : isEmpty ? 0.4 : 1 }} /></div>; })}
-              </div>
-            </Card>
-            {isCoach && (
-              <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={generatePDF} style={{ flex: 1, padding: 13, borderRadius: 14, background: "#222", color: C.white, fontWeight: 700, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: 13 }}>📄 Exporter</button>
-                <button onClick={() => onShare(monthKey)} disabled={isShared} style={{ flex: 1, padding: 13, borderRadius: 14, background: isShared ? "#222" : C.pink, color: isShared ? C.textMuted : C.black, fontWeight: 700, border: "none", cursor: isShared ? "default" : "pointer", fontSize: 13 }}>{isShared ? "✓ Partagé" : "Partager avec la cliente"}</button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
 // ══════════════════════════════════════════════════════════════════════════════
 // LOGIN SCREEN
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2912,10 +2044,6 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
     sessions_per_week: client.sessions_per_week || 3,
     monthly_amount: client.monthly_amount || "",
     start_date: client.start_date || "", next_payment: client.next_payment || "",
-    calories_target: client.calories_target || "",
-    protein_target: client.protein_target || "",
-    carb_target: client.carb_target || "",
-    fat_target: client.fat_target || "",
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -2924,7 +2052,7 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
   const handleSave = async () => {
     setSaving(true);
     const avatar = form.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment, calories_target: parseInt(form.calories_target) || 0, protein_target: parseInt(form.protein_target) || 0, carb_target: parseInt(form.carb_target) || 0, fat_target: parseInt(form.fat_target) || 0 });
+    await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment });
     setSaving(false); onClose();
   };
 
@@ -2949,15 +2077,6 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
           <Inp label="Montant toutes les 4 semaines (€)" type="number" value={form.monthly_amount} onChange={e => setForm({ ...form, monthly_amount: e.target.value })} />
           <Inp label="Date de début" type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
           <Inp label="Prochain paiement" type="date" value={form.next_payment} onChange={e => setForm({ ...form, next_payment: e.target.value })} />
-          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🍽️ OBJECTIFS NUTRITIONNELS</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Inp label="Calories / jour" type="number" placeholder="ex: 1800" value={form.calories_target} onChange={e => setForm({ ...form, calories_target: e.target.value })} />
-              <Inp label="Protéines / jour (g)" type="number" placeholder="ex: 100" value={form.protein_target} onChange={e => setForm({ ...form, protein_target: e.target.value })} />
-              <Inp label="Glucides / jour (g)" type="number" placeholder="ex: 180" value={form.carb_target} onChange={e => setForm({ ...form, carb_target: e.target.value })} />
-              <Inp label="Lipides / jour (g)" type="number" placeholder="ex: 60" value={form.fat_target} onChange={e => setForm({ ...form, fat_target: e.target.value })} />
-            </div>
-          </div>
         </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
           <Btn variant="secondary" onClick={onClose} style={{ flex: 1 }}>Annuler</Btn>
