@@ -1621,6 +1621,48 @@ const CoachApp = ({ user, onLogout }) => {
                         </div>
                       </Card>
                     )}
+                    {measurements.length > 0 && (
+                      <Card>
+                        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>📏 MENSURATIONS</div>
+                        {measurements.length >= 2 && (() => {
+                          const first = measurements[0], last = measurements[measurements.length - 1];
+                          return (
+                            <div style={{ marginBottom: 14 }}>
+                              {[["chest", "Poitrine"], ["waist", "Tour de taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => {
+                                if (last[k] == null || first[k] == null) return null;
+                                const diff = (last[k] - first[k]).toFixed(1);
+                                return (
+                                  <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
+                                    <span style={{ color: C.textMuted }}>{label}</span>
+                                    <span>
+                                      <strong>{last[k]} cm</strong>{" "}
+                                      <span style={{ color: diff < 0 ? C.green : diff > 0 ? C.red : C.textMuted, fontSize: 11 }}>
+                                        {diff < 0 ? diff : diff > 0 ? `+${diff}` : "—"} cm
+                                      </span>
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {[...measurements].reverse().map((m, i) => (
+                            <div key={i} style={{ background: "#111", borderRadius: 10, padding: "10px 12px" }}>
+                              <div style={{ fontSize: 12, color: C.pink, fontWeight: 700, marginBottom: 6 }}>{formatDate(m.date)}</div>
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                                {[["chest", "Poitrine"], ["waist", "Taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => m[k] != null ? (
+                                  <div key={k} style={{ textAlign: "center" }}>
+                                    <div style={{ fontSize: 9, color: C.textMuted, marginBottom: 2 }}>{label.toUpperCase()}</div>
+                                    <div style={{ fontSize: 13, fontWeight: 800 }}>{m[k]} <span style={{ fontSize: 10, color: C.textMuted }}>cm</span></div>
+                                  </div>
+                                ) : null)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </Card>
+                    )}
                     {progressPhotos.length > 0 && (
                       <Card>
                         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>📸 PHOTOS DE PROGRESSION</div>
@@ -1629,7 +1671,7 @@ const CoachApp = ({ user, onLogout }) => {
                         </div>
                       </Card>
                     )}
-                    {weights.length <= 1 && progressPhotos.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de données.</p></Card>}
+                    {weights.length <= 1 && progressPhotos.length === 0 && measurements.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de données.</p></Card>}
                   </>)}
                 </div>
               )}
