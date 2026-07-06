@@ -107,29 +107,60 @@ const addDays = (dateStr, days) => {
   return d.toISOString().slice(0, 10);
 };
 
-const scheduleNotification = () => {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const now = new Date();
-  const target = new Date();
-  target.setHours(20, 0, 0, 0);
-  if (now >= target) target.setDate(target.getDate() + 1);
-  const delay = target - now;
-  setTimeout(() => {
-    new Notification("process lab. 📋", { body: "N'oublie pas de remplir ton journal du jour !", icon: "/icon.png" });
-    scheduleNotification();
-  }, delay);
+// Clé publique VAPID (sans risque à exposer côté client — c'est le fonctionnement normal du protocole Web Push)
+const VAPID_PUBLIC_KEY = "BIKdD3Lx2qzFRUoHVFm-7IBt_SGgaoo5kYhNS1XaIDueRX2Whecw5B2VpV9kvxzCsedlZmH3kzySWRU1DndMItg";
+
+// Convertit la clé VAPID (base64 URL-safe) au format attendu par l'API PushManager
+const urlBase64ToUint8Array = (base64String) => {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
 };
 
-const requestNotifications = async () => {
-  if (!("Notification" in window)) { alert("Ajoute l'app à ton écran d'accueil depuis Safari pour activer les notifications."); return false; }
-  if (Notification.permission === "granted") { scheduleNotification(); return true; }
-  const perm = await Notification.requestPermission();
-  if (perm === "granted") {
-    scheduleNotification();
-    new Notification("process lab. ✅", { body: "Rappels activés ! Tu seras notifiée à 20h chaque soir.", icon: "/icon.png" });
-    return true;
+// Abonne l'appareil de la cliente aux notifications push et enregistre l'abonnement côté serveur.
+// Remplace l'ancien système basé sur setTimeout (peu fiable en arrière-plan) par un vrai Web Push,
+// qui fonctionne même app fermée grâce au service worker (/sw.js).
+const requestNotifications = async (clientId) => {
+  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+    alert("Les notifications ne sont pas supportées sur cet appareil/navigateur. Sur iPhone, ajoute d'abord l'app à l'écran d'accueil depuis Safari.");
+    return false;
   }
-  return false;
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return false;
+
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
+
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+
+    const subJson = subscription.toJSON();
+    if (clientId) {
+      await supabase.from("push_subscriptions").upsert(
+        {
+          client_id: clientId,
+          endpoint: subJson.endpoint,
+          p256dh: subJson.keys.p256dh,
+          auth: subJson.keys.auth,
+        },
+        { onConflict: "endpoint" }
+      );
+    }
+    return true;
+  } catch (err) {
+    console.error("Erreur d'abonnement aux notifications :", err);
+    alert("Impossible d'activer les notifications. Réessaie, ou vérifie les autorisations de ton navigateur.");
+    return false;
+  }
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1806,8 +1837,8 @@ const ClientApp = ({ user, onLogout }) => {
     reader.readAsDataURL(file);
   };
   const handleEnableNotifs = async () => {
-    const granted = await requestNotifications();
-    if (granted) setNotifEnabled(true);
+    const granted = await requestNotifications(clientId);
+    if (granted) { setNotifEnabled(true); alert("✅ Rappels activés ! Tu recevras une notification chaque soir à 20h, même app fermée."); }
     else alert("Pour activer : Réglages → Notifications → Process Lab → Autoriser");
   };
 
