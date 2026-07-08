@@ -164,6 +164,33 @@ const requestNotifications = async (clientId) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ADMIN — appel sécurisé de l'Edge Function admin-manage-clients
+// ══════════════════════════════════════════════════════════════════════════════
+const ADMIN_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/admin-manage-clients`;
+
+const callAdminFunction = async (payload) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  try {
+    const res = await fetch(ADMIN_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch (err) {
+    return { error: "Impossible de contacter le serveur." };
+  }
+};
+
+const ADMIN_PW_WORDS = ["Fort", "Puissant", "Energie", "Focus", "Victoire", "Motiv", "Champion", "Solide"];
+const generateSimplePassword = () => {
+  const w = ADMIN_PW_WORDS[Math.floor(Math.random() * ADMIN_PW_WORDS.length)];
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return `${w}${num}!`;
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT BUILDER
 // ══════════════════════════════════════════════════════════════════════════════
 const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
@@ -1372,6 +1399,15 @@ const CoachApp = ({ user, onLogout }) => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
 
+  // ── ADMIN ────────────────────────────────────────────────────────────────
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [loadingAdmin, setLoadingAdmin] = useState(false);
+  const [adminError, setAdminError] = useState("");
+  const [resetTargetId, setResetTargetId] = useState(null);
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resettingId, setResettingId] = useState(null);
+
   const [todayEntries, setTodayEntries] = useState([]);
   const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
@@ -1413,6 +1449,30 @@ const CoachApp = ({ user, onLogout }) => {
       supabase.from("session_logs").select("*").eq("client_id", selected).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || []));
     }
   }, [selected]);
+
+  // ── ADMIN : chargement des comptes Supabase Auth via l'Edge Function sécurisée ──
+  useEffect(() => {
+    if (mainTab === "admin" && !selected) {
+      setLoadingAdmin(true);
+      setAdminError("");
+      callAdminFunction({ action: "list_users" }).then(res => {
+        if (res.error) { setAdminError(res.error); setAdminUsers([]); }
+        else { setAdminUsers(res.users || []); }
+        setLoadingAdmin(false);
+      });
+    }
+  }, [mainTab, selected]);
+
+  const handleResetPassword = async (c, authUser) => {
+    if (!authUser) { setResetMessage("❌ Compte introuvable pour cette cliente."); return; }
+    if (!newPasswordInput || newPasswordInput.length < 6) { setResetMessage("❌ Le mot de passe doit faire au moins 6 caractères."); return; }
+    setResettingId(c.id);
+    setResetMessage("");
+    const res = await callAdminFunction({ action: "reset_password", targetUserId: authUser.id, newPassword: newPasswordInput });
+    if (res.error) setResetMessage("❌ " + res.error);
+    else setResetMessage(`✅ Nouveau mot de passe défini : ${newPasswordInput}`);
+    setResettingId(null);
+  };
 
   const handleAddClient = async () => {
     if (!newClientForm.name || !newClientForm.email || !newClientForm.password) return alert("Remplis au minimum le nom, l'email et le mot de passe.");
@@ -1472,7 +1532,7 @@ const CoachApp = ({ user, onLogout }) => {
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* SIDEBAR NAV */}
         <div style={{ width: 220, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", overflowY: "auto", flexShrink: 0 }}>
-          {[["dashboard", "🏠", "Dashboard"], ["workouts", "💪", "Séances"]].map(([k, icon, label]) => (
+          {[["dashboard", "🏠", "Dashboard"], ["workouts", "💪", "Séances"], ["admin", "🔐", "Admin"]].map(([k, icon, label]) => (
             <button key={k} onClick={() => { setMainTab(k); setSelected(null); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", background: mainTab === k && !selected ? C.pink + "15" : "transparent", borderLeft: `3px solid ${mainTab === k && !selected ? C.pink : "transparent"}`, border: "none", color: mainTab === k && !selected ? C.white : C.textMuted, cursor: "pointer", fontWeight: mainTab === k && !selected ? 700 : 400, fontSize: 14, textAlign: "left" }}>{icon} {label}</button>
           ))}
           <div style={{ padding: "10px 16px 6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1561,6 +1621,67 @@ const CoachApp = ({ user, onLogout }) => {
                   onDelete={() => deleteWorkout(w.id)}
                 />
               ))}
+            </div>
+          )}
+
+          {mainTab === "admin" && !selected && (
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 8px" }}>Administration 🔐</h1>
+              <p style={{ color: C.textMuted, fontSize: 13, marginTop: 0, marginBottom: 20 }}>Réinitialise le mot de passe d'une cliente directement depuis l'app, sans passer par Supabase.</p>
+              {adminError && (
+                <Card style={{ borderColor: C.red + "44", marginBottom: 16 }}>
+                  <div style={{ color: C.red, fontSize: 13 }}>❌ {adminError}</div>
+                </Card>
+              )}
+              {loadingAdmin ? <Spinner /> : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {clients.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune cliente.</p></Card>}
+                  {clients.map(c => {
+                    const authUser = adminUsers.find(u => u.id === c.user_id);
+                    const isResetting = resetTargetId === c.id;
+                    return (
+                      <Card key={c.id}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isResetting ? 14 : 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <Avatar initials={c.avatar} size={34} />
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
+                              <div style={{ fontSize: 12, color: C.textMuted }}>{authUser?.email || "Compte introuvable"}</div>
+                            </div>
+                          </div>
+                          <Btn
+                            small
+                            variant={isResetting ? "secondary" : "primary"}
+                            onClick={() => {
+                              const next = isResetting ? null : c.id;
+                              setResetTargetId(next);
+                              setNewPasswordInput(next ? generateSimplePassword() : "");
+                              setResetMessage("");
+                            }}
+                            style={{ width: "auto" }}
+                          >
+                            {isResetting ? "Annuler" : "🔑 Réinitialiser"}
+                          </Btn>
+                        </div>
+                        {isResetting && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            <Inp label="Nouveau mot de passe" placeholder="ex: Processlab2026!" value={newPasswordInput} onChange={e => setNewPasswordInput(e.target.value)} />
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <Btn small variant="secondary" onClick={() => setNewPasswordInput(generateSimplePassword())} style={{ width: "auto" }}>🎲 Générer</Btn>
+                              <Btn small onClick={() => handleResetPassword(c, authUser)} disabled={!newPasswordInput || resettingId === c.id} style={{ flex: 1 }}>
+                                {resettingId === c.id ? "..." : "Confirmer"}
+                              </Btn>
+                            </div>
+                            {resetMessage && (
+                              <div style={{ fontSize: 13, color: resetMessage.startsWith("✅") ? C.green : C.red, fontWeight: 600 }}>{resetMessage}</div>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
