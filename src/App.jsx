@@ -191,6 +191,147 @@ const generateSimplePassword = () => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+// CATALOGUE D'EXERCICES — référence statique (aucune image, aucun appel réseau)
+// Sert uniquement à pré-remplir le nom + les consignes techniques d'un exercice
+// dans le WorkoutBuilder. La photo reste ajoutée manuellement comme aujourd'hui.
+// ══════════════════════════════════════════════════════════════════════════════
+const EXERCISE_CATALOGUE = {
+  "Musculation avec charges": [
+    { nom: "Squat barre (back squat)", positionnement: "Barre posée sur le haut du trapèze (position basse ou haute selon mobilité), pieds largeur épaules à légèrement plus larges, pointes de pied légèrement ouvertes. Regard neutre, gainage activé avant de sortir la barre du rack.", execution: "Initier le mouvement en reculant les hanches, descendre en contrôlant la trajectoire des genoux dans l'axe des pieds jusqu'à ce que les hanches passent sous les genoux (ou selon amplitude travaillée). Remonter en poussant le sol, extension complète des hanches et des genoux.", respiration: "Inspiration profonde et gainage avant la descente, blocage respiratoire (apnée contrôlée) pendant la phase excentrique et le point bas, expiration active pendant la remontée, idéalement après avoir passé le point de sticking.", vigilance: "Genoux qui rentrent vers l'intérieur (valgus), talons qui décollent, dos qui s'arrondit en bas de mouvement, buste qui bascule trop en avant. Toujours garder les abdominaux et le plancher pelvien engagés." },
+    { nom: "Squat gobelet (goblet squat)", positionnement: "Haltère ou kettlebell tenu à deux mains contre la poitrine, coudes proches du corps, pieds largeur épaules.", execution: "Descendre en poussant les hanches en arrière et en pliant les genoux, buste reste vertical, coudes viennent frôler l'intérieur des genoux en bas de mouvement. Remonter en poussant dans le sol.", respiration: "Inspiration en descente, expiration active en remontée.", vigilance: "Excellent exercice d'apprentissage du squat : surveiller que le dos reste neutre et que les talons restent au sol tout au long du mouvement." },
+    { nom: "Soulevé de terre (deadlift)", positionnement: "Barre au-dessus du milieu de pied, pieds largeur bassin, mains en prise pronation ou mixte juste à l'extérieur des jambes, dos plat, épaules légèrement au-dessus de la barre.", execution: "Pousser le sol avec les jambes tout en gardant la barre proche du corps, extension simultanée des hanches et des genoux jusqu'à la position debout complète, gainage constant.", respiration: "Grande inspiration et gainage abdominal avant de décoller la barre, apnée contrôlée pendant la phase de tirage, expiration une fois la position debout atteinte.", vigilance: "Ne jamais arrondir le bas du dos, ne pas laisser la barre s'éloigner du corps, éviter l'hyperextension lombaire en haut de mouvement." },
+    { nom: "Soulevé de terre roumain (RDL)", positionnement: "Barre ou haltères tenus devant les cuisses, pieds largeur bassin, genoux légèrement fléchis et fixes tout au long du mouvement.", execution: "Pousser les hanches vers l'arrière en gardant le dos neutre et la charge proche des jambes, descendre jusqu'à ressentir un étirement des ischio-jambiers, puis remonter par extension des hanches.", respiration: "Inspiration en descente, expiration à la remontée sur la contraction des fessiers et ischios.", vigilance: "Le mouvement part des hanches et non des genoux ; éviter d'arrondir le dos et de descendre plus bas que la souplesse des ischios ne le permet." },
+    { nom: "Hip thrust barre", positionnement: "Dos (omoplates) appuyé sur un banc, barre positionnée sur les hanches (avec protection), pieds à plat au sol, genoux fléchis à 90° en position haute.", execution: "Pousser dans les talons pour lever le bassin jusqu'à l'alignement genoux-hanches-épaules, contracter fortement les fessiers en haut, redescendre en contrôlant sans reposer la charge au sol entre les répétitions.", respiration: "Inspiration en descente, expiration puissante à la poussée en position haute.", vigilance: "Éviter l'hyperextension lombaire en haut de mouvement (ne pas cambrer excessivement), le menton reste rentré, le bassin ne doit pas partir en rotation." },
+    { nom: "Développé couché (bench press)", positionnement: "Allongé sur le banc, omoplates rétractées et abaissées, pieds ancrés au sol, léger pont lombaire naturel, prise de barre légèrement plus large que les épaules.", execution: "Descendre la barre de façon contrôlée jusqu'à effleurer la poitrine, coudes à environ 45-70° du buste, puis pousser vers le haut jusqu'à extension complète des bras.", respiration: "Inspiration en descente, expiration active pendant la poussée.", vigilance: "Ne pas décoller les fessiers du banc, garder les omoplates stables, éviter de faire rebondir la barre sur la poitrine." },
+    { nom: "Développé militaire (overhead press)", positionnement: "Debout, pieds largeur bassin, barre ou haltères au niveau des épaules, gainage abdominal et fessier activé.", execution: "Pousser la charge à la verticale au-dessus de la tête en gardant le tronc gainé, jusqu'à extension complète des bras, redescendre de façon contrôlée.", respiration: "Inspiration et gainage avant la poussée, expiration en fin de mouvement une fois les bras tendus.", vigilance: "Éviter de cambrer excessivement le bas du dos pour compenser un manque de mobilité d'épaule ; garder les côtes basses engagées." },
+    { nom: "Rowing barre", positionnement: "Buste penché en avant à environ 45°, dos plat, genoux légèrement fléchis, barre tenue à bout de bras sous les épaules.", execution: "Tirer la barre vers le bas des abdominaux en rapprochant les omoplates, coudes proches du corps, puis redescendre de façon contrôlée sans perdre la position du dos.", respiration: "Expiration pendant le tirage, inspiration pendant la phase de retour.", vigilance: "Ne pas utiliser l'élan du bas du dos pour tirer la charge ; maintenir la colonne neutre tout au long du mouvement." },
+    { nom: "Tirage horizontal poulie basse", positionnement: "Assis face à la poulie, pieds calés, genoux légèrement fléchis, dos droit, poignée saisie à bout de bras.", execution: "Tirer la poignée vers l'abdomen en rapprochant les omoplates et en gardant les coudes proches du corps, revenir en contrôlant l'étirement sans arrondir excessivement le dos.", respiration: "Expiration pendant le tirage, inspiration au retour.", vigilance: "Éviter de se pencher en arrière pour tricher le mouvement ; le buste reste globalement stable, le tirage vient des dorsaux." },
+    { nom: "Tirage vertical (lat pulldown)", positionnement: "Assis, cuisses bloquées sous les rouleaux, prise large ou moyenne selon l'objectif, buste légèrement en arrière.", execution: "Tirer la barre vers le haut de la poitrine en engageant les dorsaux, coudes qui descendent vers les hanches, remonter en contrôlant l'étirement.", respiration: "Expiration pendant le tirage, inspiration à la remontée.", vigilance: "Éviter de tirer la barre derrière la nuque ; ne pas utiliser un balancement excessif du buste pour générer l'élan." },
+    { nom: "Curl biceps haltères", positionnement: "Debout, bras le long du corps, haltères tenus en supination, coudes proches du buste.", execution: "Fléchir les coudes pour amener les haltères vers les épaules sans bouger les bras, puis redescendre de façon contrôlée jusqu'à extension complète.", respiration: "Expiration en montée, inspiration en descente.", vigilance: "Éviter de balancer le buste ou de décoller les coudes du corps pour tricher la charge." },
+    { nom: "Extension triceps à la poulie", positionnement: "Face à la poulie haute, coudes fixes proches du buste, prise de la corde ou barre.", execution: "Étendre les avant-bras vers le bas jusqu'à extension complète des coudes, puis remonter en contrôlant sans décoller les coudes du corps.", respiration: "Expiration en poussée, inspiration au retour.", vigilance: "Les coudes restent fixes tout au long du mouvement ; éviter de les projeter vers l'avant." },
+    { nom: "Fentes avant haltères (walking lunges)", positionnement: "Debout, haltères le long du corps, tronc gainé.", execution: "Faire un grand pas en avant, descendre jusqu'à ce que le genou arrière frôle le sol, genou avant aligné avec la cheville, puis pousser pour ramener les jambes ou avancer sur le pas suivant.", respiration: "Inspiration en descente, expiration en poussée pour remonter.", vigilance: "Éviter que le genou avant dépasse largement la pointe du pied de façon incontrôlée ; garder le buste droit et gainé." },
+    { nom: "Presse à cuisses (leg press)", positionnement: "Assis, dos et bassin bien calés contre le dossier, pieds largeur bassin sur le plateau, genoux alignés avec les pieds.", execution: "Fléchir les genoux pour amener le plateau vers soi jusqu'à un angle d'environ 90°, puis pousser pour revenir en extension sans verrouiller complètement les genoux.", respiration: "Inspiration en descente, expiration en poussée.", vigilance: "Ne jamais décoller le bas du dos du dossier ; éviter de verrouiller brutalement les genoux en fin de poussée." },
+    { nom: "Leg curl (ischio-jambiers)", positionnement: "Allongé ou assis selon la machine, coussin positionné juste au-dessus des talons, genoux alignés avec l'axe de la machine.", execution: "Fléchir les genoux pour amener les talons vers les fessiers, contracter en fin de mouvement, puis revenir en contrôlant la phase excentrique.", respiration: "Expiration en flexion, inspiration au retour.", vigilance: "Éviter de décoller les hanches du support pour tricher l'amplitude ; contrôler particulièrement la descente." },
+    { nom: "Leg extension (quadriceps)", positionnement: "Assis, dos calé au dossier, coussin positionné sur le bas des tibias, genoux alignés avec l'axe de rotation de la machine.", execution: "Étendre les genoux jusqu'à extension complète, contracter les quadriceps, puis revenir en contrôlant la descente.", respiration: "Expiration en extension, inspiration au retour.", vigilance: "Ne pas verrouiller violemment les genoux en fin de mouvement ; contrôler la vitesse de descente pour protéger l'articulation." },
+    { nom: "Élévations latérales haltères", positionnement: "Debout, haltères le long du corps, léger fléchissement des coudes.", execution: "Lever les bras sur les côtés jusqu'à hauteur des épaules, puis redescendre de façon contrôlée.", respiration: "Expiration en montée, inspiration en descente.", vigilance: "Éviter d'utiliser l'élan du buste ; privilégier une charge modérée pour préserver la technique et les épaules." },
+    { nom: "Développé incliné haltères", positionnement: "Allongé sur banc incliné (30-45°), haltères tenus au niveau de la poitrine, omoplates rétractées.", execution: "Pousser les haltères vers le haut jusqu'à extension quasi complète des bras, puis redescendre en contrôlant jusqu'au niveau de la poitrine haute.", respiration: "Inspiration en descente, expiration en poussée.", vigilance: "Garder les poignets alignés avec les avant-bras ; éviter une inclinaison trop forte du banc qui reporte le travail sur les épaules." },
+    { nom: "Rowing haltère unilatéral", positionnement: "Un genou et une main en appui sur un banc, dos parallèle au sol, haltère tenu bras tendu dans l'autre main.", execution: "Tirer l'haltère vers la hanche en rapprochant l'omoplate, coude proche du corps, puis redescendre en contrôlant l'étirement.", respiration: "Expiration au tirage, inspiration au retour.", vigilance: "Éviter de faire pivoter le buste pour aider le mouvement ; garder les hanches et les épaules alignées face au sol." },
+    { nom: "Good morning", positionnement: "Barre légère posée sur le haut du dos, pieds largeur bassin, genoux légèrement fléchis et fixes.", execution: "Pousser les hanches vers l'arrière en inclinant le buste vers l'avant, dos neutre, jusqu'à ressentir l'étirement des ischio-jambiers, puis remonter par extension des hanches.", respiration: "Inspiration en descente, expiration en remontée.", vigilance: "Charge légère recommandée, mouvement technique ; ne jamais arrondir le dos, amplitude limitée par la souplesse des ischios." },
+  ],
+  "Poids du corps": [
+    { nom: "Pompes (push-up)", positionnement: "Position de planche haute, mains légèrement plus larges que les épaules, corps aligné de la tête aux talons, gainage abdominal et fessier activé.", execution: "Descendre en fléchissant les coudes jusqu'à ce que la poitrine frôle le sol, coudes à environ 45° du buste, puis pousser pour revenir en extension complète des bras.", respiration: "Inspiration en descente, expiration active en poussée.", vigilance: "Éviter que les hanches s'affaissent ou se cambrent ; garder la tête dans le prolongement de la colonne." },
+    { nom: "Squat au poids du corps", positionnement: "Pieds largeur épaules, pointes légèrement ouvertes, bras tendus devant ou mains croisées sur la poitrine.", execution: "Reculer les hanches et fléchir les genoux pour descendre jusqu'à une amplitude confortable (cuisses parallèles au sol si mobilité le permet), puis remonter en poussant le sol.", respiration: "Inspiration en descente, expiration en remontée.", vigilance: "Genoux dans l'axe des pieds, talons ancrés au sol, dos neutre tout au long du mouvement." },
+    { nom: "Fentes (lunges)", positionnement: "Debout, tronc gainé, mains sur les hanches ou le long du corps.", execution: "Faire un pas en avant ou en arrière, descendre jusqu'à ce que le genou arrière frôle le sol, puis pousser pour revenir en position initiale.", respiration: "Inspiration en descente, expiration en poussée.", vigilance: "Genou avant aligné avec la cheville, buste droit, éviter de perdre l'équilibre latéralement." },
+    { nom: "Gainage / planche (plank)", positionnement: "Appui sur les avant-bras et les pointes de pied, corps aligné de la tête aux talons, coudes sous les épaules.", execution: "Maintenir la position en gardant le bassin ni trop haut ni affaissé, gainage abdominal et fessier constant pendant toute la durée.", respiration: "Respiration ample et régulière, sans blocage prolongé, en gardant le gainage actif.", vigilance: "Éviter que le bas du dos se creuse ; ne pas relever les fessiers pour soulager l'effort." },
+    { nom: "Planche latérale (side plank)", positionnement: "Appui sur un avant-bras et le côté du pied, corps aligné, hanche décollée du sol.", execution: "Maintenir l'alignement tête-épaule-hanche-pied en gainant les obliques, sans laisser le bassin s'affaisser vers le sol.", respiration: "Respiration régulière tout en maintenant le gainage.", vigilance: "Éviter de faire pivoter le bassin vers l'avant ou l'arrière ; l'épaule d'appui reste stable, sans s'enfoncer." },
+    { nom: "Mountain climbers", positionnement: "Position de planche haute, mains sous les épaules, gainage activé.", execution: "Ramener alternativement les genoux vers la poitrine de façon dynamique, en gardant le bassin stable et le dos plat.", respiration: "Respiration rythmée avec le mouvement, sans bloquer la respiration.", vigilance: "Éviter que les hanches montent ou descendent excessivement ; garder un rythme contrôlé plutôt que précipité." },
+    { nom: "Burpees", positionnement: "Départ debout, pieds largeur bassin.", execution: "Descendre en squat, poser les mains au sol, envoyer les jambes en planche, effectuer une pompe (optionnelle), ramener les pieds vers les mains, puis sauter en extension complète.", respiration: "Expiration à l'effort (saut et extension), inspiration pendant la phase de mise en position basse.", vigilance: "Garder le dos neutre lors de la transition planche-squat ; adapter l'intensité et la réception du saut pour préserver les articulations." },
+    { nom: "Dips sur banc", positionnement: "Mains posées sur le bord d'un banc, doigts vers l'avant, jambes tendues ou fléchies devant soi, fessiers proches du banc.", execution: "Descendre en fléchissant les coudes jusqu'à un angle d'environ 90°, puis pousser pour remonter en extension.", respiration: "Inspiration en descente, expiration en poussée.", vigilance: "Épaules basses et loin des oreilles, éviter une descente trop profonde qui stresse excessivement l'articulation de l'épaule." },
+    { nom: "Superman", positionnement: "Allongé sur le ventre, bras tendus devant la tête, jambes tendues.", execution: "Lever simultanément bras et jambes du sol en contractant les lombaires et les fessiers, maintenir brièvement, puis redescendre en contrôlant.", respiration: "Expiration à la montée, inspiration à la descente.", vigilance: "Mouvement d'amplitude modérée : éviter l'hyperextension excessive et les à-coups." },
+    { nom: "Hip thrust au sol (glute bridge)", positionnement: "Allongé sur le dos, genoux fléchis, pieds à plat proches des fessiers, bras le long du corps.", execution: "Pousser dans les talons pour lever le bassin jusqu'à l'alignement genoux-hanches-épaules, contracter les fessiers, puis redescendre en contrôlant.", respiration: "Inspiration en descente, expiration en poussée.", vigilance: "Éviter de pousser sur les orteils plutôt que les talons ; ne pas cambrer excessivement le bas du dos en haut de mouvement." },
+    { nom: "Squat bulgare (au poids du corps)", positionnement: "Pied arrière surélevé sur un banc, pied avant à bonne distance pour permettre un angle de genou d'environ 90° en bas de mouvement.", execution: "Descendre en fléchissant le genou avant jusqu'à ce que le genou arrière frôle le sol, puis pousser pour remonter.", respiration: "Inspiration en descente, expiration en remontée.", vigilance: "Buste légèrement penché en avant pour engager les fessiers, genou avant qui reste dans l'axe du pied." },
+    { nom: "Tractions (pull-up)", positionnement: "Suspendu à la barre, prise pronation légèrement plus large que les épaules, épaules engagées (pas totalement relâchées).", execution: "Tirer le corps vers le haut jusqu'à ce que le menton dépasse la barre, en engageant les dorsaux, puis redescendre en contrôlant jusqu'à extension complète des bras.", respiration: "Expiration en tirant vers le haut, inspiration en descente.", vigilance: "Éviter les mouvements de balancier excessifs ; contrôler particulièrement la phase descendante plutôt que de se laisser tomber." },
+    { nom: "Chaise (wall sit)", positionnement: "Dos plaqué contre un mur, genoux fléchis à 90°, pieds à plat au sol légèrement en avant du buste.", execution: "Maintenir la position isométrique en gardant le dos collé au mur et les genoux alignés avec les pieds.", respiration: "Respiration régulière et continue, sans blocage.", vigilance: "Éviter que les genoux dépassent largement la pointe des pieds ; répartir le poids sur l'ensemble du pied." },
+    { nom: "Crunch", positionnement: "Allongé sur le dos, genoux fléchis, pieds à plat, mains derrière ou de chaque côté de la tête sans tirer sur la nuque.", execution: "Enrouler le haut du buste vers les genoux en contractant les abdominaux, puis redescendre en contrôlant sans reposer complètement la tête entre les répétitions.", respiration: "Expiration en montée, inspiration en descente.", vigilance: "Ne pas tirer sur la nuque avec les mains ; le mouvement vient de la contraction abdominale, pas de l'élan." },
+    { nom: "Relevé de jambes", positionnement: "Allongé sur le dos, jambes tendues, mains sous le bassin ou le long du corps pour stabiliser le bassin.", execution: "Lever les jambes tendues (ou légèrement fléchies) jusqu'à la verticale en gardant le bas du dos plaqué au sol, puis redescendre en contrôlant sans le décoller.", respiration: "Expiration en montée, inspiration en descente.", vigilance: "Dès que le bas du dos se décolle du sol, réduire l'amplitude ; éviter de laisser tomber les jambes sous l'effet de la gravité." },
+  ],
+  "Fonctionnel": [
+    { nom: "Kettlebell swing", positionnement: "Pieds largeur épaules, kettlebell tenue à deux mains devant soi, dos neutre, léger fléchissement des genoux.", execution: "Initier un hip hinge en envoyant les hanches vers l'arrière, laisser la kettlebell osciller entre les jambes, puis extension puissante des hanches pour propulser la kettlebell à hauteur d'épaule.", respiration: "Expiration brève au moment de l'extension des hanches, inspiration pendant la phase de descente.", vigilance: "Le mouvement est propulsé par les hanches et non par les bras ou les épaules ; éviter d'arrondir le dos en bas de mouvement." },
+    { nom: "Farmer's walk (portage de charge)", positionnement: "Debout, une charge lourde (haltère, kettlebell) dans chaque main, épaules basses et engagées, gainage abdominal actif.", execution: "Marcher en gardant le buste droit et le gainage constant, pas contrôlés, sans balancement excessif des charges.", respiration: "Respiration régulière et profonde tout au long du portage, sans blocage prolongé.", vigilance: "Éviter d'incliner le buste d'un côté ; garder les épaules basses plutôt que remontées vers les oreilles." },
+    { nom: "Battle ropes", positionnement: "Pieds largeur bassin, légère flexion des genoux et des hanches, une extrémité de corde dans chaque main.", execution: "Créer des vagues alternées ou simultanées en mobilisant les bras depuis les épaules, en gardant le tronc gainé et stable.", respiration: "Respiration rythmée avec le mouvement, expiration accentuée sur les phases d'effort intense.", vigilance: "Garder les jambes légèrement fléchies pour absorber l'intensité ; éviter de cambrer le bas du dos sous la fatigue." },
+    { nom: "Box jump (saut sur box)", positionnement: "Debout face à la box, pieds largeur bassin, légère flexion préparatoire des genoux.", execution: "Fléchir les genoux et engager les bras vers l'arrière, puis sauter en extension complète pour atterrir en douceur sur la box, genoux fléchis à la réception.", respiration: "Inspiration avant le saut, expiration au moment de l'impulsion.", vigilance: "Réceptionner en silence avec les genoux fléchis pour absorber le choc ; redescendre en marchant plutôt qu'en sautant en arrière." },
+    { nom: "Thruster (squat + press)", positionnement: "Haltères ou kettlebells tenus au niveau des épaules, pieds largeur épaules.", execution: "Descendre en squat complet, puis utiliser l'impulsion de la remontée pour enchaîner directement une poussée des charges au-dessus de la tête.", respiration: "Inspiration en descente du squat, expiration pendant la poussée au-dessus de la tête.", vigilance: "Le mouvement doit rester fluide et enchaîné ; ne pas sacrifier la technique du squat pour aller plus vite." },
+    { nom: "Jumping jacks", positionnement: "Debout, pieds joints, bras le long du corps.", execution: "Sauter en écartant simultanément les jambes et en levant les bras au-dessus de la tête, puis revenir à la position de départ en un même mouvement.", respiration: "Respiration rythmée avec le mouvement, sans blocage.", vigilance: "Réception souple sur l'avant du pied, genoux légèrement fléchis pour limiter l'impact articulaire." },
+    { nom: "Sled push (poussée de traîneau)", positionnement: "Mains posées sur les montants du traîneau, bras tendus ou légèrement fléchis, buste incliné vers l'avant, dos neutre.", execution: "Pousser le traîneau en avançant avec des appuis puissants, en gardant les hanches basses et le tronc gainé tout au long du déplacement.", respiration: "Respiration rythmée avec les foulées, expiration active à chaque poussée.", vigilance: "Éviter de se redresser complètement pendant la poussée ; garder une inclinaison constante du buste." },
+    { nom: "Med ball slam (lancer de medicine ball)", positionnement: "Debout, pieds largeur épaules, medicine ball tenue à deux mains au-dessus de la tête.", execution: "Projeter la balle vers le sol avec puissance en engageant les abdominaux et les hanches, accompagner le mouvement avec une légère flexion des genoux.", respiration: "Inspiration à la montée de la balle, expiration puissante au moment du lancer.", vigilance: "Garder le dos neutre lors de la préparation ; éviter l'hyperextension lombaire au-dessus de la tête." },
+    { nom: "TRX row (tirage en suspension)", positionnement: "Sangles tenues à bout de bras, corps incliné en arrière, talons ancrés au sol, corps gainé et aligné.", execution: "Tirer le buste vers les mains en rapprochant les omoplates, coudes proches du corps, puis revenir en contrôlant l'extension des bras.", respiration: "Expiration au tirage, inspiration au retour.", vigilance: "Garder le corps aligné comme une planche du début à la fin du mouvement, sans casser au niveau des hanches." },
+    { nom: "Step-up", positionnement: "Debout face à un banc ou une box, pied posé à plat dessus.", execution: "Pousser dans le pied posé sur le support pour monter tout le corps, jusqu'à extension complète de la jambe, puis redescendre en contrôlant.", respiration: "Expiration en montée, inspiration en descente.", vigilance: "Éviter de prendre appui sur le pied au sol pour s'aider à monter ; le genou de la jambe motrice reste aligné avec le pied." },
+  ],
+};
+
+// Construit le texte de consigne formaté à partir d'une fiche du catalogue
+const formatCatalogNote = (item) =>
+  `📍 Positionnement : ${item.positionnement}\n\n▶️ Exécution : ${item.execution}\n\n🌬️ Respiration : ${item.respiration}\n\n⚠️ Vigilance : ${item.vigilance}`;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CATALOGUE PICKER — modal de sélection d'un exercice depuis le référentiel
+// ══════════════════════════════════════════════════════════════════════════════
+const CatalogPickerModal = ({ onSelect, onClose }) => {
+  const [search, setSearch] = useState("");
+  const [openCat, setOpenCat] = useState(null);
+  const q = search.trim().toLowerCase();
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#000c", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }} onClick={onClose}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 22, width: "100%", maxWidth: 460, maxHeight: "82vh", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>📋 Catalogue d'exercices</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20 }}>✕</button>
+        </div>
+        <input
+          type="text" placeholder="Rechercher un exercice..." value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ ...inputSt, marginBottom: 14 }} autoFocus
+        />
+        <div style={{ overflowY: "auto", flex: 1 }}>
+          {Object.entries(EXERCISE_CATALOGUE).map(([cat, list]) => {
+            const filtered = q ? list.filter(item => item.nom.toLowerCase().includes(q)) : list;
+            if (filtered.length === 0) return null;
+            const isOpen = q ? true : openCat === cat;
+            return (
+              <div key={cat} style={{ marginBottom: 10 }}>
+                <button
+                  onClick={() => setOpenCat(openCat === cat ? null : cat)}
+                  style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.white, fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                >
+                  <span>{cat}</span>
+                  <span style={{ color: C.textMuted, fontSize: 11 }}>{filtered.length} · {isOpen ? "▲" : "▼"}</span>
+                </button>
+                {isOpen && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                    {filtered.map(item => (
+                      <button
+                        key={item.nom}
+                        onClick={() => onSelect(item)}
+                        style={{ textAlign: "left", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.white, fontSize: 13, cursor: "pointer" }}
+                      >
+                        {item.nom}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Petit bouton réutilisable qui ouvre le picker et applique la sélection à onApply(name, note)
+const CatalogPickerButton = ({ onApply }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        style={{ display: "flex", alignItems: "center", gap: 6, background: C.purple + "18", border: `1px solid ${C.purple}44`, color: C.purple, borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+      >
+        📋 Catalogue
+      </button>
+      {open && (
+        <CatalogPickerModal
+          onClose={() => setOpen(false)}
+          onSelect={(item) => { onApply(item.nom, formatCatalogNote(item)); setOpen(false); }}
+        />
+      )}
+    </>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT BUILDER
 // ══════════════════════════════════════════════════════════════════════════════
 const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
@@ -232,6 +373,7 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
         <div style={{ flex: 1 }}><Inp label="Nom de l'exercice" placeholder="ex: Squat..." value={ex.name} onChange={e => onChange({ ...ex, name: e.target.value })} /></div>
+        <CatalogPickerButton onApply={(name, note) => onChange({ ...ex, name, note })} />
         <button onClick={onDelete} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 36, height: 42, color: C.red, cursor: "pointer", flexShrink: 0 }}>✕</button>
       </div>
       {showSets && !intervalMode && (
@@ -356,7 +498,10 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
                       <button onClick={() => delWarmupEx(block.id, ex.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 24, height: 24, color: C.red, cursor: "pointer", fontSize: 11 }}>✕</button>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      <Inp label="Nom de l'exercice" placeholder="ex: Vélo, étirements..." value={ex.name} onChange={e => updWarmupEx(block.id, ex.id, { name: e.target.value })} />
+                      <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                        <div style={{ flex: 1 }}><Inp label="Nom de l'exercice" placeholder="ex: Vélo, étirements..." value={ex.name} onChange={e => updWarmupEx(block.id, ex.id, { name: e.target.value })} /></div>
+                        <CatalogPickerButton onApply={(name, note) => updWarmupEx(block.id, ex.id, { name, note })} />
+                      </div>
                       <Inp label="Reps / Durée" placeholder="ex: 10 reps ou 30 sec" value={ex.reps} onChange={e => updWarmupEx(block.id, ex.id, { reps: e.target.value })} />
                       <TA label="Commentaire" placeholder="Consigne, conseil..." value={ex.note} onChange={e => updWarmupEx(block.id, ex.id, { note: e.target.value })} style={{ minHeight: 48 }} />
                       <div>
@@ -739,7 +884,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
                 </div>
               ))}
             </div>
-            {currentBlock.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, lineHeight: 1.5 }}>💡 {currentBlock.note}</div>}
+            {currentBlock.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>💡 {currentBlock.note}</div>}
             <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
               {Array.from({ length: currentBlock.sets }, (_, i) => (
                 <div key={i} style={{ width: 36, height: 36, borderRadius: "50%", background: i < simpleSets ? C.green : i === simpleSets ? C.pink + "22" : "#111", border: `2px solid ${i < simpleSets ? C.green : i === simpleSets ? C.pink : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: i < simpleSets ? C.black : i === simpleSets ? C.pink : C.textMuted }}>{i < simpleSets ? "✓" : i + 1}</div>
@@ -775,13 +920,13 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
                   <div style={{ background: C.green + "15", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: `1px solid ${C.green}44` }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>⚡ TRAVAIL</div><div style={{ fontSize: 28, fontWeight: 900, color: C.green }}>{circuitEx.work_time}s</div></div>
                   <div style={{ background: C.orange + "15", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: `1px solid ${C.orange}44` }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>😴 REPOS</div><div style={{ fontSize: 28, fontWeight: 900, color: C.orange }}>{circuitEx.rest_time}s</div></div>
                 </div>
-                {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14 }}>💡 {circuitEx.note}</div>}
+                {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, whiteSpace: "pre-line" }}>💡 {circuitEx.note}</div>}
                 <Btn onClick={startIntervalWork} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Démarrer</Btn>
               </div>
             ) : (
               <div>
                 <div style={{ background: "#111", borderRadius: 12, padding: "14px", textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>REPS</div><div style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{circuitEx.reps}</div></div>
-                {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14 }}>💡 {circuitEx.note}</div>}
+                {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, whiteSpace: "pre-line" }}>💡 {circuitEx.note}</div>}
                 <Btn onClick={advanceCircuit} style={{ fontSize: 17, background: C.purple, color: C.white }}>✅ Exo suivant →</Btn>
               </div>
             )}
@@ -820,7 +965,7 @@ const useWorkouts = () => {
   const fetch = async () => {
     setLoading(true);
     const [{ data: ws }, { data: exs }] = await Promise.all([
-      supabase.from("workouts").select("id, name, description, created_at").order("created_at"),
+      supabase.from("workouts").select("id, name, description, created_at, is_archived").order("created_at"),
       supabase.from("exercises").select("*").order("position"),
     ]);
     if (!ws) { setLoading(false); return; }
@@ -842,7 +987,11 @@ const useWorkouts = () => {
     await fetch();
   };
   const deleteWorkout = async (id) => { await supabase.from("workouts").delete().eq("id", id); setWorkouts(w => w.filter(x => x.id !== id)); };
-  return { workouts, loading, saveWorkout, deleteWorkout };
+  const setArchived = async (id, isArchived) => {
+    await supabase.from("workouts").update({ is_archived: isArchived }).eq("id", id);
+    setWorkouts(w => w.map(x => x.id === id ? { ...x, is_archived: isArchived } : x));
+  };
+  return { workouts, loading, saveWorkout, deleteWorkout, setArchived };
 };
 
 const useClientData = (clientId) => {
@@ -1298,7 +1447,7 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT CARD (liste des séances coach + assignation directe)
 // ══════════════════════════════════════════════════════════════════════════════
-const WorkoutCard = ({ workout: w, clients, onEdit, onDelete }) => {
+const WorkoutCard = ({ workout: w, clients, onEdit, onDelete, onArchive, onUnarchive }) => {
   const [assignments, setAssignments] = useState([]);
   const [showAssign, setShowAssign] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1321,14 +1470,22 @@ const WorkoutCard = ({ workout: w, clients, onEdit, onDelete }) => {
   const assignedClients = clients.filter(c => assignments.includes(c.id));
 
   return (
-    <Card style={{ marginBottom: 14 }}>
+    <Card style={{ marginBottom: 14, opacity: w.is_archived ? 0.7 : 1 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{w.name}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>{w.name}</div>
+            {w.is_archived && <Badge color={C.textMuted}>📦 Archivée</Badge>}
+          </div>
           {w.description && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 6 }}>{w.description}</div>}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Btn small variant="secondary" onClick={onEdit} style={{ width: "auto" }}>✏️</Btn>
+          {w.is_archived ? (
+            <Btn small variant="secondary" onClick={onUnarchive} style={{ width: "auto" }}>♻️</Btn>
+          ) : (
+            <Btn small variant="secondary" onClick={onArchive} style={{ width: "auto" }}>📦</Btn>
+          )}
           <Btn small variant="danger" onClick={onDelete} style={{ width: "auto" }}>🗑️</Btn>
         </div>
       </div>
@@ -1379,12 +1536,13 @@ const WorkoutCard = ({ workout: w, clients, onEdit, onDelete }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
-  const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout } = useWorkouts();
+  const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived } = useWorkouts();
   const [selected, setSelected] = useState(null);
   const [mainTab, setMainTab] = useState("dashboard");
   const [clientTab, setClientTab] = useState("journal");
   const [editingWorkout, setEditingWorkout] = useState(null);
   const [buildingWorkout, setBuildingWorkout] = useState(false);
+  const [showArchivedWorkouts, setShowArchivedWorkouts] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
@@ -1415,6 +1573,8 @@ const CoachApp = ({ user, onLogout }) => {
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
   // Exclure les clientes en pause des alertes paiement
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5 && !c.is_paused; });
+  const activeWorkoutsList = workouts.filter(w => !w.is_archived);
+  const archivedWorkoutsList = workouts.filter(w => w.is_archived);
 
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
@@ -1586,7 +1746,7 @@ const CoachApp = ({ user, onLogout }) => {
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
-                {[{ label: "Journal today", val: `${clients.filter(c => isDoneToday(c.id)).length}/${clients.filter(c => !c.is_paused).length}`, color: C.pink }, { label: "Séances créées", val: workouts.length, color: C.orange }, { label: "Clientes actives", val: clients.filter(c => !c.is_paused).length, color: C.green }].map(s => (
+                {[{ label: "Journal today", val: `${clients.filter(c => isDoneToday(c.id)).length}/${clients.filter(c => !c.is_paused).length}`, color: C.pink }, { label: "Séances actives", val: activeWorkoutsList.length, color: C.orange }, { label: "Clientes actives", val: clients.filter(c => !c.is_paused).length, color: C.green }].map(s => (
                   <Card key={s.label}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>{s.label}</div><div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.val}</div></Card>
                 ))}
               </div>
@@ -1612,15 +1772,43 @@ const CoachApp = ({ user, onLogout }) => {
                 <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Mes séances 💪</h1>
                 <Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Nouvelle séance</Btn>
               </div>
-              {loadingWorkouts ? <Spinner /> : workouts.map(w => (
-                <WorkoutCard
-                  key={w.id}
-                  workout={w}
-                  clients={clients.filter(c => !c.is_paused)}
-                  onEdit={() => setEditingWorkout(w)}
-                  onDelete={() => deleteWorkout(w.id)}
-                />
-              ))}
+              {loadingWorkouts ? <Spinner /> : (
+                <>
+                  {activeWorkoutsList.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance active. Clique sur "+ Nouvelle séance" pour commencer.</p></Card>}
+                  {activeWorkoutsList.map(w => (
+                    <WorkoutCard
+                      key={w.id}
+                      workout={w}
+                      clients={clients.filter(c => !c.is_paused)}
+                      onEdit={() => setEditingWorkout(w)}
+                      onDelete={() => deleteWorkout(w.id)}
+                      onArchive={() => setArchived(w.id, true)}
+                      onUnarchive={() => setArchived(w.id, false)}
+                    />
+                  ))}
+                  {archivedWorkoutsList.length > 0 && (
+                    <div style={{ marginTop: 20 }}>
+                      <button
+                        onClick={() => setShowArchivedWorkouts(v => !v)}
+                        style={{ background: "none", border: "none", color: C.textMuted, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: showArchivedWorkouts ? 14 : 0, textDecoration: "underline" }}
+                      >
+                        {showArchivedWorkouts ? "▲ Masquer" : "▼ Voir"} les séances archivées ({archivedWorkoutsList.length})
+                      </button>
+                      {showArchivedWorkouts && archivedWorkoutsList.map(w => (
+                        <WorkoutCard
+                          key={w.id}
+                          workout={w}
+                          clients={clients.filter(c => !c.is_paused)}
+                          onEdit={() => setEditingWorkout(w)}
+                          onDelete={() => deleteWorkout(w.id)}
+                          onArchive={() => setArchived(w.id, true)}
+                          onUnarchive={() => setArchived(w.id, false)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -1714,7 +1902,7 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "seances" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {loadingData ? <Spinner /> : workouts.map(w => {
+                  {loadingData ? <Spinner /> : activeWorkoutsList.map(w => {
                     const assigned = assignedWorkouts.find(a => a.workout_id === w.id);
                     return (
                       <Card key={w.id} style={{ borderColor: assigned ? C.green + "44" : C.border }}>
