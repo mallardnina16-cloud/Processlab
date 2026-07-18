@@ -1447,7 +1447,7 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT CARD (liste des séances coach + assignation directe)
 // ══════════════════════════════════════════════════════════════════════════════
-const WorkoutCard = ({ workout: w, clients, onEdit, onDelete, onArchive, onUnarchive }) => {
+const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArchive, onUnarchive }) => {
   const [assignments, setAssignments] = useState([]);
   const [showAssign, setShowAssign] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1467,7 +1467,7 @@ const WorkoutCard = ({ workout: w, clients, onEdit, onDelete, onArchive, onUnarc
     }
   };
 
-  const assignedClients = clients.filter(c => assignments.includes(c.id));
+  const assignedClients = (allClients || clients).filter(c => assignments.includes(c.id));
 
   return (
     <Card style={{ marginBottom: 14, opacity: w.is_archived ? 0.7 : 1 }}>
@@ -1497,7 +1497,9 @@ const WorkoutCard = ({ workout: w, clients, onEdit, onDelete, onArchive, onUnarc
       {assignedClients.length > 0 && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
           {assignedClients.map(c => (
-            <span key={c.id} style={{ background: C.green + "22", color: C.green, borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>✓ {c.name.split(" ")[0]}</span>
+            <span key={c.id} style={{ background: (c.is_paused ? C.orange : C.green) + "22", color: c.is_paused ? C.orange : C.green, borderRadius: 99, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
+              {c.is_paused ? "⏸" : "✓"} {c.name.split(" ")[0]}
+            </span>
           ))}
         </div>
       )}
@@ -1573,8 +1575,9 @@ const CoachApp = ({ user, onLogout }) => {
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
   // Exclure les clientes en pause des alertes paiement
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5 && !c.is_paused; });
-  const activeWorkoutsList = workouts.filter(w => !w.is_archived);
-  const archivedWorkoutsList = workouts.filter(w => w.is_archived);
+  const sortByName = (a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" });
+  const activeWorkoutsList = workouts.filter(w => !w.is_archived).sort(sortByName);
+  const archivedWorkoutsList = workouts.filter(w => w.is_archived).sort(sortByName);
 
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
@@ -1780,6 +1783,7 @@ const CoachApp = ({ user, onLogout }) => {
                       key={w.id}
                       workout={w}
                       clients={clients.filter(c => !c.is_paused)}
+                      allClients={clients}
                       onEdit={() => setEditingWorkout(w)}
                       onDelete={() => deleteWorkout(w.id)}
                       onArchive={() => setArchived(w.id, true)}
@@ -1799,6 +1803,7 @@ const CoachApp = ({ user, onLogout }) => {
                           key={w.id}
                           workout={w}
                           clients={clients.filter(c => !c.is_paused)}
+                          allClients={clients}
                           onEdit={() => setEditingWorkout(w)}
                           onDelete={() => deleteWorkout(w.id)}
                           onArchive={() => setArchived(w.id, true)}
