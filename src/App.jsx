@@ -713,7 +713,12 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       startTimer(circuitEx.rest_time || 30, "😴 REPOS", () => { advanceCircuit(); });
     });
   };
-  const saveAndFinish = async () => {
+  const [savingFinal, setSavingFinal] = useState(false);
+const [saveError, setSaveError] = useState("");
+
+const saveAndFinish = async () => {
+    setSavingFinal(true);
+    setSaveError("");
     if (clientId) {
       const logsWithNames = {};
       allExercises.forEach(e => {
@@ -721,8 +726,14 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
         const setsArr = exLogs[e.id]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" }));
         logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, sets: setsArr };
       });
-      await supabase.from("session_logs").insert([{ client_id: clientId, workout_id: workout.id, workout_name: workout.name, date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote }]);
+      const { error } = await supabase.from("session_logs").insert([{ client_id: clientId, workout_id: workout.id, workout_name: workout.name, date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote }]);
+      if (error) {
+        setSavingFinal(false);
+        setSaveError("❌ Impossible d'enregistrer la séance. Vérifie ta connexion et réessaie. Si ça persiste, préviens ta coach — rien n'est perdu, tes données sont encore ici.");
+        return;
+      }
     }
+    setSavingFinal(false);
     onFinish();
   };
 
@@ -764,7 +775,14 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
           );
         })}
       </Card>
-      <Btn onClick={saveAndFinish} style={{ marginBottom: 30 }}>💾 Enregistrer et terminer</Btn>
+{saveError && (
+  <div style={{ background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13, color: C.red }}>
+    {saveError}
+  </div>
+)}
+<Btn onClick={saveAndFinish} disabled={savingFinal} style={{ marginBottom: 30 }}>
+  {savingFinal ? "Enregistrement..." : "💾 Enregistrer et terminer"}
+</Btn>
     </div>
   );
 
