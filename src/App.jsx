@@ -638,6 +638,108 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+// WORKOUT SUMMARY — génération automatique du sommaire (type, durée, matériel)
+// ══════════════════════════════════════════════════════════════════════════════
+const estimateBlockDuration = (block) => {
+  if (block.type === "warmup") {
+    return (block.exercises?.length || 0) * 50; // ~50s par exercice d'échauffement
+  }
+  if (block.type === "circuit") {
+    const rounds = block.rounds || 3;
+    const restBetween = block.rest_between_rounds || 0;
+    let perRound = 0;
+    (block.exercises || []).forEach(ex => {
+      if (block.interval_mode) {
+        perRound += (parseInt(ex.work_time, 10) || 30) + (parseInt(ex.rest_time, 10) || 30);
+      } else {
+        perRound += 45; // estimation par exercice en reps (pas de timer)
+      }
+    });
+    return rounds * perRound + Math.max(0, rounds - 1) * restBetween;
+  }
+  // exercise simple
+  const sets = block.sets || 3;
+  const rest = block.rest || 60;
+  const workPerSet = 40;
+  return sets * workPerSet + Math.max(0, sets - 1) * rest;
+};
+
+const getWorkoutSummary = (workout) => {
+  const blocks = (workout?.blocks && workout.blocks.length > 0)
+    ? workout.blocks
+    : (workout?.exercises || []).map(e => ({ ...e, type: e.type || "exercise" }));
+
+  const hasCircuit = blocks.some(b => b.type === "circuit");
+  const hasSimple = blocks.some(b => b.type === "exercise");
+  let type = "Musculation classique";
+  if (hasCircuit && hasSimple) type = "Mixte (musculation + circuit)";
+  else if (hasCircuit) type = "Circuit training";
+
+  const totalSeconds = blocks.reduce((acc, b) => acc + estimateBlockDuration(b), 0);
+  const durationMinutes = Math.max(5, Math.round(totalSeconds / 60));
+
+  const allExercises = blocks.flatMap(b => (b.type === "circuit" || b.type === "warmup") ? (b.exercises || []) : [b]);
+  const equipmentSet = new Set();
+  allExercises.forEach(e => { if (e.weight_type) equipmentSet.add(e.weight_type); });
+
+  return {
+    type,
+    hasCircuit,
+    durationMinutes,
+    exerciseCount: allExercises.length,
+    exercises: allExercises.map(e => ({ name: e.name, weight_type: e.weight_type })),
+    equipment: Array.from(equipmentSet),
+  };
+};
+
+// Écran de preview affiché avant de lancer une séance : type, durée, matériel, liste des exercices
+const WorkoutPreview = ({ workout, onStart, onBack }) => {
+  const summary = getWorkoutSummary(workout);
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
+      <h2 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 6px" }}>{workout.name}</h2>
+      {workout.description && <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 20, marginTop: 0 }}>{workout.description}</p>}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <Card style={{ padding: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>TYPE</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: summary.hasCircuit ? C.purple : C.pink }}>{summary.hasCircuit ? "🔄" : "💪"} {summary.type}</div>
+        </Card>
+        <Card style={{ padding: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>DURÉE ESTIMÉE</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: C.orange }}>~{summary.durationMinutes} min</div>
+        </Card>
+      </div>
+
+      {summary.equipment.length > 0 && (
+        <Card style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>⚖️ MATÉRIEL NÉCESSAIRE</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {summary.equipment.map(eq => <Badge key={eq} color={C.blue}>{eq}</Badge>)}
+          </div>
+        </Card>
+      )}
+
+      <Card style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📋 AU PROGRAMME ({summary.exerciseCount} exercice{summary.exerciseCount > 1 ? "s" : ""})</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {summary.exercises.map((e, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < summary.exercises.length - 1 ? `1px solid ${C.border}` : "none" }}>
+              <span style={{ fontSize: 14 }}>{i + 1}. {e.name || "—"}</span>
+              {e.weight_type && <span style={{ fontSize: 11, color: C.textMuted, flexShrink: 0, marginLeft: 10 }}>{e.weight_type}</span>}
+            </div>
+          ))}
+          {summary.exercises.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucun exercice pour le moment</div>}
+        </div>
+      </Card>
+
+      <Btn onClick={onStart} style={{ fontSize: 17, marginBottom: 20 }}>▶ Commencer la séance</Btn>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT PLAYER
 // ══════════════════════════════════════════════════════════════════════════════
 const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
@@ -646,6 +748,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
     ...rawBlocks.filter(b => b.type === "warmup"),
     ...rawBlocks.filter(b => b.type !== "warmup")
   ];
+  const summary = getWorkoutSummary(workout);
+  const [showSummary, setShowSummary] = useState(false);
   const [blockIdx, setBlockIdx] = useState(0);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(0);
@@ -659,6 +763,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const [currentRound, setCurrentRound] = useState(1);
   const [circuitExIdx, setCircuitExIdx] = useState(0);
   const [intervalPhase, setIntervalPhase] = useState("work");
+  const [savingFinal, setSavingFinal] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const timerRef = useRef(null);
 
   const currentBlock = blocks[blockIdx];
@@ -713,10 +819,10 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       startTimer(circuitEx.rest_time || 30, "😴 REPOS", () => { advanceCircuit(); });
     });
   };
-  const [savingFinal, setSavingFinal] = useState(false);
-const [saveError, setSaveError] = useState("");
-
-const saveAndFinish = async () => {
+  const setExComment = (exId, value) => {
+    setExLogs(prev => ({ ...prev, [exId]: { ...prev[exId], comment: value } }));
+  };
+  const saveAndFinish = async () => {
     setSavingFinal(true);
     setSaveError("");
     if (clientId) {
@@ -724,7 +830,7 @@ const saveAndFinish = async () => {
       allExercises.forEach(e => {
         const expected = getExpectedSets(e);
         const setsArr = exLogs[e.id]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" }));
-        logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, sets: setsArr };
+        logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, sets: setsArr, comment: exLogs[e.id]?.comment || "" };
       });
       const { error } = await supabase.from("session_logs").insert([{ client_id: clientId, workout_id: workout.id, workout_name: workout.name, date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote }]);
       if (error) {
@@ -745,6 +851,27 @@ const saveAndFinish = async () => {
     });
   };
 
+  // Petite barre de rappel affichée sous la navbar de chaque écran de la séance :
+  // type, durée estimée, nombre d'exercices, avec possibilité de déplier la liste complète.
+  const SessionSummaryBar = () => (
+    <div style={{ padding: "10px 20px", borderBottom: `1px solid ${C.border}` }}>
+      <button onClick={() => setShowSummary(s => !s)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 12, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+        <span>{summary.hasCircuit ? "🔄" : "💪"} {summary.type} · ~{summary.durationMinutes} min · {summary.exerciseCount} exercices</span>
+        <span style={{ marginLeft: "auto" }}>{showSummary ? "▲" : "▼"}</span>
+      </button>
+      {showSummary && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+          {summary.exercises.map((e, i) => (
+            <div key={i} style={{ fontSize: 12, color: C.textMuted, display: "flex", justifyContent: "space-between" }}>
+              <span>{i + 1}. {e.name || "—"}</span>
+              {e.weight_type && <span>{e.weight_type}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   if (done) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <div style={{ textAlign: "center", paddingTop: 40, marginBottom: 32 }}>
@@ -762,7 +889,7 @@ const saveAndFinish = async () => {
             <div key={ex.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
               <div style={{ fontWeight: 700, marginBottom: 6 }}>{ex.name || "—"}</div>
               {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 6 }}>⚖️ {ex.suggested_weight} {ex.weight_type}</div>}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
                 {Array.from({ length: expected }, (_, i) => (
                   <div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr 1fr", gap: 8, alignItems: "center" }}>
                     <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textAlign: "center" }}>S{i + 1}</div>
@@ -771,18 +898,19 @@ const saveAndFinish = async () => {
                   </div>
                 ))}
               </div>
+              <TA placeholder="💬 Commentaire sur cet exercice (optionnel)" value={exLogs[ex.id]?.comment || ""} onChange={e => setExComment(ex.id, e.target.value)} style={{ minHeight: 44, fontSize: 13 }} />
             </div>
           );
         })}
       </Card>
-{saveError && (
-  <div style={{ background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13, color: C.red }}>
-    {saveError}
-  </div>
-)}
-<Btn onClick={saveAndFinish} disabled={savingFinal} style={{ marginBottom: 30 }}>
-  {savingFinal ? "Enregistrement..." : "💾 Enregistrer et terminer"}
-</Btn>
+      {saveError && (
+        <div style={{ background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13, color: C.red }}>
+          {saveError}
+        </div>
+      )}
+      <Btn onClick={saveAndFinish} disabled={savingFinal} style={{ marginBottom: 30 }}>
+        {savingFinal ? "Enregistrement..." : "💾 Enregistrer et terminer"}
+      </Btn>
     </div>
   );
 
@@ -804,6 +932,7 @@ const saveAndFinish = async () => {
         <span style={{ fontSize: 13, color: C.pink, fontWeight: 700 }}>{blockIdx + 1}/{blocks.length}</span>
       </div>
       <div style={{ height: 3, background: C.border }}><div style={{ height: "100%", background: C.pink, width: `${(blockIdx / blocks.length) * 100}%`, transition: "width .4s" }} /></div>
+      <SessionSummaryBar />
     </>
   );
 
@@ -983,7 +1112,7 @@ const useWorkouts = () => {
   const fetch = async () => {
     setLoading(true);
     const [{ data: ws }, { data: exs }] = await Promise.all([
-      supabase.from("workouts").select("id, name, description, created_at, is_archived").order("created_at"),
+      supabase.from("workouts").select("id, name, description, created_at, is_archived, blocks").order("created_at"),
       supabase.from("exercises").select("*").order("position"),
     ]);
     if (!ws) { setLoading(false); return; }
@@ -1302,6 +1431,7 @@ const PerfCard = ({ log, workout }) => {
                   </div>
                 ))}
               </div>
+              {exLog.comment && <div style={{ marginTop: 6, fontSize: 12, color: C.pink, fontStyle: "italic" }}>💬 {exLog.comment}</div>}
             </div>
           ))}
         </div>
@@ -2123,6 +2253,7 @@ const ClientApp = ({ user, onLogout }) => {
   const [clientInfo, setClientInfo] = useState(null);
   const [clientId, setClientId] = useState(null);
   const [screen, setScreen] = useState("home");
+  const [previewWorkout, setPreviewWorkout] = useState(null);
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [viewingWorkoutPerfs, setViewingWorkoutPerfs] = useState(null);
@@ -2175,6 +2306,7 @@ const ClientApp = ({ user, onLogout }) => {
   };
 
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} />;
+  if (previewWorkout) return <WorkoutPreview workout={previewWorkout} onBack={() => setPreviewWorkout(null)} onStart={() => { setActiveWorkout(previewWorkout); setPreviewWorkout(null); }} />;
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => { setActiveWorkout(null); supabase.from("session_logs").select("*").eq("client_id", clientId).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || [])); }} clientId={clientId} sessionLogs={sessionLogs} />;
 
   if (screen === "journal") {
@@ -2302,7 +2434,7 @@ const ClientApp = ({ user, onLogout }) => {
                       <button onClick={() => setViewingWorkoutPerfs(w)} style={{ fontSize: 12, color: C.purple, background: "none", border: "none", cursor: "pointer", fontWeight: 700, marginTop: 4, padding: 0 }}>Voir tout l'historique →</button>
                     </div>
                   )}
-                  <Btn onClick={() => setActiveWorkout(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn>
+                  <Btn onClick={() => setPreviewWorkout(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn>
                 </Card>
               );
             })}
