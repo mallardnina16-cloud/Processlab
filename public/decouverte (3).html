@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nina · Her Process</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F7F4EF;
+    --ink: #1C1B19;
+    --sand: #C9BBA8;
+    --sand-line: #DED4C6;
+    --white: #FFFFFF;
+  }
+
+  *{ box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  html, body{
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Work Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap{
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 8vh 24px 10vh;
+  }
+
+  /* Placard header, like a museum wall label */
+  .placard{
+    text-align: center;
+    margin-bottom: 6vh;
+    opacity: 0;
+    animation: rise 0.9s ease-out forwards;
+  }
+
+  .placard .name{
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0;
+    line-height: 1;
+  }
+
+  .placard .role{
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 0.72rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #6B6357;
+    padding-top: 12px;
+    border-top: 1px solid var(--sand-line);
+  }
+
+  /* Video framed like an artwork */
+  .frame{
+    position: relative;
+    border: 1px solid var(--sand-line);
+    padding: 14px;
+    background: var(--white);
+    opacity: 0;
+    animation: rise 0.9s ease-out 0.15s forwards;
+  }
+
+  .frame video{
+    display: block;
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    max-height: 70vh;
+    object-fit: cover;
+    background: #EDE8E0;
+  }
+
+  .caption{
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    color: #8A8175;
+    margin-top: 14px;
+    text-transform: uppercase;
+  }
+
+  .intro{
+    margin-top: 7vh;
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: #33312D;
+    opacity: 0;
+    animation: rise 0.9s ease-out 0.3s forwards;
+  }
+
+  .intro p{ margin: 0 0 1.3em; }
+  .intro p:last-child{ margin-bottom: 0; }
+
+  .intro strong{
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .cta-zone{
+    margin-top: 6vh;
+    text-align: center;
+    opacity: 0;
+    animation: rise 0.9s ease-out 0.45s forwards;
+  }
+
+  .cta{
+    display: inline-block;
+    background: var(--ink);
+    color: var(--bg);
+    text-decoration: none;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    padding: 18px 32px;
+    border: 1px solid var(--ink);
+    transition: background 0.25s ease, color 0.25s ease;
+    max-width: 90%;
+  }
+
+  .cta:hover, .cta:focus-visible{
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .cta:focus-visible{
+    outline: 2px solid var(--ink);
+    outline-offset: 4px;
+  }
+
+  .timing{
+    margin-top: 18px;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    color: #8A8175;
+  }
+
+  @keyframes rise{
+    from{ opacity: 0; transform: translateY(14px); }
+    to{ opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 480px){
+    .wrap{ padding: 6vh 20px 8vh; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="wrap">
+
+    <div class="placard">
+      <p class="name">Nina</p>
+      <span class="role">Her Process</span>
+    </div>
+
+    <div class="frame">
+      <!--
+        REMPLACE le src ci-dessous par l'URL publique de ta vidéo
+        (upload le fichier dans ton bucket Supabase Storage, puis
+        copie l'URL publique générée ici).
+      -->
+      <video
+        controls
+        playsinline
+        preload="metadata"
+        poster=""
+        aria-label="Message vidéo de Nina">
+        <source src="https://wetjzebxuyefzvulujxl.supabase.co/storage/v1/object/public/photos/Landing/copy_6506B00F-29B0-45E8-B452-6B756AF89F8E.mp4" type="video/mp4">
+        Ta vidéo ne peut pas s'afficher. Ton navigateur ne supporte pas la lecture vidéo intégrée.
+      </video>
+    </div>
+    <p class="caption">Un message avant de commencer</p>
+
+    <div class="intro">
+      <p>Bravo, tu as fait le pas 🤍</p>
+      <p>Prendre ce temps pour toi, te renseigner, chercher de l'aide — c'est déjà un acte rare. La plupart des femmes attendent d'aller au bout d'elles-mêmes avant de faire ce geste. Toi tu le fais maintenant, et c'est déjà une première façon de te remettre au centre.</p>
+      <p>La suite, c'est simple : réponds à quelques questions sincèrement, ça ne prend que quelques minutes. Ça me permet de te connaître avant même qu'on se parle — et à la fin, tu pourras réserver directement ton appel avec moi.</p>
+    </div>
+
+    <div class="cta-zone">
+      <!-- REMPLACE le href par le lien de ton Typeform -->
+      <a href="https://form.typeform.com/to/OFxGu4S9" class="cta">Réponds au questionnaire et prends rdv</a>
+      <p class="timing">⏱ Temps estimé : 4 minutes</p>
+    </div>
+
+  </div>
+
+</body>
+</html>
