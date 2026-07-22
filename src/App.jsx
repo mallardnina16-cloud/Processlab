@@ -1109,17 +1109,37 @@ const useClients = () => {
 const useWorkouts = () => {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Assignations client_workouts chargées UNE SEULE FOIS pour toutes les séances,
+  // au lieu d'une requête séparée par carte (évite des dizaines d'appels réseau redondants).
+  const [assignmentsByWorkout, setAssignmentsByWorkout] = useState({});
+  const fetchAssignments = async () => {
+    const { data } = await supabase.from("client_workouts").select("workout_id, client_id");
+    const map = {};
+    (data || []).forEach(r => { (map[r.workout_id] = map[r.workout_id] || []).push(r.client_id); });
+    setAssignmentsByWorkout(map);
+  };
   const fetch = async () => {
     setLoading(true);
     const [{ data: ws }, { data: exs }] = await Promise.all([
       supabase.from("workouts").select("id, name, description, created_at, is_archived, blocks").order("created_at"),
       supabase.from("exercises").select("*").order("position"),
     ]);
+    await fetchAssignments();
     if (!ws) { setLoading(false); return; }
     setWorkouts(ws.map(w => ({ ...w, exercises: (exs || []).filter(e => e.workout_id === w.id) })));
     setLoading(false);
   };
   useEffect(() => { fetch(); }, []);
+  const toggleAssignment = async (workoutId, clientId) => {
+    const has = (assignmentsByWorkout[workoutId] || []).includes(clientId);
+    if (has) {
+      await supabase.from("client_workouts").delete().eq("workout_id", workoutId).eq("client_id", clientId);
+      setAssignmentsByWorkout(prev => ({ ...prev, [workoutId]: (prev[workoutId] || []).filter(id => id !== clientId) }));
+    } else {
+      await supabase.from("client_workouts").insert([{ workout_id: workoutId, client_id: clientId, scheduled_date: null }]);
+      setAssignmentsByWorkout(prev => ({ ...prev, [workoutId]: [...(prev[workoutId] || []), clientId] }));
+    }
+  };
   const saveWorkout = async (workout) => {
     if (workout.id && workouts.find(w => w.id === workout.id)) {
       await supabase.from("workouts").update({ name: workout.name, description: workout.description, blocks: workout.blocks || [] }).eq("id", workout.id);
@@ -1138,7 +1158,7 @@ const useWorkouts = () => {
     await supabase.from("workouts").update({ is_archived: isArchived }).eq("id", id);
     setWorkouts(w => w.map(x => x.id === id ? { ...x, is_archived: isArchived } : x));
   };
-  return { workouts, loading, saveWorkout, deleteWorkout, setArchived };
+  return { workouts, loading, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment };
 };
 
 const useClientData = (clientId) => {
@@ -1595,26 +1615,10 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT CARD (liste des séances coach + assignation directe)
 // ══════════════════════════════════════════════════════════════════════════════
-const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArchive, onUnarchive }) => {
-  const [assignments, setAssignments] = useState([]);
+const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArchive, onUnarchive, assignedIds = [], onToggleAssign }) => {
   const [showAssign, setShowAssign] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    supabase.from("client_workouts").select("client_id").eq("workout_id", w.id).then(({ data }) => setAssignments((data || []).map(x => x.client_id)));
-  }, [w.id]);
-
-  const toggle = async (clientId) => {
-    const has = assignments.includes(clientId);
-    if (has) {
-      await supabase.from("client_workouts").delete().eq("workout_id", w.id).eq("client_id", clientId);
-      setAssignments(prev => prev.filter(id => id !== clientId));
-    } else {
-      await supabase.from("client_workouts").insert([{ workout_id: w.id, client_id: clientId, scheduled_date: null }]);
-      setAssignments(prev => [...prev, clientId]);
-    }
-  };
-
+  const assignments = assignedIds;
+  const toggle = (clientId) => onToggleAssign(w.id, clientId);
   const assignedClients = (allClients || clients).filter(c => assignments.includes(c.id));
 
   return (
@@ -1686,7 +1690,7 @@ const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArch
 // ══════════════════════════════════════════════════════════════════════════════
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
-  const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived } = useWorkouts();
+  const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment } = useWorkouts();
   const [selected, setSelected] = useState(null);
   const [mainTab, setMainTab] = useState("dashboard");
   const [clientTab, setClientTab] = useState("journal");
@@ -1932,6 +1936,8 @@ const CoachApp = ({ user, onLogout }) => {
                       workout={w}
                       clients={clients.filter(c => !c.is_paused)}
                       allClients={clients}
+                      assignedIds={assignmentsByWorkout[w.id] || []}
+                      onToggleAssign={toggleAssignment}
                       onEdit={() => setEditingWorkout(w)}
                       onDelete={() => deleteWorkout(w.id)}
                       onArchive={() => setArchived(w.id, true)}
@@ -1952,6 +1958,8 @@ const CoachApp = ({ user, onLogout }) => {
                           workout={w}
                           clients={clients.filter(c => !c.is_paused)}
                           allClients={clients}
+                          assignedIds={assignmentsByWorkout[w.id] || []}
+                          onToggleAssign={toggleAssignment}
                           onEdit={() => setEditingWorkout(w)}
                           onDelete={() => deleteWorkout(w.id)}
                           onArchive={() => setArchived(w.id, true)}
