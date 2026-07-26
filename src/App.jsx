@@ -1587,13 +1587,23 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>⏸️ Pause — {client.name}</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20 }}>✕</button>
         </div>
-        {client.is_paused ? (
+       {client.is_paused ? (
           <div>
             <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
               <div style={{ fontWeight: 700, color: C.orange, marginBottom: 6 }}>⏸️ Cliente en pause</div>
-              <div style={{ fontSize: 13, color: C.textMuted }}>Du {formatDate(client.pause_start_date)} au {formatDate(client.pause_end_date)}</div>
+              <div style={{ fontSize: 13, color: C.textMuted }}>Prévue du {formatDate(client.pause_start_date)} au {formatDate(client.pause_end_date)}</div>
             </div>
-            <Btn onClick={handleResume} disabled={saving} style={{ width: "100%", background: C.green, color: C.black }}>{saving ? "..." : "▶ Reprendre maintenant"}</Btn>
+            <Inp label="Date réelle de reprise" type="date" value={resumeDate} onChange={e => setResumeDate(e.target.value)} style={{ marginBottom: 14 }} />
+            {resumeDate && (
+              <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: 12, fontSize: 13, marginBottom: 14 }}>
+                ⏱️ Prochain paiement recalculé au <strong>{formatDate((() => {
+                  const plannedDays = Math.ceil((new Date(client.pause_end_date) - new Date(client.pause_start_date)) / 86400000) + 1;
+                  const actualDays = Math.ceil((new Date(resumeDate) - new Date(client.pause_start_date)) / 86400000) + 1;
+                  return addDays(client.next_payment, actualDays - plannedDays);
+                })())}</strong>
+              </div>
+            )}
+            <Btn onClick={handleResume} disabled={saving} style={{ width: "100%", background: C.green, color: C.black }}>{saving ? "..." : "▶ Confirmer la reprise"}</Btn>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
