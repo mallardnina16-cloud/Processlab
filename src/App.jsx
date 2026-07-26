@@ -682,12 +682,31 @@ const getWorkoutSummary = (workout) => {
   const equipmentSet = new Set();
   allExercises.forEach(e => { if (e.weight_type) equipmentSet.add(e.weight_type); });
 
+  // Structure détaillée bloc par bloc, pour afficher clairement ce qui est un circuit
+  // (avec son nombre de tours) et ce qui est un exercice seul, avant de démarrer la séance.
+  const blocksSummary = blocks.map(b => {
+    if (b.type === "warmup") {
+      return { type: "warmup", label: "🔥 Échauffement", exercises: (b.exercises || []).map(e => e.name) };
+    }
+    if (b.type === "circuit") {
+      const rounds = b.rounds || 3;
+      return {
+        type: "circuit",
+        label: `🔄 Circuit · ${rounds} tour${rounds > 1 ? "s" : ""}${b.interval_mode ? " · ⚡ interval" : ""}`,
+        rounds,
+        exercises: (b.exercises || []).map(e => e.name),
+      };
+    }
+    return { type: "exercise", label: "💪 Exercice seul", name: b.name, sets: b.sets, reps: b.reps };
+  });
+
   return {
     type,
     hasCircuit,
     durationMinutes,
     exerciseCount: allExercises.length,
     exercises: allExercises.map(e => ({ name: e.name, weight_type: e.weight_type })),
+    blocksSummary,
     equipment: Array.from(equipmentSet),
   };
 };
@@ -721,16 +740,32 @@ const WorkoutPreview = ({ workout, onStart, onBack }) => {
         </Card>
       )}
 
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📋 AU PROGRAMME ({summary.exerciseCount} exercice{summary.exerciseCount > 1 ? "s" : ""})</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {summary.exercises.map((e, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < summary.exercises.length - 1 ? `1px solid ${C.border}` : "none" }}>
-              <span style={{ fontSize: 14 }}>{i + 1}. {e.name || "—"}</span>
-              {e.weight_type && <span style={{ fontSize: 11, color: C.textMuted, flexShrink: 0, marginLeft: 10 }}>{e.weight_type}</span>}
+     <Card style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📋 STRUCTURE DE LA SÉANCE ({summary.exerciseCount} exercice{summary.exerciseCount > 1 ? "s" : ""})</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {summary.blocksSummary.map((b, i) => (
+            <div key={i} style={{
+              background: b.type === "circuit" ? C.purple + "0f" : b.type === "warmup" ? C.yellow + "0f" : "#111",
+              border: `1px solid ${b.type === "circuit" ? C.purple + "33" : b.type === "warmup" ? C.yellow + "33" : C.border}`,
+              borderRadius: 12, padding: 14,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: b.type === "circuit" ? C.purple : b.type === "warmup" ? C.yellow : C.pink, marginBottom: 8 }}>
+                {b.label}
+              </div>
+              {b.type === "exercise" ? (
+                <div style={{ fontSize: 14 }}>
+                  {b.name || "—"}
+                  {b.sets && b.reps && <span style={{ color: C.textMuted, fontSize: 12 }}> · {b.sets} séries × {b.reps}</span>}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {b.exercises.map((n, j) => <div key={j} style={{ fontSize: 13, color: C.textMuted }}>{j + 1}. {n || "—"}</div>)}
+                  {b.exercises.length === 0 && <div style={{ fontSize: 12, color: C.textMuted }}>Aucun exercice</div>}
+                </div>
+              )}
             </div>
           ))}
-          {summary.exercises.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucun exercice pour le moment</div>}
+          {summary.blocksSummary.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucun exercice pour le moment</div>}
         </div>
       </Card>
 
@@ -859,18 +894,20 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
         <span>{summary.hasCircuit ? "🔄" : "💪"} {summary.type} · ~{summary.durationMinutes} min · {summary.exerciseCount} exercices</span>
         <span style={{ marginLeft: "auto" }}>{showSummary ? "▲" : "▼"}</span>
       </button>
-      {showSummary && (
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
-          {summary.exercises.map((e, i) => (
-            <div key={i} style={{ fontSize: 12, color: C.textMuted, display: "flex", justifyContent: "space-between" }}>
-              <span>{i + 1}. {e.name || "—"}</span>
-              {e.weight_type && <span>{e.weight_type}</span>}
+    {showSummary && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+          {summary.blocksSummary.map((b, i) => (
+            <div key={i}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: b.type === "circuit" ? C.purple : b.type === "warmup" ? C.yellow : C.pink, marginBottom: 4 }}>{b.label}</div>
+              {b.type === "exercise" ? (
+                <div style={{ fontSize: 12, color: C.textMuted }}>{b.name || "—"}</div>
+              ) : (
+                b.exercises.map((n, j) => <div key={j} style={{ fontSize: 12, color: C.textMuted }}>{j + 1}. {n || "—"}</div>)
+              )}
             </div>
           ))}
         </div>
       )}
-    </div>
-  );
 
   if (done) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
@@ -2201,7 +2238,7 @@ const CoachApp = ({ user, onLogout }) => {
                 </div>
               )}
 
-              {clientTab === "paiements" && (
+      {clientTab === "paiements" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <Card>
                     <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>📋 CONTRAT</div>
@@ -2212,26 +2249,10 @@ const CoachApp = ({ user, onLogout }) => {
                       <div style={{ background: daysUntil(client.next_payment) <= 3 ? C.yellow + "15" : "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>PROCHAIN PAIEMENT</div><div style={{ fontWeight: 700, fontSize: 13, color: daysUntil(client.next_payment) <= 3 ? C.yellow : C.white }}>{formatDate(client.next_payment)}</div></div>
                     </div>
                   </Card>
-                  {!showPaymentForm ? (
-                    <Btn variant="green" onClick={() => setShowPaymentForm(true)}>✅ Enregistrer un paiement reçu</Btn>
-                  ) : (
-                    <Card style={{ borderColor: C.green + "44" }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 16 }}>✅ Nouveau paiement</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        <Inp label="Montant (€)" type="number" placeholder={client.monthly_amount || "150"} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
-                        <Inp label="Date de réception" type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
-                        <Inp label="Note (optionnel)" placeholder="Virement, espèces..." value={paymentNote} onChange={e => setPaymentNote(e.target.value)} />
-                      </div>
-                      <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-                        <Btn variant="secondary" onClick={() => setShowPaymentForm(false)} style={{ flex: 1 }}>Annuler</Btn>
-                        <Btn variant="green" onClick={handleAddPayment} disabled={addingPayment} style={{ flex: 2 }}>{addingPayment ? "Enregistrement..." : "Confirmer ✅"}</Btn>
-                      </div>
-                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 10, textAlign: "center" }}>⚡ Prochain paiement fixé à J+28</div>
-                    </Card>
-                  )}
                   <Card>
                     <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div>
                     <PaymentHistory payments={payments} />
+                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 12, textAlign: "center" }}>💡 L'enregistrement des paiements se fait désormais depuis l'onglet Comptabilité.</div>
                   </Card>
                 </div>
               )}
