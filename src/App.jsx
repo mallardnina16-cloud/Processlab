@@ -1563,10 +1563,21 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
     onUpdate(); setSaving(false); onClose();
   };
 
-  const handleResume = async () => {
+ const handleResume = async () => {
     setSaving(true);
-    await supabase.from("clients").update({ is_paused: false, pause_start_date: null, pause_end_date: null }).eq("id", client.id);
-    onUpdate(); setSaving(false); onClose();
+    const { data, error } = await supabase
+      .from("clients")
+      .update({ is_paused: false, pause_start_date: null, pause_end_date: null })
+      .eq("id", client.id)
+      .select()
+      .single();
+    setSaving(false);
+    if (error) {
+      alert("❌ Impossible de reprendre. Réessaie dans un instant.");
+      return;
+    }
+    onUpdate(data);
+    onClose();
   };
 
   return (
@@ -2247,9 +2258,8 @@ const CoachApp = ({ user, onLogout }) => {
         </div>
       )}
       {editingClient && <EditClientModal client={editingClient} onSave={handleSaveClient} onDelete={handleDeleteClient} onClose={() => setEditingClient(null)} />}
-      {showPauseModal && client && <PauseModal client={client} onClose={() => setShowPauseModal(false)} onUpdate={async () => {
-        const { data } = await supabase.from("clients").select("*").eq("id", client.id).single();
-        if (data) updateClient(client.id, data);
+     {showPauseModal && client && <PauseModal client={client} onClose={() => setShowPauseModal(false)} onUpdate={(updatedClient) => {
+        if (updatedClient) updateClient(client.id, updatedClient);
       }} />}
     </div>
   );
