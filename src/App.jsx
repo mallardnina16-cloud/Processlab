@@ -1547,7 +1547,7 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [pauses, setPauses] = useState([]);
-
+const [resumeDate, setResumeDate] = useState(today);
   useEffect(() => {
     supabase.from("pauses").select("*").eq("client_id", client.id).order("created_at", { ascending: false }).then(({ data }) => setPauses(data || []));
   }, [client.id]);
@@ -1563,19 +1563,22 @@ const PauseModal = ({ client, onClose, onUpdate }) => {
     onUpdate(); setSaving(false); onClose();
   };
 
- const handleResume = async () => {
+const handleResume = async () => {
     setSaving(true);
+    const plannedDays = Math.ceil((new Date(client.pause_end_date) - new Date(client.pause_start_date)) / 86400000) + 1;
+    const actualDays = Math.ceil((new Date(resumeDate) - new Date(client.pause_start_date)) / 86400000) + 1;
+    const correctedNextPayment = addDays(client.next_payment, actualDays - plannedDays);
     const { data, error } = await supabase
       .from("clients")
-      .update({ is_paused: false, pause_start_date: null, pause_end_date: null })
+      .update({ is_paused: false, pause_start_date: null, pause_end_date: null, next_payment: correctedNextPayment })
       .eq("id", client.id)
       .select()
       .single();
-    setSaving(false);
-    if (error) {
-      alert("❌ Impossible de reprendre. Réessaie dans un instant.");
-      return;
+    if (!error) {
+      await supabase.from("pauses").update({ end_date: resumeDate, days_count: actualDays }).eq("client_id", client.id).eq("start_date", client.pause_start_date);
     }
+    setSaving(false);
+    if (error) { alert("❌ Impossible de reprendre. Réessaie dans un instant."); return; }
     onUpdate(data);
     onClose();
   };
