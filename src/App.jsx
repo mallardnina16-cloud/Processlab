@@ -908,6 +908,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
           ))}
         </div>
       )}
+    </div>
+  );
 
   if (done) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
@@ -2049,10 +2051,7 @@ const CoachApp = ({ user, onLogout }) => {
                   )}
                 </>
               )}
-            </div>
-          )}
-)}
-            </div>
+           </div>
           )}
 
           {mainTab === "comptabilite" && !selected && (() => {
