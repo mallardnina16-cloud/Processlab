@@ -1197,7 +1197,24 @@ const useWorkouts = () => {
   };
   return { workouts, loading, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment };
 };
-
+const usePayments = () => {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetchPayments = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("payments").select("*").order("paid_date", { ascending: false });
+    setPayments(data || []);
+    setLoading(false);
+  };
+  useEffect(() => { fetchPayments(); }, []);
+  const addPaymentRecord = async (clientId, amount, paidDate, note = "") => {
+    const nextDue = addDays(paidDate, 28);
+    const { data, error } = await supabase.from("payments").insert([{ client_id: clientId, amount, paid_date: paidDate, next_due_date: nextDue, note }]).select().single();
+    if (!error && data) setPayments(p => [data, ...p]);
+    return { data, error, nextDue };
+  };
+  return { payments, loadingPayments: loading, addPaymentRecord };
+};
 const useClientData = (clientId) => {
   const [entries, setEntries] = useState([]);
   const [weights, setWeights] = useState([]);
@@ -1752,6 +1769,7 @@ const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArch
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
   const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment } = useWorkouts();
+      const { payments: allPayments, loadingPayments, addPaymentRecord } = usePayments();
   const [selected, setSelected] = useState(null);
   const [mainTab, setMainTab] = useState("dashboard");
   const [clientTab, setClientTab] = useState("journal");
@@ -1908,7 +1926,7 @@ const CoachApp = ({ user, onLogout }) => {
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* SIDEBAR NAV */}
         <div style={{ width: 220, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", overflowY: "auto", flexShrink: 0 }}>
-          {[["dashboard", "🏠", "Dashboard"], ["workouts", "💪", "Séances"], ["admin", "🔐", "Admin"]].map(([k, icon, label]) => (
+         {[["dashboard", "🏠", "Dashboard"], ["workouts", "💪", "Séances"], ["comptabilite", "💶", "Comptabilité"], ["admin", "🔐", "Admin"]].map(([k, icon, label]) => (
             <button key={k} onClick={() => { setMainTab(k); setSelected(null); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", background: mainTab === k && !selected ? C.pink + "15" : "transparent", borderLeft: `3px solid ${mainTab === k && !selected ? C.pink : "transparent"}`, border: "none", color: mainTab === k && !selected ? C.white : C.textMuted, cursor: "pointer", fontWeight: mainTab === k && !selected ? 700 : 400, fontSize: 14, textAlign: "left" }}>{icon} {label}</button>
           ))}
           <div style={{ padding: "10px 16px 6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2033,7 +2051,80 @@ const CoachApp = ({ user, onLogout }) => {
               )}
             </div>
           )}
+)}
+            </div>
+          )}
 
+          {mainTab === "comptabilite" && !selected && (() => {
+            const currentMonthPrefix = today.slice(0, 7);
+            const isInCurrentMonth = d => d && d.slice(0, 7) === currentMonthPrefix;
+            const activeForBilling = clients.filter(c => !c.is_paused);
+            const dueThisMonth = activeForBilling.filter(c => isInCurrentMonth(c.next_payment));
+            const caPrevu = dueThisMonth.reduce((s, c) => s + (parseFloat(c.monthly_amount) || 0), 0);
+            const paymentsThisMonth = allPayments.filter(p => isInCurrentMonth(p.paid_date));
+            const caEncaisse = paymentsThisMonth.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+            const isNewClient = c => c.start_date && (new Date(today) - new Date(c.start_date)) / 86400000 <= 28;
+            const newClients = activeForBilling.filter(c => isNewClient(c) && !isInCurrentMonth(c.next_payment));
+            const newClientsTotal = newClients.reduce((s, c) => s + (parseFloat(c.monthly_amount) || 0), 0);
+            const rowStatus = c => {
+              if (isNewClient(c) && !isInCurrentMonth(c.next_payment)) return "nouvelle";
+              if (isInCurrentMonth(c.next_payment)) return "attente";
+              return "encaisse";
+            };
+            const handleMarkPaid = async (c) => {
+              if (!window.confirm(`Confirmer la réception du paiement de ${c.monthly_amount} € pour ${c.name} aujourd'hui ?`)) return;
+              const { error, nextDue } = await addPaymentRecord(c.id, c.monthly_amount, today);
+              if (error) { alert("❌ Erreur lors de l'enregistrement du paiement."); return; }
+              await updateClient(c.id, { next_payment: nextDue });
+            };
+            return (
+              <div>
+                <h1 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 20px" }}>Comptabilité 💶</h1>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
+                  <Card><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>CA PRÉVU (CE MOIS)</div><div style={{ fontSize: 26, fontWeight: 900, color: C.pink }}>{caPrevu.toFixed(0)} €</div></Card>
+                  <Card><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>CA ENCAISSÉ (CE MOIS)</div><div style={{ fontSize: 26, fontWeight: 900, color: C.green }}>{caEncaisse.toFixed(0)} €</div></Card>
+                  <Card><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>CLIENTES À ENCAISSER</div><div style={{ fontSize: 26, fontWeight: 900, color: C.orange }}>{dueThisMonth.length}</div></Card>
+                </div>
+                {newClients.length > 0 && (
+                  <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                    <div style={{ fontWeight: 700, color: C.blue, marginBottom: 8, fontSize: 13 }}>👋 Nouvelles clientes (moins de 28 jours)</div>
+                    {newClients.map(c => (
+                      <div key={c.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 13 }}>
+                        <span>{c.name} — arrivée le {formatDate(c.start_date)}</span>
+                        <span style={{ color: C.blue, fontWeight: 700 }}>{c.monthly_amount} € attendu le {formatDate(c.next_payment)}</span>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 8 }}>Ce montant ({newClientsTotal.toFixed(0)} €) viendra gonfler le CA prévu du mois où tombe leur échéance.</div>
+                  </div>
+                )}
+                <Card>
+                  <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>TOUTES LES CLIENTES</div>
+                  {loadingPayments ? <Spinner /> : activeForBilling.map(c => {
+                    const status = rowStatus(c);
+                    return (
+                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.border}` }}>
+                        <Avatar initials={c.avatar} size={30} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{c.name}</div>
+                          <div style={{ fontSize: 11, color: C.textMuted }}>{c.monthly_amount} € · échéance {formatDate(c.next_payment)}</div>
+                        </div>
+                        <Badge color={status === "encaisse" ? C.green : status === "nouvelle" ? C.blue : C.yellow}>
+                          {status === "encaisse" ? "✅ Réglé" : status === "nouvelle" ? "👋 Nouvelle" : "⏳ En attente"}
+                        </Badge>
+                        {status === "attente" && (
+                          <button onClick={() => handleMarkPaid(c)} style={{ background: C.green, border: "none", borderRadius: 8, padding: "7px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer" }}>
+                            ✓ Reçu
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {activeForBilling.length === 0 && <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune cliente active.</p>}
+                </Card>
+              </div>
+            );
+          })()}
+        
           {mainTab === "admin" && !selected && (
             <div>
               <h1 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 8px" }}>Administration 🔐</h1>
