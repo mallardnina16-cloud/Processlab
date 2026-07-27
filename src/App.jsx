@@ -250,6 +250,34 @@ const EXERCISE_CATALOGUE = {
 };
 
 // Construit le texte de consigne formaté à partir d'une fiche du catalogue
+const useExercisesCatalogue = () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetchItems = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("exercises_catalogue").select("*").order("categorie").order("nom");
+    setItems(data || []);
+    setLoading(false);
+  };
+  useEffect(() => { fetchItems(); }, []);
+  const addItem = async (item) => {
+    const { data, error } = await supabase.from("exercises_catalogue").insert([item]).select().single();
+    if (!error && data) setItems(prev => [...prev, data]);
+    return { data, error };
+  };
+  const updateItem = async (id, patch) => {
+    const { data, error } = await supabase.from("exercises_catalogue").update(patch).eq("id", id).select().single();
+    if (!error && data) setItems(prev => prev.map(i => i.id === id ? data : i));
+    return { data, error };
+  };
+  const deleteItem = async (id) => {
+    const { error } = await supabase.from("exercises_catalogue").delete().eq("id", id);
+    if (!error) setItems(prev => prev.filter(i => i.id !== id));
+    return { error };
+  };
+  const grouped = items.reduce((acc, it) => { (acc[it.categorie] = acc[it.categorie] || []).push(it); return acc; }, {});
+  return { items, grouped, loading, addItem, updateItem, deleteItem, refetch: fetchItems };
+};
 const formatCatalogNote = (item) =>
   `📍 Positionnement : ${item.positionnement}\n\n▶️ Exécution : ${item.execution}\n\n🌬️ Respiration : ${item.respiration}\n\n⚠️ Vigilance : ${item.vigilance}`;
 
@@ -257,9 +285,86 @@ const formatCatalogNote = (item) =>
 // CATALOGUE PICKER — modal de sélection d'un exercice depuis le référentiel
 // ══════════════════════════════════════════════════════════════════════════════
 const CatalogPickerModal = ({ onSelect, onClose }) => {
+  const { grouped, loading, addItem, updateItem, deleteItem } = useExercisesCatalogue();
   const [search, setSearch] = useState("");
   const [openCat, setOpenCat] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
+  const [creating, setCreating] = useState(false);
   const q = search.trim().toLowerCase();
+
+  const emptyForm = { nom: "", categorie: "Mes exercices", positionnement: "", execution: "", respiration: "", vigilance: "", media_url: "" };
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+
+  const startEdit = (item) => { setEditingItem(item); setForm({ nom: item.nom, categorie: item.categorie, positionnement: item.positionnement || "", execution: item.execution || "", respiration: item.respiration || "", vigilance: item.vigilance || "", media_url: item.media_url || "" }); setCreating(false); };
+  const startCreate = () => { setCreating(true); setEditingItem(null); setForm(emptyForm); };
+  const cancelForm = () => { setCreating(false); setEditingItem(null); setForm(emptyForm); };
+
+  const handleMediaUpload = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    setUploadingMedia(true);
+    const fileName = `catalogue/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+    const { error } = await supabase.storage.from("exercise-media").upload(fileName, file, { contentType: file.type, upsert: true });
+    if (!error) {
+      const { data: urlData } = supabase.storage.from("exercise-media").getPublicUrl(fileName);
+      setForm(f => ({ ...f, media_url: urlData.publicUrl }));
+    }
+    setUploadingMedia(false);
+  };
+
+  const handleSave = async () => {
+    if (!form.nom.trim()) return alert("Donne un nom à l'exercice.");
+    setSaving(true);
+    if (editingItem) await updateItem(editingItem.id, form);
+    else await addItem({ ...form, is_builtin: false });
+    setSaving(false);
+    cancelForm();
+  };
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Supprimer "${item.nom}" du catalogue ?`)) return;
+    await deleteItem(item.id);
+    if (editingItem?.id === item.id) cancelForm();
+  };
+
+  if (creating || editingItem) {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "#000c", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 22, width: "100%", maxWidth: 460, maxHeight: "88vh", overflowY: "auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>{editingItem ? "✏️ Modifier l'exercice" : "+ Nouvel exercice"}</h3>
+            <button onClick={cancelForm} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20 }}>✕</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <Inp label="Nom de l'exercice" value={form.nom} onChange={e => setForm({ ...form, nom: e.target.value })} />
+            <Inp label="Catégorie" value={form.categorie} onChange={e => setForm({ ...form, categorie: e.target.value })} placeholder="ex: Mes exercices, Étirements..." />
+            <TA label="Positionnement" value={form.positionnement} onChange={e => setForm({ ...form, positionnement: e.target.value })} style={{ minHeight: 60 }} />
+            <TA label="Exécution" value={form.execution} onChange={e => setForm({ ...form, execution: e.target.value })} style={{ minHeight: 60 }} />
+            <TA label="Respiration" value={form.respiration} onChange={e => setForm({ ...form, respiration: e.target.value })} style={{ minHeight: 44 }} />
+            <TA label="Vigilance" value={form.vigilance} onChange={e => setForm({ ...form, vigilance: e.target.value })} style={{ minHeight: 60 }} />
+            <div>
+              <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>🎬 Photo / GIF</label>
+              {form.media_url ? (
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <img src={form.media_url} alt="" style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 10 }} />
+                  <button onClick={() => setForm({ ...form, media_url: "" })} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button>
+                </div>
+              ) : (
+                <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#111", border: `1px dashed ${C.border}`, borderRadius: 10, cursor: "pointer", width: "fit-content" }}>
+                  <span>{uploadingMedia ? "⏳" : "🖼️"}</span><span style={{ fontSize: 13, color: C.textMuted }}>{uploadingMedia ? "Envoi..." : "Ajouter une photo/GIF"}</span>
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleMediaUpload} disabled={uploadingMedia} />
+                </label>
+              )}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+            <Btn variant="secondary" onClick={cancelForm} style={{ flex: 1 }}>Annuler</Btn>
+            <Btn onClick={handleSave} disabled={saving} style={{ flex: 2 }}>{saving ? "Enregistrement..." : "💾 Enregistrer"}</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000c", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 }} onClick={onClose}>
@@ -268,42 +373,40 @@ const CatalogPickerModal = ({ onSelect, onClose }) => {
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>📋 Catalogue d'exercices</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20 }}>✕</button>
         </div>
-        <input
-          type="text" placeholder="Rechercher un exercice..." value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ ...inputSt, marginBottom: 14 }} autoFocus
-        />
-        <div style={{ overflowY: "auto", flex: 1 }}>
-          {Object.entries(EXERCISE_CATALOGUE).map(([cat, list]) => {
-            const filtered = q ? list.filter(item => item.nom.toLowerCase().includes(q)) : list;
-            if (filtered.length === 0) return null;
-            const isOpen = q ? true : openCat === cat;
-            return (
-              <div key={cat} style={{ marginBottom: 10 }}>
-                <button
-                  onClick={() => setOpenCat(openCat === cat ? null : cat)}
-                  style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.white, fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-                >
-                  <span>{cat}</span>
-                  <span style={{ color: C.textMuted, fontSize: 11 }}>{filtered.length} · {isOpen ? "▲" : "▼"}</span>
-                </button>
-                {isOpen && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
-                    {filtered.map(item => (
-                      <button
-                        key={item.nom}
-                        onClick={() => onSelect(item)}
-                        style={{ textAlign: "left", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.white, fontSize: 13, cursor: "pointer" }}
-                      >
-                        {item.nom}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <input type="text" placeholder="Rechercher un exercice..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputSt, flex: 1 }} autoFocus />
+          <button onClick={startCreate} style={{ background: C.pink, border: "none", borderRadius: 10, padding: "0 16px", color: C.black, fontWeight: 800, fontSize: 20, cursor: "pointer", flexShrink: 0 }}>+</button>
         </div>
+        {loading ? <Spinner /> : (
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            {Object.entries(grouped).map(([cat, list]) => {
+              const filtered = q ? list.filter(item => item.nom.toLowerCase().includes(q)) : list;
+              if (filtered.length === 0) return null;
+              const isOpen = q ? true : openCat === cat;
+              return (
+                <div key={cat} style={{ marginBottom: 10 }}>
+                  <button onClick={() => setOpenCat(openCat === cat ? null : cat)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.white, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                    <span>{cat}</span>
+                    <span style={{ color: C.textMuted, fontSize: 11 }}>{filtered.length} · {isOpen ? "▲" : "▼"}</span>
+                  </button>
+                  {isOpen && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                      {filtered.map(item => (
+                        <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, background: "transparent", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 10px" }}>
+                          {item.media_url && <img src={item.media_url} alt="" style={{ width: 34, height: 34, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
+                          <button onClick={() => onSelect(item)} style={{ flex: 1, textAlign: "left", background: "none", border: "none", color: C.white, fontSize: 13, cursor: "pointer", padding: "4px 0" }}>{item.nom}</button>
+                          <button onClick={() => startEdit(item)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 13, padding: 4 }}>✏️</button>
+                          <button onClick={() => handleDelete(item)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 13, padding: 4 }}>🗑️</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {Object.keys(grouped).length === 0 && <div style={{ textAlign: "center", color: C.textMuted, padding: 30, fontSize: 13 }}>Catalogue vide. Clique sur "+" pour ajouter ton premier exercice.</div>}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -324,7 +427,7 @@ const CatalogPickerButton = ({ onApply }) => {
       {open && (
         <CatalogPickerModal
           onClose={() => setOpen(false)}
-          onSelect={(item) => { onApply(item.nom, formatCatalogNote(item)); setOpen(false); }}
+          onSelect={(item) => { onApply(item.nom, formatCatalogNote(item), item.media_url); setOpen(false); }}
         />
       )}
     </>
@@ -373,7 +476,7 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
         <div style={{ flex: 1 }}><Inp label="Nom de l'exercice" placeholder="ex: Squat..." value={ex.name} onChange={e => onChange({ ...ex, name: e.target.value })} /></div>
-        <CatalogPickerButton onApply={(name, note) => onChange({ ...ex, name, note })} />
+<CatalogPickerButton onApply={(name, note, media_url) => onChange({ ...ex, name, note, photo: media_url || ex.photo })} />
         <button onClick={onDelete} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 36, height: 42, color: C.red, cursor: "pointer", flexShrink: 0 }}>✕</button>
       </div>
       {showSets && !intervalMode && (
@@ -500,7 +603,7 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                         <div style={{ flex: 1 }}><Inp label="Nom de l'exercice" placeholder="ex: Vélo, étirements..." value={ex.name} onChange={e => updWarmupEx(block.id, ex.id, { name: e.target.value })} /></div>
-                        <CatalogPickerButton onApply={(name, note) => updWarmupEx(block.id, ex.id, { name, note })} />
+                       <CatalogPickerButton onApply={(name, note, media_url) => updWarmupEx(block.id, ex.id, { name, note, photo: media_url || ex.photo })} />
                       </div>
                       <Inp label="Reps / Durée" placeholder="ex: 10 reps ou 30 sec" value={ex.reps} onChange={e => updWarmupEx(block.id, ex.id, { reps: e.target.value })} />
                       <TA label="Commentaire" placeholder="Consigne, conseil..." value={ex.note} onChange={e => updWarmupEx(block.id, ex.id, { note: e.target.value })} style={{ minHeight: 48 }} />
