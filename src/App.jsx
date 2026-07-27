@@ -2067,8 +2067,9 @@ const CoachApp = ({ user, onLogout }) => {
             const newClientsTotal = newClients.reduce((s, c) => s + (parseFloat(c.monthly_amount) || 0), 0);
             const rowStatus = c => {
               if (isNewClient(c) && !isInCurrentMonth(c.next_payment)) return "nouvelle";
+              if (c.next_payment && c.next_payment < today) return "retard";
               if (isInCurrentMonth(c.next_payment)) return "attente";
-              return "encaisse";
+              return "avenir";
             };
             const handleMarkPaid = async (c) => {
               if (!window.confirm(`Confirmer la réception du paiement de ${c.monthly_amount} € pour ${c.name} aujourd'hui ?`)) return;
@@ -2107,10 +2108,10 @@ const CoachApp = ({ user, onLogout }) => {
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.name}</div>
                           <div style={{ fontSize: 11, color: C.textMuted }}>{c.monthly_amount} € · échéance {formatDate(c.next_payment)}</div>
                         </div>
-                        <Badge color={status === "encaisse" ? C.green : status === "nouvelle" ? C.blue : C.yellow}>
-                          {status === "encaisse" ? "✅ Réglé" : status === "nouvelle" ? "👋 Nouvelle" : "⏳ En attente"}
+                       <Badge color={status === "avenir" ? C.green : status === "nouvelle" ? C.blue : status === "retard" ? C.red : C.yellow}>
+                          {status === "avenir" ? "✅ À jour" : status === "nouvelle" ? "👋 Nouvelle" : status === "retard" ? "🔴 En retard" : "⏳ En attente"}
                         </Badge>
-                        {status === "attente" && (
+                        {(status === "attente" || status === "retard") && (
                           <button onClick={() => handleMarkPaid(c)} style={{ background: C.green, border: "none", borderRadius: 8, padding: "7px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer" }}>
                             ✓ Reçu
                           </button>
