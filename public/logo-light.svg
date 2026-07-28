@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="100%" height="100%" fill="#F7EDE8" rx="64"/>
+  <circle cx="144" cy="144" r="144" fill="#4b0f0f" />
+  <rect x="328" y="104" width="56" height="120" rx="8" fill="#E7B7BC" transform="rotate(12 328 104)"/>
+  <g font-family="Helvetica, Arial, sans-serif" font-weight="900" fill="#4b0f0f">
+    <text x="48%" y="58%" font-size="54" text-anchor="middle">her</text>
+    <text x="48%" y="74%" font-size="72" text-anchor="middle">process</text>
+    <text x="80%" y="74%" font-size="72" fill="#E7B7BC">.</text>
+  </g>
+</svg>
