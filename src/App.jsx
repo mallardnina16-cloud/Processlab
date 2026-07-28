@@ -2899,7 +2899,7 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
               </div>
             </Card>
           )}
-          </Card>
+         
           <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div><PaymentHistory payments={payments} /></Card>
         </div>
       )}
