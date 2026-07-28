@@ -301,24 +301,29 @@ const CatalogPickerModal = ({ onSelect, onClose }) => {
   const startCreate = () => { setCreating(true); setEditingItem(null); setForm(emptyForm); };
   const cancelForm = () => { setCreating(false); setEditingItem(null); setForm(emptyForm); };
 
-  const handleMediaUpload = async e => {
+const handleMediaUpload = async e => {
     const file = e.target.files[0]; if (!file) return;
     setUploadingMedia(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      console.log("DEBUG session:", sessionData.session);
-      alert("DEBUG — Email: " + (sessionData.session?.user?.email || "AUCUN") + " | Rôle: " + (sessionData.session?.user?.role || "AUCUN") + " | Token présent: " + (sessionData.session?.access_token ? "OUI" : "NON"));
+      const token = sessionData.session?.access_token;
       const fileName = `exercises/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
-      const { error } = await supabase.storage.from("exercise-media").upload(fileName, file, { contentType: file.type, upsert: true });
-      if (error) {
-        alert("❌ Impossible d'envoyer le fichier : " + error.message);
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(new Uint8Array(arrayBuffer).reduce((s, b) => s + String.fromCharCode(b), ""));
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/upload-exercise-media`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ fileName, fileBase64: base64, contentType: file.type }),
+      });
+      const result = await res.json();
+      if (result.error) {
+        alert("❌ Impossible d'envoyer le fichier : " + result.error);
         return;
       }
-      const { data: urlData } = supabase.storage.from("exercise-media").getPublicUrl(fileName);
-      setForm(f => ({ ...f, media_url: urlData.publicUrl }));
+      setForm(f => ({ ...f, media_url: result.url }));
     } catch (err) {
       console.error("Erreur upload média catalogue :", err);
-      alert("❌ Erreur inattendue pendant l'envoi : " + (err?.message || "cause inconnue. Regarde la console pour plus de détails."));
+      alert("❌ Erreur inattendue pendant l'envoi : " + (err?.message || "cause inconnue."));
     } finally {
       setUploadingMedia(false);
     }
