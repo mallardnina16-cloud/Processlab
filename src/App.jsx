@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Children, cloneElement } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://wetjzebxuyefzvulujxl.supabase.co";
@@ -75,36 +75,81 @@ const CONTRACT_TEXT = {
 };
 
 const C = {
-  black: "#0a0a0a", white: "#ffffff", pink: "#E8879C",
+  black: "#0a0a0a", white: "#ffffff", pink: "#E7B7BC",
+  brandDark: "#4b0f0f", brandCream: "#F7EDE8",
   surface: "#141414", card: "#1a1a1a", border: "#2a2a2a",
   muted: "#555555", textMuted: "#888888", green: "#4ade80", red: "#f87171",
   purple: "#a78bfa", orange: "#fb923c", blue: "#60a5fa", yellow: "#fbbf24",
 };
 
-const Logo = ({ size = 22 }) => (
-  <div style={{ lineHeight: 1 }}>
-    <div style={{ fontFamily: "'Arial Black', sans-serif", fontWeight: 900, fontSize: size, color: C.white, letterSpacing: "-1px", lineHeight: 0.88 }}>process</div>
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 3 }}>
-      <span style={{ fontFamily: "'Arial Black', sans-serif", fontWeight: 900, fontSize: size, color: C.white, letterSpacing: "-1px", lineHeight: 0.88 }}>lab</span>
-      <div style={{ width: size * 0.22, height: size * 0.22, background: C.pink, marginBottom: 3, flexShrink: 0 }} />
+const BRAND_NAME = "Nina - Her process";
+
+const Logo = ({ size = 44, variant }) => {
+  const [mode, setMode] = useState(variant || "light");
+  useEffect(() => {
+    if (variant) { setMode(variant); return; }
+    if (typeof window !== "undefined" && window.matchMedia) {
+      const m = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = (e) => setMode(e.matches ? "dark" : "light");
+      try { m.addEventListener("change", handler); } catch { m.addListener(handler); }
+      setMode(m.matches ? "dark" : "light");
+      return () => { try { m.removeEventListener("change", handler); } catch { m.removeListener(handler); } };
+    }
+  }, [variant]);
+  const src = mode === "dark" ? "/logo-dark.svg" : "/logo-light.svg";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <img src={src} alt={BRAND_NAME} style={{ width: size, height: size, borderRadius: 8, objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+      <div style={{ lineHeight: 1 }}>
+        <div style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif", fontWeight: 900, fontSize: Math.max(18, size * 0.38), color: C.brandDark, letterSpacing: "-0.6px", lineHeight: 0.95 }}>her</div>
+        <div style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif", fontWeight: 900, fontSize: Math.max(22, size * 0.5), color: C.brandDark, letterSpacing: "-0.6px", lineHeight: 0.9 }}>process<span style={{ color: C.pink }}>.</span></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Card = ({ children, style = {}, onClick }) => (
-  <div onClick={onClick} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, cursor: onClick ? "pointer" : "default", ...style }}>{children}</div>
+  (() => {
+    const [hover, setHover] = useState(false);
+    const reduced = usePrefersReducedMotion();
+    return (
+      <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{
+        background: "linear-gradient(135deg, #141414 0%, #1a1a1a 100%)",
+        border: `1px solid ${C.border}`,
+        borderRadius: 18,
+        padding: 20,
+        cursor: onClick ? "pointer" : "default",
+        boxShadow: hover && !reduced ? "0 32px 68px rgba(0,0,0,0.36)" : "0 16px 36px rgba(0,0,0,0.22)",
+          transform: hover && !reduced ? "translateY(-8px) scale(1.035)" : "translateY(0) scale(1)",
+          transition: reduced ? "none" : "transform .26s cubic-bezier(.2,.9,.25,1), box-shadow .26s ease, border-color .16s ease",
+        willChange: "transform, box-shadow",
+        ...style
+      }}>{children}</div>
+    );
+  })()
 );
 
-const Btn = ({ children, onClick, variant = "primary", disabled, small, style = {} }) => (
-  <button onClick={onClick} disabled={disabled} style={{
-    background: variant === "primary" ? C.pink : variant === "danger" ? C.red + "22" : variant === "ghost" ? "transparent" : variant === "green" ? C.green : "#222",
-    color: variant === "primary" ? C.black : variant === "danger" ? C.red : variant === "green" ? C.black : C.white,
-    border: variant === "ghost" ? `1px solid ${C.border}` : variant === "danger" ? `1px solid ${C.red}44` : "none",
-    borderRadius: small ? 8 : 12, padding: small ? "7px 14px" : "13px 20px",
-    fontWeight: 800, fontSize: small ? 13 : 15, cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.4 : 1, fontFamily: "inherit", transition: "all .15s", ...style,
-  }}>{children}</button>
-);
+const Btn = ({ children, onClick, variant = "primary", disabled, small, style = {} }) => {
+  const [hover, setHover] = useState(false);
+  const reduced = usePrefersReducedMotion();
+  const bg = variant === "primary" ? `linear-gradient(135deg, ${C.pink} 0%, #ff9bb0 100%)` : variant === "danger" ? C.red + "22" : variant === "ghost" ? "transparent" : variant === "green" ? `linear-gradient(135deg, ${C.green} 0%, #8ceea5 100%)` : "#222";
+  const fg = variant === "primary" ? C.black : variant === "danger" ? C.red : variant === "green" ? C.black : C.white;
+  const shadow = variant === "primary" ? `0 10px 24px ${C.pink}28` : variant === "green" ? `0 10px 24px ${C.green}24` : "none";
+  return (
+    <button onClick={onClick} disabled={disabled} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onMouseDown={() => !reduced && setHover(true)} onMouseUp={() => !reduced && setHover(false)} style={{
+      background: bg,
+      color: fg,
+      border: variant === "ghost" ? `1px solid ${C.border}` : variant === "danger" ? `1px solid ${C.red}44` : "none",
+      borderRadius: small ? 10 : 12, padding: small ? "7px 14px" : "13px 20px",
+      fontWeight: 800, fontSize: small ? 13 : 15, cursor: disabled ? "not-allowed" : "pointer",
+      opacity: disabled ? 0.4 : 1, fontFamily: "inherit",
+      transform: hover && !reduced ? "translateY(-4px) scale(1.02)" : "translateY(0) scale(1)",
+      boxShadow: hover && !reduced ? shadow : (variant === "primary" || variant === "green") ? shadow : "none",
+      transition: reduced ? "none" : "transform .18s cubic-bezier(.2,.9,.25,1), box-shadow .18s ease",
+      ...style,
+    }}>{children}</button>
+  );
+};
 
 const inputSt = { background: "#111", border: `1px solid ${C.border}`, borderRadius: 10, padding: "11px 14px", color: C.white, fontSize: 15, outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" };
 
@@ -130,6 +175,31 @@ const Badge = ({ children, color = C.pink }) => (
   <span style={{ background: color + "22", color, borderRadius: 100, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{children}</span>
 );
 
+const SectionTitle = ({ title, subtitle, action }) => (
+  <div style={{ marginBottom: 14 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+      <div>
+        <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>{title}</h2>
+        {subtitle && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>{subtitle}</div>}
+      </div>
+      {action}
+    </div>
+  </div>
+);
+
+const PremiumHero = ({ title, subtitle, badge, children, accent = C.pink }) => (
+  <div style={{ background: `linear-gradient(135deg, ${accent}16 0%, #161616 100%)`, border: `1px solid ${accent}33`, borderRadius: 24, padding: 18, boxShadow: "0 18px 45px rgba(0,0,0,0.25)" }}>
+    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 11, color: accent, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>{badge}</div>
+        <h1 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 6px" }}>{title}</h1>
+        {subtitle && <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.45 }}>{subtitle}</div>}
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
 const Tab = ({ tabs, active, onChange }) => (
   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
     {tabs.map(([k, v]) => (
@@ -141,6 +211,89 @@ const Tab = ({ tabs, active, onChange }) => (
     ))}
   </div>
 );
+
+const QuickAction = ({ title, subtitle, icon, onClick, accent = C.pink }) => (
+  <button onClick={onClick} style={{
+    background: "#111", border: `1px solid ${accent}22`, borderRadius: 12, padding: "12px 12px",
+    textAlign: "left", cursor: "pointer", color: C.white, display: "flex", alignItems: "center", gap: 10,
+  }}>
+    <div style={{ width: 34, height: 34, borderRadius: 10, background: accent + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{icon}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontWeight: 700, fontSize: 13 }}>{title}</div>
+      <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{subtitle}</div>
+    </div>
+  </button>
+);
+
+const ClientBottomNav = ({ currentScreen, onNavigate }) => {
+  const items = [
+    { key: "home", label: "Accueil", icon: "🏠" },
+    { key: "journal", label: "Journal", icon: "📝" },
+    { key: "perfs", label: "Séances", icon: "💪" },
+    { key: "body", label: "Suivi", icon: "📏" },
+    { key: "contrat", label: "Contrat", icon: "📄" },
+  ];
+  return (
+    <div style={{ position: "sticky", bottom: 0, marginTop: 18, borderTop: `1px solid ${C.border}`, background: C.black, padding: "10px 12px 14px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+        {items.map(item => {
+          const active = currentScreen === item.key;
+          return (
+            <button key={item.key} onClick={() => onNavigate(item.key)} style={{
+              background: active ? C.pink + "22" : "#111", border: `1px solid ${active ? C.pink : C.border}`,
+              borderRadius: 12, padding: "8px 4px", color: active ? C.white : C.textMuted,
+              fontWeight: 700, fontSize: 11, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            }}>
+              <span style={{ fontSize: 15 }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const ClientOnboarding = ({ clientName, onFinish, onEnableReminders, reminderEnabled }) => {
+  const [step, setStep] = useState(0);
+  const steps = [
+    { title: "Bienvenue", text: `Bonjour ${clientName?.split(" ")[0] || "toi"} 👋`, detail: "Ton espace est pensé pour te guider pas à pas, sans surcharge." },
+    { title: "Ton journal", text: "Remplis ton journal chaque jour", detail: "Un rapide check-in te permet de garder un suivi clair avec ton coach." },
+    { title: "Tes séances", text: "Accède à tes entraînements à tout moment", detail: "Tu retrouves tes séances prévues et l’historique de tes performances." },
+    { title: "Rappels", text: reminderEnabled ? "Tes rappels sont déjà prêts" : "Active les rappels pour ne rien oublier", detail: "Tu recevras des notifications utiles sans te disperser." },
+  ];
+  const current = steps[step];
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 430, background: C.card, border: `1px solid ${C.border}`, borderRadius: 24, padding: 24 }}>
+        <div style={{ fontSize: 11, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Bienvenue dans Nina - Her process</div>
+        <h2 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 8px" }}>{current.title}</h2>
+        <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.5, margin: "0 0 20px" }}>{current.text}</p>
+        <div style={{ background: "#111", borderRadius: 12, padding: 14, marginBottom: 18 }}>
+          <div style={{ fontSize: 13, color: C.white, lineHeight: 1.5 }}>{current.detail}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+          {steps.map((_, idx) => <div key={idx} style={{ flex: 1, height: 5, borderRadius: 999, background: idx <= step ? C.pink : C.border }} />)}
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => (step < steps.length - 1 ? setStep(step + 1) : onFinish())} style={{ flex: 1, background: C.pink, border: "none", borderRadius: 12, padding: "12px 14px", color: C.black, fontWeight: 800, cursor: "pointer" }}>
+            {step < steps.length - 1 ? "Continuer" : "C’est parti"}
+          </button>
+          {step > 0 ? (
+            <button onClick={() => setStep(step - 1)} style={{ padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#111", color: C.white, cursor: "pointer" }}>Retour</button>
+          ) : (
+            <button onClick={onFinish} style={{ padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#111", color: C.textMuted, cursor: "pointer" }}>Passer</button>
+          )}
+        </div>
+        {step === steps.length - 1 && !reminderEnabled && (
+          <button onClick={onEnableReminders} style={{ width: "100%", marginTop: 12, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.orange}44`, background: C.orange + "15", color: C.orange, fontWeight: 700, cursor: "pointer" }}>
+            🔔 Activer les rappels
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Spinner = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
@@ -172,6 +325,57 @@ const addDays = (dateStr, days) => {
   const d = new Date(dateStr);
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+};
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const getCacheKey = (key) => `nina:herprocess:${key}`;
+const readCache = (key) => {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(getCacheKey(key));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Date.now() - parsed.ts > CACHE_TTL_MS) {
+      window.sessionStorage.removeItem(getCacheKey(key));
+      return null;
+    }
+    return parsed.value;
+  } catch {
+    return null;
+  }
+};
+const writeCache = (key, value) => {
+  if (typeof window === "undefined") return;
+  try { window.sessionStorage.setItem(getCacheKey(key), JSON.stringify({ ts: Date.now(), value })); } catch {}
+};
+
+// Accessibility: respect prefers-reduced-motion
+const usePrefersReducedMotion = () => {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handler = () => setReduced(mq.matches);
+    handler();
+    try { mq.addEventListener("change", handler); } catch { mq.addListener(handler); }
+    return () => { try { mq.removeEventListener("change", handler); } catch { mq.removeListener(handler); } };
+  }, []);
+  return reduced;
+};
+
+const AnimatedList = ({ children, stagger = 70, slide = 8, scale = 1.02 }) => {
+  const reduced = usePrefersReducedMotion();
+  return (
+    <div>
+      <style>{`@keyframes fadeUpSlide { from { opacity: 0; transform: translateY(${slide}px) scale(${scale}); } to { opacity: 1; transform: translateY(0) scale(1); } }`}</style>
+      {Children.map(children, (child, i) => {
+        if (!child) return null;
+        const delay = `${i * stagger}ms`;
+        const animStyle = reduced ? {} : { animation: `fadeUpSlide .46s cubic-bezier(.2,.9,.25,1) both`, animationDelay: delay };
+        return cloneElement(child, { style: { ...(child.props.style || {}), ...animStyle } });
+      })}
+    </div>
+  );
 };
 
 // Clé publique VAPID (sans risque à exposer côté client — c'est le fonctionnement normal du protocole Web Push)
@@ -1327,12 +1531,20 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
 // DATA HOOKS
 // ══════════════════════════════════════════════════════════════════════════════
 const useClients = () => {
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState(() => readCache("clients") || []);
+  const [loading, setLoading] = useState(() => !readCache("clients"));
   const fetch = async () => {
-    setLoading(true);
-    const { data } = await supabase.from("clients").select("*").order("created_at");
-    setClients(data || []); setLoading(false);
+    const cached = readCache("clients");
+    if (cached) {
+      setClients(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+    const { data } = await supabase.from("clients").select("id, name, avatar, goal, start_date, next_payment, sessions_per_week, monthly_amount, streak, today_done, user_id, contract_accepted, is_paused, created_at").order("created_at");
+    const result = data || [];
+    writeCache("clients", result);
+    setClients(result); setLoading(false);
   };
   useEffect(() => { fetch(); }, []);
   const addClient = async (c) => { const { data } = await supabase.from("clients").insert([c]).select().single(); if (data) setClients(cl => [...cl, data]); return data; };
@@ -1342,8 +1554,8 @@ const useClients = () => {
 };
 
 const useWorkouts = () => {
-  const [workouts, setWorkouts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [workouts, setWorkouts] = useState(() => readCache("workouts") || []);
+  const [loading, setLoading] = useState(() => !readCache("workouts"));
   // Assignations client_workouts chargées UNE SEULE FOIS pour toutes les séances,
   // au lieu d'une requête séparée par carte (évite des dizaines d'appels réseau redondants).
   const [assignmentsByWorkout, setAssignmentsByWorkout] = useState({});
@@ -1354,14 +1566,22 @@ const useWorkouts = () => {
     setAssignmentsByWorkout(map);
   };
   const fetch = async () => {
-    setLoading(true);
+    const cached = readCache("workouts");
+    if (cached) {
+      setWorkouts(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     const [{ data: ws }, { data: exs }] = await Promise.all([
       supabase.from("workouts").select("id, name, description, created_at, is_archived, blocks").order("created_at"),
-      supabase.from("exercises").select("*").order("position"),
+      supabase.from("exercises").select("id, workout_id, name, sets, reps, rest, note, photo, position, suggested_weight, weight_type, tempo").order("position"),
     ]);
     await fetchAssignments();
     if (!ws) { setLoading(false); return; }
-    setWorkouts(ws.map(w => ({ ...w, exercises: (exs || []).filter(e => e.workout_id === w.id) })));
+    const result = ws.map(w => ({ ...w, exercises: (exs || []).filter(e => e.workout_id === w.id) }));
+    writeCache("workouts", result);
+    setWorkouts(result);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, []);
@@ -1396,12 +1616,20 @@ const useWorkouts = () => {
   return { workouts, loading, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment };
 };
 const usePayments = () => {
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [payments, setPayments] = useState(() => readCache("payments") || []);
+  const [loading, setLoading] = useState(() => !readCache("payments"));
   const fetchPayments = async () => {
-    setLoading(true);
-    const { data } = await supabase.from("payments").select("*").order("paid_date", { ascending: false });
-    setPayments(data || []);
+    const cached = readCache("payments");
+    if (cached) {
+      setPayments(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+    const { data } = await supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").order("paid_date", { ascending: false });
+    const result = data || [];
+    writeCache("payments", result);
+    setPayments(result);
     setLoading(false);
   };
   useEffect(() => { fetchPayments(); }, []);
@@ -1414,29 +1642,48 @@ const usePayments = () => {
   return { payments, loadingPayments: loading, addPaymentRecord };
 };
 const useClientData = (clientId) => {
-  const [entries, setEntries] = useState([]);
-  const [weights, setWeights] = useState([]);
-  const [measurements, setMeasurements] = useState([]);
-  const [assignedWorkouts, setAssignedWorkouts] = useState([]);
-  const [progressPhotos, setProgressPhotos] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const cacheKey = `client-data:${clientId || "none"}`;
+  const [entries, setEntries] = useState(() => readCache(cacheKey)?.entries || []);
+  const [weights, setWeights] = useState(() => readCache(cacheKey)?.weights || []);
+  const [measurements, setMeasurements] = useState(() => readCache(cacheKey)?.measurements || []);
+  const [assignedWorkouts, setAssignedWorkouts] = useState(() => readCache(cacheKey)?.assignedWorkouts || []);
+  const [progressPhotos, setProgressPhotos] = useState(() => readCache(cacheKey)?.progressPhotos || []);
+  const [payments, setPayments] = useState(() => readCache(cacheKey)?.payments || []);
+  const [loading, setLoading] = useState(() => !readCache(cacheKey));
 
   const fetch = async () => {
-    if (!clientId) return;
-    setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
-    setLoading(true);
+    if (!clientId) {
+      setLoading(false);
+      return;
+    }
+    const cached = readCache(cacheKey);
+    if (cached) {
+      setEntries(cached.entries || []); setWeights(cached.weights || []); setMeasurements(cached.measurements || []);
+      setAssignedWorkouts(cached.assignedWorkouts || []); setProgressPhotos(cached.progressPhotos || []); setPayments(cached.payments || []);
+      setLoading(false);
+    } else {
+      setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
+      setLoading(true);
+    }
     const [e, w, m, cw, pp, pay] = await Promise.all([
-      supabase.from("entries").select("*").eq("client_id", clientId).order("date", { ascending: false }),
-      supabase.from("weights").select("*").eq("client_id", clientId).order("date"),
-      supabase.from("measurements").select("*").eq("client_id", clientId).order("date"),
-      supabase.from("client_workouts").select("*, workouts(*, blocks, exercises(*))").eq("client_id", clientId),
-      supabase.from("progress_photos").select("*").eq("client_id", clientId).order("date", { ascending: false }),
-      supabase.from("payments").select("*").eq("client_id", clientId).order("paid_date", { ascending: false }),
+      supabase.from("entries").select("id, client_id, date, feeling, steps, meal_note, photos, calories_total, protein_total, carb_total, fat_total, session_status, session_note, hydration, sleep_hours, nap, had_difficulty, difficulty_note, coach_message").eq("client_id", clientId).order("date", { ascending: false }),
+      supabase.from("weights").select("id, client_id, value, date").eq("client_id", clientId).order("date"),
+      supabase.from("measurements").select("id, client_id, chest, waist, hips, thighs, date").eq("client_id", clientId).order("date"),
+      supabase.from("client_workouts").select("workout_id, scheduled_date, workouts(id, name, description, blocks, exercises(*))").eq("client_id", clientId),
+      supabase.from("progress_photos").select("id, client_id, photo, note, date").eq("client_id", clientId).order("date", { ascending: false }),
+      supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").eq("client_id", clientId).order("paid_date", { ascending: false }),
     ]);
-    setEntries(e.data || []); setWeights(w.data || []); setMeasurements(m.data || []);
-    setAssignedWorkouts((cw.data || []).map(x => ({ workout_id: x.workout_id, scheduled_date: x.scheduled_date, workout: x.workouts })));
-    setProgressPhotos(pp.data || []); setPayments(pay.data || []);
+    const nextPayload = {
+      entries: e.data || [],
+      weights: w.data || [],
+      measurements: m.data || [],
+      assignedWorkouts: (cw.data || []).map(x => ({ workout_id: x.workout_id, scheduled_date: x.scheduled_date, workout: x.workouts })),
+      progressPhotos: pp.data || [],
+      payments: pay.data || [],
+    };
+    writeCache(cacheKey, nextPayload);
+    setEntries(nextPayload.entries); setWeights(nextPayload.weights); setMeasurements(nextPayload.measurements);
+    setAssignedWorkouts(nextPayload.assignedWorkouts); setProgressPhotos(nextPayload.progressPhotos); setPayments(nextPayload.payments);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
@@ -2004,6 +2251,8 @@ const CoachApp = ({ user, onLogout }) => {
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
   // Exclure les clientes en pause des alertes paiement
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5 && !c.is_paused; });
+  const pendingJournalClients = clients.filter(c => !c.is_paused && !isDoneToday(c.id));
+  const urgentPayments = clients.filter(c => !c.is_paused && daysUntil(c.next_payment) <= 7);
   const sortByName = (a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" });
   const activeWorkoutsList = workouts.filter(w => !w.is_archived).sort(sortByName);
   const archivedWorkoutsList = workouts.filter(w => w.is_archived).sort(sortByName);
@@ -2022,7 +2271,7 @@ const CoachApp = ({ user, onLogout }) => {
         const newClient = clients.find(c => c.id === payload.new.client_id);
         if (newClient) {
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-            new Notification("process lab. 📋", { body: `${newClient.name} vient de remplir son journal !`, icon: "/icon.png" });
+            new Notification(BRAND_NAME + " 📋", { body: `${newClient.name} vient de remplir son journal !`, icon: "/icon.png" });
           }
         }
       })
@@ -2033,7 +2282,7 @@ const CoachApp = ({ user, onLogout }) => {
   const requestCoachNotifs = async () => {
     if (!("Notification" in window)) return alert("Notifications non supportées sur ce navigateur.");
     const perm = await Notification.requestPermission();
-    if (perm === "granted") { setNotifGranted(true); new Notification("process lab. ✅", { body: "Tu seras notifiée dès qu'une cliente remplit son journal !", icon: "/icon.png" }); }
+    if (perm === "granted") { setNotifGranted(true); new Notification(BRAND_NAME + " ✅", { body: "Tu seras notifiée dès qu'une cliente remplit son journal !", icon: "/icon.png" }); }
   };
 
   useEffect(() => {
@@ -2170,6 +2419,38 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
           {mainTab === "dashboard" && !selected && (
             <div>
               <h1 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 20px" }}>Tableau de bord 👋</h1>
+              <Card style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>ACTIONS RAPIDES</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+                  <QuickAction title="Ajouter une cliente" subtitle="Créer un compte et un profil" icon="➕" onClick={() => setShowAddClient(true)} />
+                  <QuickAction title="Créer une séance" subtitle="Préparer un programme clair" icon="💪" onClick={() => setBuildingWorkout(true)} />
+                  <QuickAction title="Voir la compta" subtitle="Suivre paiements et échéances" icon="💶" onClick={() => setMainTab("comptabilite")} />
+                  <QuickAction title="Médiathèque" subtitle="Gérer exercices et contenus" icon="📚" onClick={() => setMainTab("mediatheque")} />
+                </div>
+              </Card>
+
+              <Card style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>À FAIRE AUJOURD'HUI</div>
+                {pendingJournalClients.length === 0 && urgentPayments.length === 0 ? (
+                  <div style={{ color: C.textMuted, fontSize: 13 }}>Tout est à jour pour le moment. Bonne journée !</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {pendingJournalClients.length > 0 && (
+                      <div style={{ background: "#111", borderRadius: 10, padding: 12 }}>
+                        <div style={{ fontWeight: 700, color: C.orange, marginBottom: 6 }}>📝 Journal non rempli</div>
+                        {pendingJournalClients.slice(0, 3).map(c => <div key={c.id} style={{ fontSize: 13, color: C.textMuted, padding: "3px 0" }}>{c.name}</div>)}
+                      </div>
+                    )}
+                    {urgentPayments.length > 0 && (
+                      <div style={{ background: "#111", borderRadius: 10, padding: 12 }}>
+                        <div style={{ fontWeight: 700, color: C.yellow, marginBottom: 6 }}>💳 Paiements à suivre</div>
+                        {urgentPayments.slice(0, 3).map(c => <div key={c.id} style={{ fontSize: 13, color: C.textMuted, padding: "3px 0" }}>{c.name} · {formatDate(c.next_payment)}</div>)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+
               {paymentAlerts.length > 0 && (
                 <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
                   <div style={{ fontWeight: 700, color: C.yellow, marginBottom: 8, fontSize: 13 }}>⚠️ Paiements à venir</div>
@@ -2200,8 +2481,7 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
           {mainTab === "workouts" && !selected && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Mes séances 💪</h1>
-                <Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Nouvelle séance</Btn>
+                <SectionTitle title="Mes séances 💪" subtitle="Construis et gère tes programmes en quelques clics" action={<Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Nouvelle séance</Btn>} />
               </div>
               {loadingWorkouts ? <Spinner /> : (
                 <>
@@ -2278,7 +2558,7 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
             };
             return (
               <div>
-                <h1 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 20px" }}>Comptabilité 💶</h1>
+                <SectionTitle title="Comptabilité 💶" subtitle="Pilote tes paiements et tes échéances sereinement" />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
                   <Card><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>CA PRÉVU (CE MOIS)</div><div style={{ fontSize: 26, fontWeight: 900, color: C.pink }}>{caPrevu.toFixed(0)} €</div></Card>
                   <Card><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>CA ENCAISSÉ (CE MOIS)</div><div style={{ fontSize: 26, fontWeight: 900, color: C.green }}>{caEncaisse.toFixed(0)} €</div></Card>
@@ -2326,8 +2606,7 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
         
           {mainTab === "admin" && !selected && (
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 8px" }}>Administration 🔐</h1>
-              <p style={{ color: C.textMuted, fontSize: 13, marginTop: 0, marginBottom: 20 }}>Réinitialise le mot de passe d'une cliente directement depuis l'app, sans passer par Supabase.</p>
+              <SectionTitle title="Administration 🔐" subtitle="Réinitialise le mot de passe d'une cliente directement depuis l'app, sans passer par Supabase." />
               {adminError && (
                 <Card style={{ borderColor: C.red + "44", marginBottom: 16 }}>
                   <div style={{ color: C.red, fontSize: 13 }}>❌ {adminError}</div>
@@ -2365,7 +2644,7 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
                         </div>
                         {isResetting && (
                           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            <Inp label="Nouveau mot de passe" placeholder="ex: Processlab2026!" value={newPasswordInput} onChange={e => setNewPasswordInput(e.target.value)} />
+                            <Inp label="Nouveau mot de passe" placeholder="ex: NinaHer2026!" value={newPasswordInput} onChange={e => setNewPasswordInput(e.target.value)} />
                             <div style={{ display: "flex", gap: 10 }}>
                               <Btn small variant="secondary" onClick={() => setNewPasswordInput(generateSimplePassword())} style={{ width: "auto" }}>🎲 Générer</Btn>
                               <Btn small onClick={() => handleResetPassword(c, authUser)} disabled={!newPasswordInput || resettingId === c.id} style={{ flex: 1 }}>
@@ -2567,7 +2846,7 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <Inp label="Nom complet" placeholder="Camille Rousseau" value={newClientForm.name} onChange={e => setNewClientForm({ ...newClientForm, name: e.target.value })} />
               <Inp label="Email" type="email" placeholder="camille@email.com" value={newClientForm.email} onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })} />
-              <Inp label="Mot de passe temporaire" type="text" placeholder="ex: Processlab2025!" value={newClientForm.password} onChange={e => setNewClientForm({ ...newClientForm, password: e.target.value })} />
+              <Inp label="Mot de passe temporaire" type="text" placeholder="ex: NinaHer2025!" value={newClientForm.password} onChange={e => setNewClientForm({ ...newClientForm, password: e.target.value })} />
               <Inp label="Objectif" placeholder="Perte de poids..." value={newClientForm.goal} onChange={e => setNewClientForm({ ...newClientForm, goal: e.target.value })} />
               <Inp label="Séances par semaine" type="number" min="1" max="7" value={newClientForm.sessions_per_week} onChange={e => setNewClientForm({ ...newClientForm, sessions_per_week: e.target.value })} />
               <Inp label="Montant toutes les 4 semaines (€)" type="number" placeholder="150" value={newClientForm.monthly_amount} onChange={e => setNewClientForm({ ...newClientForm, monthly_amount: e.target.value })} />
@@ -2595,6 +2874,8 @@ const ClientApp = ({ user, onLogout }) => {
   const [clientInfo, setClientInfo] = useState(null);
   const [clientId, setClientId] = useState(null);
   const [screen, setScreen] = useState("home");
+  const [onboardingDone, setOnboardingDone] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState(typeof Notification !== "undefined" && Notification?.permission === "granted");
   const [previewWorkout, setPreviewWorkout] = useState(null);
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [selectedEntry, setSelectedEntry] = useState(null);
@@ -2604,13 +2885,19 @@ const ClientApp = ({ user, onLogout }) => {
   const [newWeight, setNewWeight] = useState("");
   const [newMeasure, setNewMeasure] = useState({ chest: "", waist: "", hips: "", thighs: "" });
   const [newPhotoNote, setNewPhotoNote] = useState("");
-  const [notifEnabled, setNotifEnabled] = useState(typeof Notification !== "undefined" && Notification?.permission === "granted");
-const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
+  const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
   const [imgConsentFaceAnswer, setImgConsentFaceAnswer] = useState(null);
   const [savingImgConsent, setSavingImgConsent] = useState(false);
   useEffect(() => {
     supabase.from("clients").select("*").eq("user_id", user.id).single().then(({ data }) => {
-      if (data) { setClientInfo(data); setClientId(data.id); }
+      if (data) {
+        setClientInfo(data); setClientId(data.id);
+        const stored = window.localStorage.getItem(`nina:herprocess:onboarding:${data.id}`);
+        setOnboardingDone(stored === "1");
+        const remindersStored = window.localStorage.getItem(`nina:herprocess:reminders:${data.id}`);
+        const reminderState = remindersStored === "1" || (typeof Notification !== "undefined" && Notification.permission === "granted");
+        setNotifEnabled(reminderState);
+      }
     });
   }, [user.id]);
 
@@ -2625,7 +2912,12 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
   const myWorkouts = assignedWorkouts.filter(a => a.workout).map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
 
   const todayEntry = entries.find(e => e.date === today);
+  const todayWorkout = myWorkouts.find(w => w.scheduledDate === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
+  const pendingClientTasks = [];
+  if (!todayEntry) pendingClientTasks.push({ title: "Compléter ton journal", subtitle: "Un petit check-in vaut souvent mieux que rien", icon: "📝", onClick: () => setScreen("journal"), accent: C.orange });
+  if (todayWorkout) pendingClientTasks.push({ title: "Ta séance du jour", subtitle: "Prêt à démarrer ?", icon: "💪", onClick: () => setPreviewWorkout(todayWorkout), accent: C.pink });
+  if (!clientInfo.contract_accepted) pendingClientTasks.push({ title: "Valider ton contrat", subtitle: "Relis les règles et engage-toi", icon: "📄", onClick: () => setScreen("contrat"), accent: C.blue });
   const lastWeight = weights[weights.length - 1];
   const startWeight = weights[0];
 
@@ -2645,8 +2937,16 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
   };
   const handleEnableNotifs = async () => {
     const granted = await requestNotifications(clientId);
-    if (granted) { setNotifEnabled(true); alert("✅ Rappels activés ! Tu recevras une notification chaque soir à 20h, même app fermée."); }
-    else alert("Pour activer : Réglages → Notifications → Process Lab → Autoriser");
+      if (granted) {
+      setNotifEnabled(true);
+      if (clientId) window.localStorage.setItem(`nina:herprocess:reminders:${clientId}`, "1");
+      alert("✅ Rappels activés ! Tu recevras des notifications utiles pour ton suivi.");
+    } else alert(`Pour activer : Réglages → Notifications → ${BRAND_NAME} → Autoriser`);
+  };
+
+  const handleCompleteOnboarding = () => {
+    if (clientId) window.localStorage.setItem(`nina:herprocess:onboarding:${clientId}`, "1");
+    setOnboardingDone(true);
   };
 
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} />;
@@ -2659,6 +2959,10 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
   }
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
+
+  if (!onboardingDone) {
+    return <ClientOnboarding clientName={clientInfo.name} onFinish={handleCompleteOnboarding} onEnableReminders={handleEnableNotifs} reminderEnabled={notifEnabled} />;
+  }
 
   if (viewingWorkoutPerfs) {
     const logs = sessionLogs.filter(l => l.workout_id === viewingWorkoutPerfs.id);
@@ -2707,12 +3011,18 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
         <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
       </div>
 
-      <div style={{ padding: 20 }}>
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontSize: 13, color: C.pink, fontWeight: 700, marginBottom: 2 }}>Bonjour,</div>
-          <h1 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 6px", letterSpacing: "-1px" }}>{clientInfo.name?.split(" ")[0]} 👋</h1>
-          <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
-        </div>
+      <div style={{ padding: 20, background: "radial-gradient(circle at top left, rgba(232,135,156,0.12), transparent 35%)" }}>
+        <PremiumHero
+          badge="Espace coaching"
+          title={`${clientInfo.name?.split(" ")[0] || "Bonjour"} 👋`}
+          subtitle="Tout est pensé pour te guider avec clarté, douceur et efficacité."
+          accent={C.pink}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
+            {todayEntry ? <Badge color={C.green}>✅ Journal OK</Badge> : <Badge color={C.orange}>📝 À compléter</Badge>}
+          </div>
+        </PremiumHero>
 {!clientInfo.contract_accepted && (
           <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div><div style={{ fontWeight: 700, fontSize: 13, color: C.blue }}>📄 Règlement à valider</div><div style={{ fontSize: 12, color: C.textMuted }}>Prends 2 minutes pour lire et accepter le règlement du coaching</div></div>
@@ -2720,9 +3030,27 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
         )}
         {!notifEnabled && (
           <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div><div style={{ fontSize: 12, color: C.textMuted }}>Rappel journal à 20h chaque soir</div></div>
+            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div><div style={{ fontSize: 12, color: C.textMuted }}>Recevoir des notifications utiles pour ton suivi</div></div>
             <button onClick={handleEnableNotifs} style={{ background: C.orange, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Activer</button>
           </div>
+        )}
+
+        {notifEnabled && (
+          <div style={{ background: C.green + "15", border: `1px solid ${C.green}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: C.green }}>🔔 Rappels actifs</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Tu seras aidée au bon moment sans surcharge.</div>
+          </div>
+        )}
+
+        {pendingClientTasks.length > 0 && (
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>À FAIRE MAINTENANT</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {pendingClientTasks.map(task => (
+                <QuickAction key={task.title} title={task.title} subtitle={task.subtitle} icon={task.icon} accent={task.accent} onClick={task.onClick} />
+              ))}
+            </div>
+          </Card>
         )}
 
         {coachMsg && (
@@ -2793,14 +3121,16 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
           <Card onClick={() => setScreen("body")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>POIDS</div><div style={{ fontSize: 22, fontWeight: 900, color: C.pink }}>{lastWeight ? `${lastWeight.value} kg` : "—"}</div>{startWeight && lastWeight && startWeight.value !== lastWeight.value && <div style={{ fontSize: 11, color: C.green }}>-{(startWeight.value - lastWeight.value).toFixed(1)} kg</div>}</Card>
           <Card onClick={() => setScreen("perfs")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>SÉANCES</div><div style={{ fontSize: 22, fontWeight: 900, color: C.purple }}>{sessionLogs.length}</div><div style={{ fontSize: 11, color: C.textMuted }}>réalisées</div></Card>
         </div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-          <Btn variant="ghost" onClick={() => setScreen("history")} style={{ flex: 1 }}>📋 Journal</Btn>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <Btn variant="ghost" onClick={() => setScreen("history")} style={{ flex: 1 }}>📋 Historique</Btn>
           <Btn variant="ghost" onClick={() => setScreen("perfs")} style={{ flex: 1 }}>📊 Performances</Btn>
         </div>
         <div style={{ display: "flex" }}>
           <Btn variant="ghost" onClick={() => setScreen("contrat")} style={{ flex: 1 }}>📄 Contrat</Btn>
         </div>
       </div>
+
+      <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
 
       {screen === "contrat" && (
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
@@ -2959,8 +3289,9 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
       {screen === "history" && (
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
           <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-          <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon historique</h2>
+          <SectionTitle title="Mon historique" subtitle="Retour sur tes jours, tes ressentis et ton évolution" />
           {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => <div key={i} style={{ marginBottom: 12 }}><EntryCard e={e} onClick={() => setSelectedEntry(e)} /></div>)}
+          <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
         </div>
       )}
     </div>
@@ -2985,11 +3316,11 @@ const LoginScreen = ({ onLogin }) => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ marginBottom: 40 }}><Logo size={32} /></div>
-      <div style={{ width: "100%", maxWidth: 380 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 8px" }}>Connexion</h2>
-        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 32, marginTop: 0 }}>Connecte-toi à ton espace Process Lab</p>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top, rgba(232,135,156,0.18), transparent 40%), #090909", color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 420, background: "linear-gradient(135deg, #151515 0%, #1d1d1d 100%)", border: `1px solid ${C.border}`, borderRadius: 24, padding: 24, boxShadow: "0 20px 50px rgba(0,0,0,0.3)" }}>
+        <div style={{ marginBottom: 24, display: "flex", justifyContent: "center" }}><Logo size={32} /></div>
+        <h2 style={{ fontSize: 24, fontWeight: 900, margin: "0 0 8px", textAlign: "center" }}>Connexion</h2>
+        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 24, marginTop: 0, textAlign: "center" }}>Connecte-toi à ton espace Nina - Her process</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Inp label="Email" type="email" placeholder="ton@email.com" value={email} onChange={e => setEmail(e.target.value)} />
           <Inp label="Mot de passe" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLogin()} />
