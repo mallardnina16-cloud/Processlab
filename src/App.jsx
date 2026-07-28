@@ -6,6 +6,73 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const COACH_EMAIL = "mallardnina16@gmail.com";
+const CONTRACT_TEXT = {
+  sections: [
+    {
+      title: "1. Organisation des séances",
+      lines: [
+        "Une séance peut être annulée ou déplacée jusqu'à la veille avant 20h, sans pénalité.",
+        "Passé ce délai, une séance annulée le jour même est considérée comme prise, sauf circonstance réelle et exceptionnelle, à mon appréciation.",
+        "Une séance annulée dans les règles peut être rattrapée dans le mois de coaching en cours (4 semaines), sauf si l'annulation intervient lors de la dernière semaine — dans ce cas, le rattrapage se fait en tout début du mois suivant.",
+        "En cas de retard, la séance se termine à l'heure prévue initialement, afin de respecter le planning des autres clientes.",
+      ],
+    },
+    {
+      title: "2. Paiement",
+      lines: [
+        "Le règlement du mois de coaching doit être effectué avant le début de la dernière semaine du cycle.",
+        "Un mois de coaching correspond à 4 semaines glissantes, pas au mois calendaire.",
+      ],
+    },
+    {
+      title: "3. Engagement personnel",
+      lines: [
+        "Le journal quotidien (alimentation, ressenti, séances) est un outil de suivi essentiel — je m'engage à le remplir avec assiduité pour permettre un accompagnement de qualité.",
+        "Je m'engage à signaler toute douleur, gêne physique ou contre-indication médicale, avant ou pendant une séance.",
+        "Je viens en tenue adaptée à l'effort physique, avec mon eau et le nécessaire pour la séance.",
+      ],
+    },
+    {
+      title: "4. Parrainage",
+      lines: [
+        "Toute personne parrainée qui débute un accompagnement m'offre une séance de coaching, créditée dès la première séance de la personne parrainée.",
+      ],
+    },
+    {
+      title: "5. Confidentialité",
+      lines: [
+        "Les données partagées (mesures, poids, photos, journal) restent strictement confidentielles entre nous.",
+        "Aucune photo ou donnée ne sera utilisée publiquement (réseaux sociaux, communication) sans mon accord explicite préalable.",
+      ],
+    },
+    {
+      title: "6. Responsabilité et santé",
+      lines: [
+        "La pratique sportive comporte des risques inhérents à l'effort physique. Il est de ma responsabilité de t'informer de toute condition médicale, blessure ou contre-indication existante avant de commencer un programme, et de signaler tout changement en cours d'accompagnement.",
+        "En cas de douleur inhabituelle ou de gêne persistante, je m'engage à interrompre l'exercice concerné et à t'en informer avant de poursuivre.",
+      ],
+    },
+    {
+      title: "7. Spécificités du suivi à distance",
+      lines: [
+        "Je m'engage à réaliser les séances aux jours convenus dans mon planning, dans la mesure de mes possibilités, et à te prévenir si je dois décaler une séance.",
+        "Je m'engage à être transparente sur mon ressenti, mes difficultés et mes résultats afin que tu puisses ajuster mon accompagnement au mieux.",
+        "Je m'engage à te signaler rapidement si un exercice ne me convient pas, plutôt que de sauter la séance ou de mal l'exécuter en silence.",
+        "Un point vocal complet est prévu une fois par semaine ou toutes les deux semaines, selon mon évolution et mes besoins.",
+        "Je peux t'envoyer une vidéo de moi sur un exercice pour que tu puisses corriger ma technique à distance.",
+      ],
+    },
+  ],
+  coachLines: [
+    "Toute séance que je manque de mon fait est systématiquement rendue.",
+    "Toute annulation de ma part te sera communiquée le plus tôt possible, avec un minimum de 12h de préavis sauf urgence réelle.",
+    "Je reste disponible par téléphone en cas de besoin entre les séances.",
+    "Je m'engage à répondre à tes messages sous 24h.",
+    "Je m'engage à tenir le point vocal hebdomadaire ou bimensuel convenu, sauf empêchement signalé à l'avance.",
+    "Je révise ton programme régulièrement pour qu'il continue de correspondre à ton évolution et tes objectifs.",
+    "Tes données personnelles et physiques ne sont jamais partagées sans ton accord.",
+  ],
+};
 
 const C = {
   black: "#0a0a0a", white: "#ffffff", pink: "#E8879C",
@@ -2006,8 +2073,7 @@ const CoachApp = ({ user, onLogout }) => {
     if (authErr) { alert("Erreur : " + authErr.message); setAddingClient(false); return; }
     const userId = authData.user?.id;
     const avatar = newClientForm.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-    await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, streak: 0, today_done: false, user_id: userId });
-    setAddingClient(false); setShowAddClient(false);
+await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, streak: 0, today_done: false, user_id: userId, contract_accepted: false });    setAddingClient(false); setShowAddClient(false);
     setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
     alert(`✅ Compte créé !\n\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
   };
@@ -2539,7 +2605,9 @@ const ClientApp = ({ user, onLogout }) => {
   const [newMeasure, setNewMeasure] = useState({ chest: "", waist: "", hips: "", thighs: "" });
   const [newPhotoNote, setNewPhotoNote] = useState("");
   const [notifEnabled, setNotifEnabled] = useState(typeof Notification !== "undefined" && Notification?.permission === "granted");
-
+const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
+  const [imgConsentFaceAnswer, setImgConsentFaceAnswer] = useState(null);
+  const [savingImgConsent, setSavingImgConsent] = useState(false);
   useEffect(() => {
     supabase.from("clients").select("*").eq("user_id", user.id).single().then(({ data }) => {
       if (data) { setClientInfo(data); setClientId(data.id); }
@@ -2645,7 +2713,12 @@ const ClientApp = ({ user, onLogout }) => {
           <h1 style={{ fontSize: 28, fontWeight: 900, margin: "0 0 6px", letterSpacing: "-1px" }}>{clientInfo.name?.split(" ")[0]} 👋</h1>
           <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
         </div>
-
+{!clientInfo.contract_accepted && (
+          <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.blue }}>📄 Règlement à valider</div><div style={{ fontSize: 12, color: C.textMuted }}>Prends 2 minutes pour lire et accepter le règlement du coaching</div></div>
+            <button onClick={() => setScreen("contrat")} style={{ background: C.blue, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Voir</button>
+          </div>
+        )}
         {!notifEnabled && (
           <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div><div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div><div style={{ fontSize: 12, color: C.textMuted }}>Rappel journal à 20h chaque soir</div></div>
@@ -2746,6 +2819,87 @@ const ClientApp = ({ user, onLogout }) => {
             </div>
           </Card>
           {daysUntil(clientInfo.next_payment) <= 7 && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}><div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div><div style={{ fontSize: 13 }}>Ton prochain paiement de <strong>{clientInfo.monthly_amount} €</strong> est dû le <strong>{formatDate(clientInfo.next_payment)}</strong>.</div></div>}
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 16 }}>📄 RÈGLEMENT DU COACHING</div>
+            {CONTRACT_TEXT.sections.map((section, si) => (
+              <div key={si} style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: C.pink, fontWeight: 700, marginBottom: 8 }}>{section.title}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {section.lines.map((line, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, lineHeight: 1.5 }}><span style={{ color: C.pink, flexShrink: 0 }}>•</span><span>{line}</span></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div>
+              <div style={{ fontSize: 12, color: C.green, fontWeight: 700, marginBottom: 8 }}>LES ENGAGEMENTS DE TON COACH</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {CONTRACT_TEXT.coachLines.map((line, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, lineHeight: 1.5 }}><span style={{ color: C.green, flexShrink: 0 }}>•</span><span>{line}</span></div>
+                ))}
+              </div>
+            </div>
+           {!clientInfo.contract_accepted ? (
+              <Btn onClick={async () => {
+                const { data, error } = await supabase.from("clients").update({ contract_accepted: true, contract_accepted_at: today }).eq("id", clientId).select().single();
+                if (!error && data) setClientInfo(data);
+              }} style={{ marginTop: 16 }}>✅ J'ai lu et j'accepte le règlement</Btn>
+            ) : (
+              <div style={{ marginTop: 16, fontSize: 12, color: C.green, fontWeight: 700 }}>✅ Règlement accepté le {formatDate(clientInfo.contract_accepted_at)}</div>
+            )}
+          </Card>
+
+          {clientInfo.contract_accepted && clientInfo.image_consent === null && (
+            <Card style={{ marginBottom: 14, borderColor: C.blue + "44" }}>
+              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>📸 DROIT À L'IMAGE</div>
+              <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 16, color: C.textMuted }}>
+                J'accepte d'être filmée ou photographiée pendant les séances, toujours dans le respect de mon corps et de manière appropriée, pour illustrer le travail réalisé.
+              </div>
+              <div style={{ fontSize: 12, color: C.pink, fontWeight: 700, marginBottom: 8 }}>Acceptes-tu d'être filmée / photographiée ?</div>
+              <div style={{ display: "flex", gap: 10, marginBottom: imgConsentAnswer === true ? 16 : 0 }}>
+                {[true, false].map(val => (
+                  <button key={String(val)} onClick={() => { setImgConsentAnswer(val); if (!val) setImgConsentFaceAnswer(null); }} style={{ flex: 1, padding: 12, borderRadius: 12, border: `2px solid ${imgConsentAnswer === val ? C.pink : C.border}`, background: imgConsentAnswer === val ? C.pink + "22" : "#111", color: imgConsentAnswer === val ? C.pink : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "✅ Oui" : "❌ Non"}</button>
+                ))}
+              </div>
+              {imgConsentAnswer === true && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: C.pink, fontWeight: 700, marginBottom: 8 }}>Souhaites-tu que ton visage soit caché ?</div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {[true, false].map(val => (
+                      <button key={String(val)} onClick={() => setImgConsentFaceAnswer(val)} style={{ flex: 1, padding: 12, borderRadius: 12, border: `2px solid ${imgConsentFaceAnswer === val ? C.pink : C.border}`, background: imgConsentFaceAnswer === val ? C.pink + "22" : "#111", color: imgConsentFaceAnswer === val ? C.pink : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "🙈 Oui, caché" : "🙂 Non, visible"}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <Btn
+                disabled={imgConsentAnswer === null || (imgConsentAnswer === true && imgConsentFaceAnswer === null) || savingImgConsent}
+                onClick={async () => {
+                  setSavingImgConsent(true);
+                  const { data, error } = await supabase.from("clients").update({
+                    image_consent: imgConsentAnswer,
+                    image_consent_hide_face: imgConsentAnswer ? imgConsentFaceAnswer : null,
+                    image_consent_at: today,
+                  }).eq("id", clientId).select().single();
+                  setSavingImgConsent(false);
+                  if (!error && data) setClientInfo(data);
+                }}
+              >
+                {savingImgConsent ? "Enregistrement..." : "✅ Valider ma réponse"}
+              </Btn>
+            </Card>
+          )}
+
+          {clientInfo.contract_accepted && clientInfo.image_consent !== null && (
+            <Card style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>📸 DROIT À L'IMAGE</div>
+              <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>
+                {clientInfo.image_consent
+                  ? `✅ Tu as accepté d'être filmée${clientInfo.image_consent_hide_face ? " (visage caché)" : " (visage visible)"} — réponse du ${formatDate(clientInfo.image_consent_at)}`
+                  : `❌ Tu as refusé d'être filmée — réponse du ${formatDate(clientInfo.image_consent_at)}`}
+              </div>
+            </Card>
+          )}
+          </Card>
           <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div><PaymentHistory payments={payments} /></Card>
         </div>
       )}
