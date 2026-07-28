@@ -301,19 +301,24 @@ const CatalogPickerModal = ({ onSelect, onClose }) => {
   const startCreate = () => { setCreating(true); setEditingItem(null); setForm(emptyForm); };
   const cancelForm = () => { setCreating(false); setEditingItem(null); setForm(emptyForm); };
 
-  const handleMediaUpload = async e => {
+ const handleMediaUpload = async e => {
     const file = e.target.files[0]; if (!file) return;
     setUploadingMedia(true);
-    const fileName = `exercises/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
-    const { error } = await supabase.storage.from("exercise-media").upload(fileName, file, { contentType: file.type, upsert: true });
-    if (error) {
-      alert("❌ Impossible d'envoyer le fichier : " + error.message);
+    try {
+      const fileName = `exercises/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+      const { error } = await supabase.storage.from("exercise-media").upload(fileName, file, { contentType: file.type, upsert: true });
+      if (error) {
+        alert("❌ Impossible d'envoyer le fichier : " + error.message);
+        return;
+      }
+      const { data: urlData } = supabase.storage.from("exercise-media").getPublicUrl(fileName);
+      setForm(f => ({ ...f, media_url: urlData.publicUrl }));
+    } catch (err) {
+      console.error("Erreur upload média catalogue :", err);
+      alert("❌ Erreur inattendue pendant l'envoi : " + (err?.message || "cause inconnue. Regarde la console pour plus de détails."));
+    } finally {
       setUploadingMedia(false);
-      return;
     }
-    const { data: urlData } = supabase.storage.from("exercise-media").getPublicUrl(fileName);
-    setForm(f => ({ ...f, media_url: urlData.publicUrl }));
-    setUploadingMedia(false);
   };
 
   const handleSave = async () => {
