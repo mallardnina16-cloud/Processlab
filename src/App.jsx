@@ -2716,8 +2716,7 @@ const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
 {!clientInfo.contract_accepted && (
           <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div><div style={{ fontWeight: 700, fontSize: 13, color: C.blue }}>📄 Règlement à valider</div><div style={{ fontSize: 12, color: C.textMuted }}>Prends 2 minutes pour lire et accepter le règlement du coaching</div></div>
-            <button onClick={() => setScreen("contrat")} style={{ background: C.blue, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Voir</button>
-          </div>
+            <button onClick={() => { setScreen("contrat"); window.scrollTo(0, 0); }} style={{ background: C.blue, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Voir</button>          </div>
         )}
         {!notifEnabled && (
           <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
