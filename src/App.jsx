@@ -304,12 +304,15 @@ const CatalogPickerModal = ({ onSelect, onClose }) => {
   const handleMediaUpload = async e => {
     const file = e.target.files[0]; if (!file) return;
     setUploadingMedia(true);
-    const fileName = `catalogue/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+    const fileName = `exercises/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
     const { error } = await supabase.storage.from("exercise-media").upload(fileName, file, { contentType: file.type, upsert: true });
-    if (!error) {
-      const { data: urlData } = supabase.storage.from("exercise-media").getPublicUrl(fileName);
-      setForm(f => ({ ...f, media_url: urlData.publicUrl }));
+    if (error) {
+      alert("❌ Impossible d'envoyer le fichier : " + error.message);
+      setUploadingMedia(false);
+      return;
     }
+    const { data: urlData } = supabase.storage.from("exercise-media").getPublicUrl(fileName);
+    setForm(f => ({ ...f, media_url: urlData.publicUrl }));
     setUploadingMedia(false);
   };
 
