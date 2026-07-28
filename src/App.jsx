@@ -84,22 +84,18 @@ const C = {
 
 const BRAND_NAME = "Nina - Her process";
 
-const Logo = ({ size = 44, variant }) => {
-  const [mode, setMode] = useState(variant || "light");
-  useEffect(() => {
-    if (variant) { setMode(variant); return; }
-    if (typeof window !== "undefined" && window.matchMedia) {
-      const m = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = (e) => setMode(e.matches ? "dark" : "light");
-      try { m.addEventListener("change", handler); } catch { m.addListener(handler); }
-      setMode(m.matches ? "dark" : "light");
-      return () => { try { m.removeEventListener("change", handler); } catch { m.removeListener(handler); } };
-    }
-  }, [variant]);
-  const src = mode === "dark" ? "/logo-dark.svg" : "/logo-light.svg";
+const Logo = ({ size = 44 }) => {
+  const [visible, setVisible] = useState(true);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <img src={src} alt={BRAND_NAME} style={{ width: size, height: size, borderRadius: 8, objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+      {visible && (
+        <img
+          src="/logo.svg"
+          alt={BRAND_NAME}
+          style={{ width: size, height: size, borderRadius: 18, objectFit: "cover" }}
+          onError={() => setVisible(false)}
+        />
+      )}
       <div style={{ lineHeight: 1 }}>
         <div style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif", fontWeight: 900, fontSize: Math.max(18, size * 0.38), color: C.brandDark, letterSpacing: "-0.6px", lineHeight: 0.95 }}>her</div>
         <div style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif", fontWeight: 900, fontSize: Math.max(22, size * 0.5), color: C.brandDark, letterSpacing: "-0.6px", lineHeight: 0.9 }}>process<span style={{ color: C.pink }}>.</span></div>
@@ -108,26 +104,31 @@ const Logo = ({ size = 44, variant }) => {
   );
 };
 
-const Card = ({ children, style = {}, onClick }) => (
-  (() => {
-    const [hover, setHover] = useState(false);
-    const reduced = usePrefersReducedMotion();
-    return (
-      <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{
+const Card = ({ children, style = {}, onClick }) => {
+  const [hover, setHover] = useState(false);
+  const reduced = usePrefersReducedMotion();
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
         background: "linear-gradient(135deg, #141414 0%, #1a1a1a 100%)",
         border: `1px solid ${C.border}`,
         borderRadius: 18,
         padding: 20,
         cursor: onClick ? "pointer" : "default",
         boxShadow: hover && !reduced ? "0 32px 68px rgba(0,0,0,0.36)" : "0 16px 36px rgba(0,0,0,0.22)",
-          transform: hover && !reduced ? "translateY(-8px) scale(1.035)" : "translateY(0) scale(1)",
-          transition: reduced ? "none" : "transform .26s cubic-bezier(.2,.9,.25,1), box-shadow .26s ease, border-color .16s ease",
+        transform: hover && !reduced ? "translateY(-8px) scale(1.035)" : "translateY(0) scale(1)",
+        transition: reduced ? "none" : "transform .26s cubic-bezier(.2,.9,.25,1), box-shadow .26s ease, border-color .16s ease",
         willChange: "transform, box-shadow",
-        ...style
-      }}>{children}</div>
-    );
-  })()
-);
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 const Btn = ({ children, onClick, variant = "primary", disabled, small, style = {} }) => {
   const [hover, setHover] = useState(false);
