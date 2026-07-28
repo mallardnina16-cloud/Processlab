@@ -301,10 +301,13 @@ const CatalogPickerModal = ({ onSelect, onClose }) => {
   const startCreate = () => { setCreating(true); setEditingItem(null); setForm(emptyForm); };
   const cancelForm = () => { setCreating(false); setEditingItem(null); setForm(emptyForm); };
 
- const handleMediaUpload = async e => {
+  const handleMediaUpload = async e => {
     const file = e.target.files[0]; if (!file) return;
     setUploadingMedia(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log("DEBUG session:", sessionData.session);
+      alert("DEBUG — Email: " + (sessionData.session?.user?.email || "AUCUN") + " | Rôle: " + (sessionData.session?.user?.role || "AUCUN") + " | Token présent: " + (sessionData.session?.access_token ? "OUI" : "NON"));
       const fileName = `exercises/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
       const { error } = await supabase.storage.from("exercise-media").upload(fileName, file, { contentType: file.type, upsert: true });
       if (error) {
