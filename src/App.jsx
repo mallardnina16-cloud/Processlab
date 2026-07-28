@@ -506,6 +506,16 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
             <option value="poids du corps">poids du corps</option>
             <option value="élastique">élastique</option>
             <option value="machine">machine (kg)</option>
+            <option value="kettlebell">kettlebell</option>
+            <option value="medicine ball">medicine ball</option>
+            <option value="slam ball">slam ball</option>
+            <option value="ballon (swiss ball)">ballon (swiss ball)</option>
+            <option value="TRX / sangles">TRX / sangles</option>
+            <option value="corde ondulatoire">corde ondulatoire</option>
+            <option value="corde à sauter">corde à sauter</option>
+            <option value="box / step">box / step</option>
+            <option value="tapis">tapis</option>
+            <option value="banc">banc</option>
           </select>
         </div>
       </div>
@@ -2031,7 +2041,7 @@ const CoachApp = ({ user, onLogout }) => {
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* SIDEBAR NAV */}
         <div style={{ width: 220, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", overflowY: "auto", flexShrink: 0 }}>
-         {[["dashboard", "🏠", "Dashboard"], ["workouts", "💪", "Séances"], ["comptabilite", "💶", "Comptabilité"], ["admin", "🔐", "Admin"]].map(([k, icon, label]) => (
+         {[["dashboard", "🏠", "Dashboard"], ["workouts", "💪", "Séances"], ["mediatheque", "📚", "Médiathèque"], ["comptabilite", "💶", "Comptabilité"], ["admin", "🔐", "Admin"]].map(([k, icon, label]) => (
             <button key={k} onClick={() => { setMainTab(k); setSelected(null); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", background: mainTab === k && !selected ? C.pink + "15" : "transparent", borderLeft: `3px solid ${mainTab === k && !selected ? C.pink : "transparent"}`, border: "none", color: mainTab === k && !selected ? C.white : C.textMuted, cursor: "pointer", fontWeight: mainTab === k && !selected ? 700 : 400, fontSize: 14, textAlign: "left" }}>{icon} {label}</button>
           ))}
           <div style={{ padding: "10px 16px 6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2155,6 +2165,10 @@ const CoachApp = ({ user, onLogout }) => {
                 </>
               )}
            </div>
+          )}
+
+          {mainTab === "mediatheque" && !selected && (
+            <CatalogPickerModal onClose={() => setMainTab("dashboard")} onSelect={() => {}} />
           )}
 
           {mainTab === "comptabilite" && !selected && (() => {
