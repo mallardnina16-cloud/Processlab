@@ -2905,7 +2905,7 @@ const ClientApp = ({ user, onLogout }) => {
   const pendingClientTasks = [];
   if (!todayEntry) pendingClientTasks.push({ title: "Compléter ton journal", subtitle: "Un petit check-in vaut souvent mieux que rien", icon: "📝", onClick: () => setScreen("journal"), accent: C.orange });
   if (todayWorkout) pendingClientTasks.push({ title: "Ta séance du jour", subtitle: "Prêt à démarrer ?", icon: "💪", onClick: () => setPreviewWorkout(todayWorkout), accent: C.pink });
-  if (!clientInfo.contract_accepted) pendingClientTasks.push({ title: "Valider ton contrat", subtitle: "Relis les règles et engage-toi", icon: "📄", onClick: () => setScreen("contrat"), accent: C.blue });
+  if (!clientInfo?.contract_accepted) pendingClientTasks.push({ title: "Valider ton contrat", subtitle: "Relis les règles et engage-toi", icon: "📄", onClick: () => setScreen("contrat"), accent: C.blue });
   const lastWeight = weights[weights.length - 1];
   const startWeight = weights[0];
 
