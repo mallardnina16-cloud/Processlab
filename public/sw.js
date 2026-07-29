@@ -3,15 +3,15 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: "process lab.", body: event.data ? event.data.text() : "" };
+    data = { title: "her process.", body: event.data ? event.data.text() : "" };
   }
 
-  const title = data.title || "process lab. 📋";
+  const title = data.title || "her process. 📋";
   const options = {
     body: data.body || "N'oublie pas de remplir ton journal du jour !",
-    icon: "/icon.png",
-    badge: "/icon.png",
-    tag: "process-lab-reminder",
+    icon: "/logo.png",
+    badge: "/logo.png",
+    tag: "her-process-reminder",
     renotify: true,
     data: { url: data.url || "/" },
   };

@@ -84,22 +84,13 @@ const C = {
 
 const BRAND_NAME = "Nina - Her process";
 
-const Logo = ({ size = 44, variant }) => {
-  const [mode, setMode] = useState(variant || "light");
-  useEffect(() => {
-    if (variant) { setMode(variant); return; }
-    if (typeof window !== "undefined" && window.matchMedia) {
-      const m = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = (e) => setMode(e.matches ? "dark" : "light");
-      try { m.addEventListener("change", handler); } catch { m.addListener(handler); }
-      setMode(m.matches ? "dark" : "light");
-      return () => { try { m.removeEventListener("change", handler); } catch { m.removeListener(handler); } };
-    }
-  }, [variant]);
-  const src = mode === "dark" ? "/logo-dark.svg" : "/logo-light.svg";
+const Logo = ({ size = 44 }) => {
+  const [visible, setVisible] = useState(true);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <img src={src} alt={BRAND_NAME} style={{ width: size, height: size, borderRadius: 8, objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+      {visible && (
+        <img src="/logo.png" alt={BRAND_NAME} style={{ width: size, height: size, borderRadius: 8, objectFit: "cover" }} onError={() => setVisible(false)} />
+      )}
       <div style={{ lineHeight: 1 }}>
         <div style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif", fontWeight: 900, fontSize: Math.max(18, size * 0.38), color: C.brandDark, letterSpacing: "-0.6px", lineHeight: 0.95 }}>her</div>
         <div style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif", fontWeight: 900, fontSize: Math.max(22, size * 0.5), color: C.brandDark, letterSpacing: "-0.6px", lineHeight: 0.9 }}>process<span style={{ color: C.pink }}>.</span></div>
@@ -108,8 +99,7 @@ const Logo = ({ size = 44, variant }) => {
   );
 };
 
-const Card = ({ children, style = {}, onClick }) => (
-  (() => {
+const Card = ({ children, style = {}, onClick }) => {
     const [hover, setHover] = useState(false);
     const reduced = usePrefersReducedMotion();
     return (
@@ -126,8 +116,7 @@ const Card = ({ children, style = {}, onClick }) => (
         ...style
       }}>{children}</div>
     );
-  })()
-);
+};
 
 const Btn = ({ children, onClick, variant = "primary", disabled, small, style = {} }) => {
   const [hover, setHover] = useState(false);
@@ -2249,6 +2238,8 @@ const CoachApp = ({ user, onLogout }) => {
 
   const client = clients.find(c => c.id === selected);
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
+  // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
+  const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
   // Exclure les clientes en pause des alertes paiement
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5 && !c.is_paused; });
   const pendingJournalClients = clients.filter(c => !c.is_paused && !isDoneToday(c.id));
@@ -2256,9 +2247,6 @@ const CoachApp = ({ user, onLogout }) => {
   const sortByName = (a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" });
   const activeWorkoutsList = workouts.filter(w => !w.is_archived).sort(sortByName);
   const archivedWorkoutsList = workouts.filter(w => w.is_archived).sort(sortByName);
-
-  // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
-  const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
 
   // Chargement des entrées du jour + abonnement temps réel
   useEffect(() => {
