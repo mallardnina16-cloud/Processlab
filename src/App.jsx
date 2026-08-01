@@ -507,6 +507,42 @@ const EXERCISE_CATALOGUE = {
     { nom: "TRX row (tirage en suspension)", positionnement: "Sangles tenues à bout de bras, corps incliné en arrière, talons ancrés au sol, corps gainé et aligné.", execution: "Tirer le buste vers les mains en rapprochant les omoplates, coudes proches du corps, puis revenir en contrôlant l'extension des bras.", respiration: "Expiration au tirage, inspiration au retour.", vigilance: "Garder le corps aligné comme une planche du début à la fin du mouvement, sans casser au niveau des hanches." },
     { nom: "Step-up", positionnement: "Debout face à un banc ou une box, pied posé à plat dessus.", execution: "Pousser dans le pied posé sur le support pour monter tout le corps, jusqu'à extension complète de la jambe, puis redescendre en contrôlant.", respiration: "Expiration en montée, inspiration en descente.", vigilance: "Éviter de prendre appui sur le pied au sol pour s'aider à monter ; le genou de la jambe motrice reste aligné avec le pied." },
   ],
+  "Échauffement & Mobilité": [
+    { nom: "Vélo / rameur échauffement", positionnement: "Assise sur le vélo ou le rameur, réglages ajustés, allure légère à modérée.", execution: "Pédaler ou ramer à intensité progressive pendant 3 à 5 minutes pour élever la fréquence cardiaque et la température corporelle avant la séance.", respiration: "Respiration ample et régulière, sans essoufflement excessif.", vigilance: "L'objectif est de préparer le corps, pas de fatiguer ; garder une intensité modérée." },
+    { nom: "Rotations articulaires (chevilles, hanches, épaules)", positionnement: "Debout, appui stable, mobiliser chaque articulation une à une (chevilles, genoux, hanches, épaules, poignets).", execution: "Effectuer des cercles lents et contrôlés dans un sens puis dans l'autre pour chaque articulation, 8 à 10 répétitions par sens.", respiration: "Respiration libre et régulière tout au long du mouvement.", vigilance: "Rester dans une amplitude confortable, sans forcer sur une articulation raide ou douloureuse." },
+    { nom: "Mobilité hanches 90/90", positionnement: "Assise au sol, une jambe pliée devant à 90°, l'autre pliée sur le côté à 90°.", execution: "Faire pivoter les deux genoux d'un côté à l'autre en gardant le buste droit, en contrôlant le mouvement des hanches.", respiration: "Expiration pendant la rotation, inspiration au retour.", vigilance: "Mouvement lent et contrôlé ; s'arrêter si tension ou douleur dans la hanche ou le genou." },
+    { nom: "Cercles de hanches (leg swings)", positionnement: "Debout, appui sur un mur ou une chaise avec une main, jambe libre légèrement tendue.", execution: "Balancer la jambe libre d'avant en arrière puis d'un côté à l'autre, amplitude progressive, sans à-coups.", respiration: "Respiration régulière, sans blocage.", vigilance: "Garder le bassin stable, ne pas chercher l'amplitude maximale dès les premières répétitions." },
+    { nom: "Mobilité épaules (cercles de bras)", positionnement: "Debout, bras tendus sur les côtés à hauteur d'épaule.", execution: "Effectuer des petits cercles avec les bras, en augmentant progressivement l'amplitude, dans un sens puis dans l'autre.", respiration: "Respiration libre et continue.", vigilance: "Garder les épaules basses, loin des oreilles, pour éviter de solliciter le trapèze plutôt que l'épaule." },
+    { nom: "Cat-cow (mobilité colonne vertébrale)", positionnement: "À quatre pattes, mains sous les épaules, genoux sous les hanches.", execution: "Alterner entre creuser le dos (regard vers le haut, bassin basculé) et arrondir le dos (menton vers la poitrine, bassin rétroversé), mouvement fluide et continu.", respiration: "Inspiration en creusant le dos, expiration en l'arrondissant.", vigilance: "Mouvement lent, synchronisé avec la respiration ; éviter les à-coups dans le bas du dos." },
+    { nom: "Squat à vide échauffement", positionnement: "Pieds largeur épaules, bras tendus devant pour l'équilibre.", execution: "Descendre en squat sur une amplitude confortable, remonter, répéter à rythme lent et contrôlé pour préparer hanches, genoux et chevilles.", respiration: "Inspiration en descente, expiration en remontée.", vigilance: "Amplitude progressive, sans forcer sur une raideur ; garder les talons au sol." },
+    { nom: "Fentes marchées dynamiques", positionnement: "Debout, espace dégagé devant soi.", execution: "Avancer en fentes alternées sur quelques mètres, buste droit, en insistant sur l'amplitude et la fluidité plutôt que sur la charge.", respiration: "Respiration régulière au rythme des pas.", vigilance: "Contrôler la descente du genou arrière, ne pas viser la vitesse mais la qualité du mouvement." },
+    { nom: "Gainage dynamique échauffement", positionnement: "Position de planche haute ou basse.", execution: "Alterner de courtes périodes de gainage statique (15-20 sec) avec de légers mouvements (touches d'épaule, translations) pour activer la sangle abdominale.", respiration: "Respiration régulière, gainage actif sans bloquer la respiration.", vigilance: "Garder le bassin aligné, ne pas laisser les hanches s'affaisser ou remonter." },
+    { nom: "Étirement ischio-jambiers (debout)", positionnement: "Debout, un pied légèrement devant l'autre, jambe avant tendue, talon au sol.", execution: "Pencher le buste vers l'avant depuis les hanches, dos plat, jusqu'à ressentir un étirement à l'arrière de la cuisse, maintenir 20-30 secondes.", respiration: "Respiration lente et profonde, expirer pour approfondir légèrement l'étirement.", vigilance: "Ne pas arrondir excessivement le dos ; s'arrêter à la sensation de tension, jamais de douleur vive." },
+    { nom: "Étirement quadriceps (debout)", positionnement: "Debout en équilibre, éventuellement appui sur un mur, attraper la cheville d'une jambe derrière soi.", execution: "Amener le talon vers la fesse en gardant les genoux alignés et le bassin gainé, maintenir 20-30 secondes de chaque côté.", respiration: "Respiration lente et régulière tout au long de l'étirement.", vigilance: "Garder le genou pointé vers le sol, ne pas cambrer excessivement le bas du dos." },
+    { nom: "Étirement fessiers (figure 4)", positionnement: "Allongée sur le dos, une cheville posée sur le genou opposé, formant un chiffre 4.", execution: "Attraper l'arrière de la cuisse de la jambe au sol et tirer doucement vers la poitrine jusqu'à sentir l'étirement dans le fessier de la jambe croisée, maintenir 20-30 secondes.", respiration: "Respiration profonde et régulière, expirer pour relâcher davantage.", vigilance: "Garder le bas du dos au sol, ne pas forcer si tension dans le genou." },
+    { nom: "Étirement mollets", positionnement: "Debout face à un mur, mains en appui, une jambe reculée tendue, talon au sol.", execution: "Pousser légèrement les hanches vers le mur en gardant le talon arrière ancré au sol jusqu'à sentir l'étirement du mollet, maintenir 20-30 secondes de chaque côté.", respiration: "Respiration lente et régulière.", vigilance: "Garder le pied arrière pointé droit devant, ne pas laisser la cheville rouler vers l'intérieur." },
+    { nom: "Étirement fléchisseurs de hanche (psoas)", positionnement: "Position de fente basse, genou arrière au sol, bassin gainé.", execution: "Pousser légèrement le bassin vers l'avant tout en gardant le buste droit, jusqu'à sentir l'étirement à l'avant de la hanche arrière, maintenir 20-30 secondes de chaque côté.", respiration: "Respiration profonde, expirer pour approfondir doucement.", vigilance: "Ne pas cambrer le bas du dos pour aller plus loin ; le bassin doit rester gainé." },
+    { nom: "Étirement pectoraux (à la porte)", positionnement: "Avant-bras posé contre un cadre de porte ou un mur, coude à hauteur d'épaule.", execution: "Pivoter doucement le buste dans la direction opposée jusqu'à sentir l'étirement à l'avant de l'épaule et de la poitrine, maintenir 20-30 secondes de chaque côté.", respiration: "Respiration lente et régulière.", vigilance: "Ne pas forcer si sensation à l'articulation de l'épaule plutôt qu'un étirement musculaire." },
+    { nom: "Étirement dorsaux (enfant / child's pose)", positionnement: "À genoux, fesses vers les talons, bras tendus loin devant, front proche du sol.", execution: "Relâcher le poids du buste vers l'avant en allongeant la colonne, maintenir la position 30 secondes en respirant profondément.", respiration: "Respiration profonde et lente, le dos s'ouvre à chaque expiration.", vigilance: "Position de récupération douce, aucune contrainte ; adapter l'écart des genoux selon le confort." },
+  ],
+  "Machines guidées (salle de sport)": [
+    { nom: "Presse à cuisses (leg press) machine", positionnement: "Assise, dos et bassin bien calés contre le dossier, pieds largeur bassin sur le plateau, genoux alignés avec les pieds.", execution: "Fléchir les genoux pour amener le plateau vers soi jusqu'à un angle d'environ 90°, puis pousser pour revenir en extension sans verrouiller complètement les genoux.", respiration: "Inspiration en descente, expiration en poussée.", vigilance: "Ne jamais décoller le bas du dos du dossier ; éviter de verrouiller brutalement les genoux en fin de poussée." },
+    { nom: "Hack squat (machine guidée)", positionnement: "Dos et épaules calés contre le support incliné, pieds à plat sur la plateforme, largeur bassin.", execution: "Fléchir les genoux pour descendre jusqu'à un angle confortable, puis pousser dans les pieds pour remonter en extension contrôlée.", respiration: "Inspiration en descente, expiration en poussée.", vigilance: "Garder le dos et les épaules plaqués contre le support tout au long du mouvement ; ne pas décoller les talons." },
+    { nom: "Presse à épaules guidée (shoulder press machine)", positionnement: "Assise, dos calé au dossier, poignées saisies au niveau des épaules, pieds à plat au sol.", execution: "Pousser les poignées vers le haut jusqu'à extension quasi complète des bras, puis redescendre en contrôlant jusqu'au niveau de départ.", respiration: "Inspiration en descente, expiration en poussée.", vigilance: "Garder le dos plaqué au dossier, éviter de cambrer pour aider la poussée." },
+    { nom: "Tirage poitrine assis (chest press machine)", positionnement: "Assise, dos calé au dossier, poignées saisies au niveau de la poitrine, coudes alignés avec les épaules.", execution: "Pousser les poignées vers l'avant jusqu'à extension quasi complète des bras, puis revenir en contrôlant l'étirement de la poitrine.", respiration: "Inspiration en retour, expiration en poussée.", vigilance: "Garder les omoplates légèrement rétractées et le dos au dossier tout au long du mouvement." },
+    { nom: "Pec deck / butterfly (machine)", positionnement: "Assise, dos calé au dossier, avant-bras ou mains posés sur les leviers, coudes à hauteur d'épaule.", execution: "Rapprocher les leviers l'un de l'autre devant la poitrine en contractant les pectoraux, puis revenir en contrôlant l'étirement.", respiration: "Expiration à la fermeture, inspiration au retour.", vigilance: "Mouvement contrôlé sans à-coups ; éviter d'aller au-delà d'une amplitude confortable pour l'épaule." },
+    { nom: "Tirage vertical poulie haute (lat pulldown machine)", positionnement: "Assise, cuisses bloquées sous les rouleaux, prise large ou moyenne selon l'objectif, buste légèrement en arrière.", execution: "Tirer la barre vers le haut de la poitrine en engageant les dorsaux, coudes qui descendent vers les hanches, remonter en contrôlant l'étirement.", respiration: "Expiration pendant le tirage, inspiration à la remontée.", vigilance: "Éviter de tirer la barre derrière la nuque ; ne pas utiliser un balancement excessif du buste pour générer l'élan." },
+    { nom: "Tirage horizontal assis (seated row machine)", positionnement: "Assise, poitrine calée contre le support si présent, pieds calés, poignée saisie à bout de bras.", execution: "Tirer la poignée vers l'abdomen en rapprochant les omoplates, coudes proches du corps, revenir en contrôlant l'étirement.", respiration: "Expiration pendant le tirage, inspiration au retour.", vigilance: "Éviter de se pencher en arrière pour tricher le mouvement ; garder le buste stable." },
+    { nom: "Tractions / dips assistés (machine)", positionnement: "Genoux ou pieds posés sur la plateforme d'assistance, mains en prise pour tractions ou appuis pour dips.", execution: "Réaliser le mouvement de traction ou de dips avec l'assistance de la machine qui allège une partie du poids du corps, en contrôlant chaque répétition.", respiration: "Expiration à l'effort (montée pour tractions, poussée pour dips), inspiration au retour.", vigilance: "Réduire progressivement l'assistance au fil des séances ; garder un mouvement complet et contrôlé plutôt que rapide." },
+    { nom: "Leg curl allongé (machine)", positionnement: "Allongée sur le ventre, coussin positionné juste au-dessus des talons, genoux alignés avec l'axe de la machine.", execution: "Fléchir les genoux pour amener les talons vers les fessiers, contracter en fin de mouvement, puis revenir en contrôlant la phase excentrique.", respiration: "Expiration en flexion, inspiration au retour.", vigilance: "Éviter de décoller les hanches du support pour tricher l'amplitude ; contrôler particulièrement la descente." },
+    { nom: "Leg extension (machine)", positionnement: "Assise, dos calé au dossier, coussin positionné sur le bas des tibias, genoux alignés avec l'axe de rotation de la machine.", execution: "Étendre les genoux jusqu'à extension complète, contracter les quadriceps, puis revenir en contrôlant la descente.", respiration: "Expiration en extension, inspiration au retour.", vigilance: "Ne pas verrouiller violemment les genoux en fin de mouvement ; contrôler la vitesse de descente pour protéger l'articulation." },
+    { nom: "Adducteurs (machine)", positionnement: "Assise, dos calé au dossier, coussins latéraux positionnés contre l'intérieur des cuisses, jambes écartées.", execution: "Rapprocher les jambes l'une de l'autre en contractant les adducteurs, puis revenir en contrôlant l'écartement.", respiration: "Expiration à la fermeture, inspiration au retour.", vigilance: "Mouvement lent et contrôlé, sans à-coups ; ajuster l'amplitude de départ selon la souplesse." },
+    { nom: "Abducteurs (machine)", positionnement: "Assise, dos calé au dossier, coussins latéraux positionnés contre l'extérieur des cuisses, jambes rapprochées.", execution: "Écarter les jambes contre la résistance en contractant les fessiers moyens, puis revenir en contrôlant le retour.", respiration: "Expiration à l'écartement, inspiration au retour.", vigilance: "Garder le dos plaqué au dossier, éviter de se pencher pour aider le mouvement." },
+    { nom: "Presse à mollets (calf press machine)", positionnement: "Assise ou sur presse à cuisses, avant des pieds posés sur la plateforme, talons dans le vide.", execution: "Pousser sur l'avant des pieds pour étendre les chevilles au maximum, puis redescendre en contrôlant jusqu'à un étirement complet du mollet.", respiration: "Expiration en poussée, inspiration en descente.", vigilance: "Amplitude complète recherchée ; éviter les rebonds rapides qui réduisent le travail musculaire." },
+    { nom: "Rowing convergent assis (machine)", positionnement: "Assise, poitrine calée, poignées convergentes saisies devant soi.", execution: "Tirer les poignées vers l'arrière en rapprochant les omoplates, coudes proches du corps, puis revenir en contrôlant l'étirement.", respiration: "Expiration au tirage, inspiration au retour.", vigilance: "Garder la poitrine en contact avec le support tout au long du mouvement pour isoler le dos." },
+    { nom: "Multipresse / smith machine — squat guidé", positionnement: "Barre guidée posée sur le haut du trapèze, pieds légèrement en avant de la barre, largeur épaules.", execution: "Descendre en squat en gardant le buste droit, la trajectoire étant guidée par la machine, puis pousser pour remonter en extension.", respiration: "Inspiration en descente, expiration en remontée.", vigilance: "Ajuster la position des pieds pour garder les genoux alignés avec les orteils malgré la trajectoire fixe de la barre." },
+    { nom: "Abdominaux à la machine (crunch machine)", positionnement: "Assise, dos calé, mains ou avant-bras positionnés sur les leviers, coudes proches des poignées de résistance.", execution: "Enrouler le buste vers l'avant en contractant les abdominaux, puis revenir en contrôlant l'étirement sans à-coups.", respiration: "Expiration en enroulement, inspiration au retour.", vigilance: "Le mouvement vient de la contraction abdominale, pas de la poussée des bras sur les leviers." },
+  ],
 };
 
 // Construit le texte de consigne formaté à partir d'une fiche du catalogue
@@ -545,12 +581,33 @@ const formatCatalogNote = (item) =>
 // CATALOGUE PICKER — modal de sélection d'un exercice depuis le référentiel
 // ══════════════════════════════════════════════════════════════════════════════
 const CatalogPickerModal = ({ onSelect, onClose }) => {
-  const { grouped, loading, addItem, updateItem, deleteItem } = useExercisesCatalogue();
+  const { items, grouped, loading, addItem, updateItem, deleteItem, refetch } = useExercisesCatalogue();
   const [search, setSearch] = useState("");
   const [openCat, setOpenCat] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const q = search.trim().toLowerCase();
+
+  const handleImportSeed = async () => {
+    const existingNames = new Set(items.map(i => i.nom.trim().toLowerCase()));
+    const toInsert = [];
+    Object.entries(EXERCISE_CATALOGUE).forEach(([categorie, list]) => {
+      list.forEach(item => {
+        if (!existingNames.has(item.nom.trim().toLowerCase())) {
+          toInsert.push({ ...item, categorie, media_url: "", is_builtin: true });
+        }
+      });
+    });
+    if (toInsert.length === 0) { alert("Tous les exercices prédéfinis sont déjà dans ton catalogue."); return; }
+    if (!window.confirm(`Ajouter ${toInsert.length} exercices prédéfinis (échauffement, mobilité, machines guidées...) à ton catalogue ?`)) return;
+    setImporting(true);
+    const { error } = await supabase.from("exercises_catalogue").insert(toInsert);
+    setImporting(false);
+    if (error) { alert("❌ Erreur lors de l'import : " + error.message); return; }
+    await refetch();
+    alert(`✅ ${toInsert.length} exercices ajoutés à ton catalogue !`);
+  };
 
   const emptyForm = { nom: "", categorie: "Mes exercices", positionnement: "", execution: "", respiration: "", vigilance: "", media_url: "" };
   const [form, setForm] = useState(emptyForm);
@@ -649,10 +706,13 @@ const handleMediaUpload = async e => {
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>📋 Catalogue d'exercices</h3>
           <button onClick={onClose} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 20 }}>✕</button>
         </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
           <input type="text" placeholder="Rechercher un exercice..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputSt, flex: 1 }} autoFocus />
           <button onClick={startCreate} style={{ background: C.pink, border: "none", borderRadius: 10, padding: "0 16px", color: C.black, fontWeight: 800, fontSize: 20, cursor: "pointer", flexShrink: 0 }}>+</button>
         </div>
+        <button onClick={handleImportSeed} disabled={importing || loading} style={{ width: "100%", background: C.blue + "18", border: `1px solid ${C.blue}44`, color: C.blue, borderRadius: 10, padding: "9px 12px", fontSize: 12, fontWeight: 700, cursor: importing ? "not-allowed" : "pointer", marginBottom: 14, opacity: importing ? 0.6 : 1 }}>
+          {importing ? "Import en cours..." : "📥 Importer les exercices prédéfinis (échauffement, mobilité, machines...)"}
+        </button>
         {loading ? <Spinner /> : (
           <div style={{ overflowY: "auto", flex: 1 }}>
             {Object.entries(grouped).map(([cat, list]) => {
@@ -713,8 +773,8 @@ const CatalogPickerButton = ({ onApply }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT BUILDER
 // ══════════════════════════════════════════════════════════════════════════════
-const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
-const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", work_time: 30, rest_time: 30, tempo: "", note: "", suggested_weight: "", weight_type: "haltères" }] });
+const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", mode: "reps", duration: 30, rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
+const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", mode: "reps", duration: 30, work_time: 30, rest_time: 30, tempo: "", note: "", suggested_weight: "", weight_type: "haltères" }] });
 const newWarmup = () => ({ id: Date.now().toString(), type: "warmup", exercises: [{ id: Date.now().toString() + "w", name: "", reps: "", note: "", photo: null }] });
 
 const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode = false }) => {
@@ -755,15 +815,30 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
 <CatalogPickerButton onApply={(name, note, media_url) => onChange({ ...ex, name, note, photo: media_url || ex.photo })} />
         <button onClick={onDelete} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 36, height: 42, color: C.red, cursor: "pointer", flexShrink: 0 }}>✕</button>
       </div>
+      {!intervalMode && (
+        <div style={{ display: "flex", gap: 8 }}>
+          {[["reps", "🔢 Reps"], ["time", "⏱️ Temps (chrono)"]].map(([val, label]) => (
+            <button key={val} type="button" onClick={() => onChange({ ...ex, mode: val })} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${(ex.mode || "reps") === val ? C.pink : C.border}`, background: (ex.mode || "reps") === val ? C.pink + "22" : "#111", color: (ex.mode || "reps") === val ? C.pink : C.textMuted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{label}</button>
+          ))}
+        </div>
+      )}
       {showSets && !intervalMode && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
           <Inp label="Séries" type="number" min="1" value={ex.sets || 3} onChange={e => onChange({ ...ex, sets: parseInt(e.target.value) || 1 })} />
-          <Inp label="Reps / Durée" placeholder="12 ou 45s" value={ex.reps || ""} onChange={e => onChange({ ...ex, reps: e.target.value })} />
+          {(ex.mode || "reps") === "time" ? (
+            <Inp label="Durée (sec)" type="number" min="1" value={ex.duration || 30} onChange={e => onChange({ ...ex, duration: parseInt(e.target.value) || 0 })} />
+          ) : (
+            <Inp label="Reps" placeholder="ex: 12" value={ex.reps || ""} onChange={e => onChange({ ...ex, reps: e.target.value })} />
+          )}
           <Inp label="Repos (sec)" type="number" value={ex.rest || 60} onChange={e => onChange({ ...ex, rest: parseInt(e.target.value) || 0 })} />
         </div>
       )}
       {!showSets && !intervalMode && (
-        <Inp label="Reps" placeholder="ex: 12 ou 30 sec" value={ex.reps || ""} onChange={e => onChange({ ...ex, reps: e.target.value })} />
+        (ex.mode || "reps") === "time" ? (
+          <Inp label="Durée (sec)" type="number" min="1" value={ex.duration || 30} onChange={e => onChange({ ...ex, duration: parseInt(e.target.value) || 0 })} />
+        ) : (
+          <Inp label="Reps" placeholder="ex: 12" value={ex.reps || ""} onChange={e => onChange({ ...ex, reps: e.target.value })} />
+        )
       )}
       {intervalMode && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -841,7 +916,7 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
     const arr = [...blocks]; [arr[i], arr[i + dir]] = [arr[i + dir], arr[i]]; setBlocks(arr);
   };
   const updCircuitEx = (cid, eid, patch) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.map(e => e.id === eid ? { ...e, ...patch } : e) } : x));
-  const addCircuitEx = cid => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "12", work_time: 30, rest_time: 30, note: "", suggested_weight: "", weight_type: "haltères" }] } : x));
+  const addCircuitEx = cid => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "12", mode: "reps", duration: 30, work_time: 30, rest_time: 30, note: "", suggested_weight: "", weight_type: "haltères" }] } : x));
   const delCircuitEx = (cid, eid) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.filter(e => e.id !== eid) } : x));
   const addWarmupEx = wid => setBlocks(b => b.map(x => x.id === wid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "", note: "", photo: null }] } : x));
   const delWarmupEx = (wid, eid) => setBlocks(b => b.map(x => x.id === wid ? { ...x, exercises: x.exercises.filter(e => e.id !== eid) } : x));
@@ -1040,6 +1115,8 @@ const estimateBlockDuration = (block) => {
     (block.exercises || []).forEach(ex => {
       if (block.interval_mode) {
         perRound += (parseInt(ex.work_time, 10) || 30) + (parseInt(ex.rest_time, 10) || 30);
+      } else if ((ex.mode || "reps") === "time") {
+        perRound += parseInt(ex.duration, 10) || 30;
       } else {
         perRound += 45; // estimation par exercice en reps (pas de timer)
       }
@@ -1049,7 +1126,7 @@ const estimateBlockDuration = (block) => {
   // exercise simple
   const sets = block.sets || 3;
   const rest = block.rest || 60;
-  const workPerSet = 40;
+  const workPerSet = (block.mode || "reps") === "time" ? (parseInt(block.duration, 10) || 30) : 40;
   return sets * workPerSet + Math.max(0, sets - 1) * rest;
 };
 
@@ -1086,7 +1163,7 @@ const getWorkoutSummary = (workout) => {
         exercises: (b.exercises || []).map(e => e.name),
       };
     }
-    return { type: "exercise", label: "💪 Exercice seul", name: b.name, sets: b.sets, reps: b.reps };
+    return { type: "exercise", label: "💪 Exercice seul", name: b.name, sets: b.sets, reps: (b.mode || "reps") === "time" ? `${b.duration || 30}s` : b.reps };
   });
 
   return {
@@ -1452,7 +1529,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
-              {[{ l: "SÉRIES", v: `${simpleSets}/${currentBlock.sets}`, c: C.pink }, { l: "REPS", v: currentBlock.reps, c: C.white }, { l: "REPOS", v: `${currentBlock.rest}s`, c: C.orange }].map(s => (
+              {[{ l: "SÉRIES", v: `${simpleSets}/${currentBlock.sets}`, c: C.pink }, (currentBlock.mode || "reps") === "time" ? { l: "DURÉE", v: `${currentBlock.duration || 30}s`, c: C.white } : { l: "REPS", v: currentBlock.reps, c: C.white }, { l: "REPOS", v: `${currentBlock.rest}s`, c: C.orange }].map(s => (
                 <div key={s.l} style={{ background: "#111", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
                   <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: s.c }}>{s.v}</div>
@@ -1465,7 +1542,11 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
                 <div key={i} style={{ width: 36, height: 36, borderRadius: "50%", background: i < simpleSets ? C.green : i === simpleSets ? C.pink + "22" : "#111", border: `2px solid ${i < simpleSets ? C.green : i === simpleSets ? C.pink : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: i < simpleSets ? C.black : i === simpleSets ? C.pink : C.textMuted }}>{i < simpleSets ? "✓" : i + 1}</div>
               ))}
             </div>
-            {!resting && <Btn onClick={completeSimpleSet} style={{ fontSize: 17 }}>✅ Série {simpleSets + 1} terminée !</Btn>}
+            {!resting && ((currentBlock.mode || "reps") === "time" ? (
+              <Btn onClick={() => startTimer(currentBlock.duration || 30, "⚡ TRAVAIL", completeSimpleSet)} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Lancer le chrono ({currentBlock.duration || 30}s) — Série {simpleSets + 1}</Btn>
+            ) : (
+              <Btn onClick={completeSimpleSet} style={{ fontSize: 17 }}>✅ Série {simpleSets + 1} terminée !</Btn>
+            ))}
           </div>
         )}
       </div>
@@ -1500,9 +1581,17 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
               </div>
             ) : (
               <div>
-                <div style={{ background: "#111", borderRadius: 12, padding: "14px", textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>REPS</div><div style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{circuitEx.reps}</div></div>
+                {(circuitEx.mode || "reps") === "time" ? (
+                  <div style={{ background: "#111", borderRadius: 12, padding: "14px", textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>DURÉE</div><div style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{circuitEx.duration || 30}s</div></div>
+                ) : (
+                  <div style={{ background: "#111", borderRadius: 12, padding: "14px", textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>REPS</div><div style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{circuitEx.reps}</div></div>
+                )}
                 {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, whiteSpace: "pre-line" }}>💡 {circuitEx.note}</div>}
-                <Btn onClick={advanceCircuit} style={{ fontSize: 17, background: C.purple, color: C.white }}>✅ Exo suivant →</Btn>
+                {(circuitEx.mode || "reps") === "time" ? (
+                  <Btn onClick={() => startTimer(circuitEx.duration || 30, "⚡ TRAVAIL", advanceCircuit)} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Lancer le chrono ({circuitEx.duration || 30}s)</Btn>
+                ) : (
+                  <Btn onClick={advanceCircuit} style={{ fontSize: 17, background: C.purple, color: C.white }}>✅ Exo suivant →</Btn>
+                )}
               </div>
             )}
             <div style={{ display: "flex", gap: 6, marginTop: 20 }}>
@@ -1530,7 +1619,7 @@ const useClients = () => {
     } else {
       setLoading(true);
     }
-    const { data } = await supabase.from("clients").select("id, name, avatar, goal, start_date, next_payment, sessions_per_week, monthly_amount, streak, today_done, user_id, contract_accepted, is_paused, created_at").order("created_at");
+    const { data } = await supabase.from("clients").select("id, name, avatar, goal, start_date, next_payment, sessions_per_week, monthly_amount, streak, today_done, user_id, contract_accepted, is_paused, contract_ended, contract_ended_at, created_at").order("created_at");
     const result = data || [];
     writeCache("clients", result);
     setClients(result); setLoading(false);
@@ -2240,10 +2329,10 @@ const CoachApp = ({ user, onLogout }) => {
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
-  // Exclure les clientes en pause des alertes paiement
-  const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5 && !c.is_paused; });
-  const pendingJournalClients = clients.filter(c => !c.is_paused && !isDoneToday(c.id));
-  const urgentPayments = clients.filter(c => !c.is_paused && daysUntil(c.next_payment) <= 7);
+  // Exclure les clientes en pause et les contrats terminés des alertes paiement/journal
+  const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5 && !c.is_paused && !c.contract_ended; });
+  const pendingJournalClients = clients.filter(c => !c.is_paused && !c.contract_ended && !isDoneToday(c.id));
+  const urgentPayments = clients.filter(c => !c.is_paused && !c.contract_ended && daysUntil(c.next_payment) <= 7);
   const sortByName = (a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" });
   const activeWorkoutsList = workouts.filter(w => !w.is_archived).sort(sortByName);
   const archivedWorkoutsList = workouts.filter(w => w.is_archived).sort(sortByName);
@@ -2259,7 +2348,7 @@ const CoachApp = ({ user, onLogout }) => {
         const newClient = clients.find(c => c.id === payload.new.client_id);
         if (newClient) {
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-            new Notification(BRAND_NAME + " 📋", { body: `${newClient.name} vient de remplir son journal !`, icon: "/icon.png" });
+            new Notification(BRAND_NAME + " 📋", { body: `${newClient.name} vient de remplir son journal !`, icon: "/logo.png" });
           }
         }
       })
@@ -2270,7 +2359,7 @@ const CoachApp = ({ user, onLogout }) => {
   const requestCoachNotifs = async () => {
     if (!("Notification" in window)) return alert("Notifications non supportées sur ce navigateur.");
     const perm = await Notification.requestPermission();
-    if (perm === "granted") { setNotifGranted(true); new Notification(BRAND_NAME + " ✅", { body: "Tu seras notifiée dès qu'une cliente remplit son journal !", icon: "/icon.png" }); }
+    if (perm === "granted") { setNotifGranted(true); new Notification(BRAND_NAME + " ✅", { body: "Tu seras notifiée dès qu'une cliente remplit son journal !", icon: "/logo.png" }); }
   };
 
   useEffect(() => {
@@ -2317,6 +2406,14 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
 
   const handleSaveClient = async (id, patch) => { await updateClient(id, patch); alert("✅ Profil mis à jour !"); };
   const handleDeleteClient = async (id) => { await deleteClient(id); setSelected(null); setMainTab("dashboard"); alert("✅ Cliente supprimée."); };
+  const handleToggleContractEnded = async (c) => {
+    if (c.contract_ended) {
+      await updateClient(c.id, { contract_ended: false, contract_ended_at: null });
+      return;
+    }
+    if (!window.confirm(`Marquer le contrat de ${c.name} comme terminé ? Elle gardera accès à l'appli et aux séances que tu lui mets à disposition, mais ne sera plus suivie dans le journal/paiements.`)) return;
+    await updateClient(c.id, { contract_ended: true, contract_ended_at: today });
+  };
 
   const handleAddPayment = async () => {
     if (!paymentAmount || !paymentDate) return alert("Remplis le montant et la date.");
@@ -2368,18 +2465,19 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
             <button onClick={() => setShowAddClient(true)} style={{ background: C.pink, border: "none", color: C.black, borderRadius: 6, width: 20, height: 20, fontWeight: 900, fontSize: 14, cursor: "pointer" }}>+</button>
           </div>
           {loadingClients ? <Spinner /> : (() => {
-            const active = clients.filter(c => !c.is_paused);
-            const paused = clients.filter(c => c.is_paused);
+            const active = clients.filter(c => !c.is_paused && !c.contract_ended);
+            const paused = clients.filter(c => c.is_paused && !c.contract_ended);
+            const ended = clients.filter(c => c.contract_ended);
             const ClientRow = (c) => (
-              <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); setClientTab("journal"); }} style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: selected === c.id ? C.pink + "15" : "transparent", borderLeft: `3px solid ${selected === c.id ? C.pink : "transparent"}`, opacity: c.is_paused ? 0.65 : 1 }}>
+              <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); setClientTab("journal"); }} style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: selected === c.id ? C.pink + "15" : "transparent", borderLeft: `3px solid ${selected === c.id ? C.pink : "transparent"}`, opacity: c.contract_ended ? 0.5 : c.is_paused ? 0.65 : 1 }}>
                 <div style={{ position: "relative" }}>
-                  <Avatar initials={c.avatar} size={28} color={c.is_paused ? C.orange : isDoneToday(c.id) ? C.pink : C.muted} />
-                  <div style={{ position: "absolute", bottom: -1, right: -1, width: 7, height: 7, borderRadius: "50%", background: isDoneToday(c.id) ? C.green : C.red, border: `2px solid ${C.black}` }} />
+                  <Avatar initials={c.avatar} size={28} color={c.contract_ended ? C.muted : c.is_paused ? C.orange : isDoneToday(c.id) ? C.pink : C.muted} />
+                  {!c.contract_ended && <div style={{ position: "absolute", bottom: -1, right: -1, width: 7, height: 7, borderRadius: "50%", background: isDoneToday(c.id) ? C.green : C.red, border: `2px solid ${C.black}` }} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.is_paused ? C.textMuted : C.white }}>{c.name}</div>
-                  <div style={{ fontSize: 10, color: c.is_paused ? C.orange : daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>
-                    {c.is_paused ? "⏸ Pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}
+                  <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.contract_ended || c.is_paused ? C.textMuted : C.white }}>{c.name}</div>
+                  <div style={{ fontSize: 10, color: c.contract_ended ? C.textMuted : c.is_paused ? C.orange : daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>
+                    {c.contract_ended ? "🏁 Terminé" : c.is_paused ? "⏸ Pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}
                   </div>
                 </div>
               </div>
@@ -2395,6 +2493,16 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
                       <div style={{ flex: 1, height: 1, background: C.border }} />
                     </div>
                     {paused.map(c => ClientRow(c))}
+                  </>
+                )}
+                {ended.length > 0 && (
+                  <>
+                    <div style={{ margin: "8px 16px 4px", display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ flex: 1, height: 1, background: C.border }} />
+                      <span style={{ fontSize: 9, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>Contrat terminé</span>
+                      <div style={{ flex: 1, height: 1, background: C.border }} />
+                    </div>
+                    {ended.map(c => ClientRow(c))}
                   </>
                 )}
               </>
@@ -2446,14 +2554,14 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
-                {[{ label: "Journal today", val: `${clients.filter(c => isDoneToday(c.id)).length}/${clients.filter(c => !c.is_paused).length}`, color: C.pink }, { label: "Séances actives", val: activeWorkoutsList.length, color: C.orange }, { label: "Clientes actives", val: clients.filter(c => !c.is_paused).length, color: C.green }].map(s => (
+                {[{ label: "Journal today", val: `${clients.filter(c => isDoneToday(c.id)).length}/${clients.filter(c => !c.is_paused && !c.contract_ended).length}`, color: C.pink }, { label: "Séances actives", val: activeWorkoutsList.length, color: C.orange }, { label: "Clientes actives", val: clients.filter(c => !c.is_paused && !c.contract_ended).length, color: C.green }].map(s => (
                   <Card key={s.label}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>{s.label}</div><div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.val}</div></Card>
                 ))}
               </div>
               <Card>
                 <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>JOURNAL DU JOUR</div>
                 {clients.length === 0 && <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune cliente. Clique sur "+" pour en ajouter une.</p>}
-                {clients.filter(c => !c.is_paused).map(c => (
+                {clients.filter(c => !c.is_paused && !c.contract_ended).map(c => (
                   <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
                     <Avatar initials={c.avatar} size={32} color={isDoneToday(c.id) ? C.pink : C.muted} />
                     <div style={{ flex: 1 }}>
@@ -2524,7 +2632,7 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
           {mainTab === "comptabilite" && !selected && (() => {
             const currentMonthPrefix = today.slice(0, 7);
             const isInCurrentMonth = d => d && d.slice(0, 7) === currentMonthPrefix;
-            const activeForBilling = clients.filter(c => !c.is_paused);
+            const activeForBilling = clients.filter(c => !c.is_paused && !c.contract_ended);
             const dueThisMonth = activeForBilling.filter(c => isInCurrentMonth(c.next_payment));
             const caPrevu = dueThisMonth.reduce((s, c) => s + (parseFloat(c.monthly_amount) || 0), 0);
             const paymentsThisMonth = allPayments.filter(p => isInCurrentMonth(p.paid_date));
@@ -2660,16 +2768,27 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
                 <div style={{ flex: 1 }}>
                   <h2 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 900 }}>{client.name}</h2>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {client.contract_ended && <Badge color={C.textMuted}>🏁 Contrat terminé le {formatDate(client.contract_ended_at)}</Badge>}
                     <Badge>🔥 {client.streak}j</Badge>
                     {client.goal && <Badge color={C.purple}>{client.goal}</Badge>}
-                    {client.next_payment && <Badge color={C.yellow}>💳 J-{daysUntil(client.next_payment)}</Badge>}
+                    {!client.contract_ended && client.next_payment && <Badge color={C.yellow}>💳 J-{daysUntil(client.next_payment)}</Badge>}
                   </div>
                 </div>
                 <button onClick={() => setEditingClient(client)} style={{ background: "#222", border: `1px solid ${C.border}`, color: C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>✏️ Modifier</button>
-                <button onClick={() => setShowPauseModal(true)} style={{ background: client.is_paused ? C.orange + "22" : "#222", border: `1px solid ${client.is_paused ? C.orange : C.border}`, color: client.is_paused ? C.orange : C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
-                  {client.is_paused ? "⏸️ En pause" : "⏸️ Pause"}
+                {!client.contract_ended && (
+                  <button onClick={() => setShowPauseModal(true)} style={{ background: client.is_paused ? C.orange + "22" : "#222", border: `1px solid ${client.is_paused ? C.orange : C.border}`, color: client.is_paused ? C.orange : C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
+                    {client.is_paused ? "⏸️ En pause" : "⏸️ Pause"}
+                  </button>
+                )}
+                <button onClick={() => handleToggleContractEnded(client)} style={{ background: client.contract_ended ? C.green + "22" : "#222", border: `1px solid ${client.contract_ended ? C.green : C.border}`, color: client.contract_ended ? C.green : C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
+                  {client.contract_ended ? "🔓 Réactiver" : "🏁 Fin de contrat"}
                 </button>
               </div>
+              {client.contract_ended && (
+                <div style={{ background: C.textMuted + "15", border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 20, fontSize: 13, color: C.textMuted }}>
+                  🏁 Le contrat de {client.name.split(" ")[0]} est marqué comme terminé. Elle garde accès à son espace et aux séances que tu lui assignes, mais n'apparaît plus dans le suivi journal/paiements.
+                </div>
+              )}
 
               <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
 
@@ -2803,7 +2922,7 @@ await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, st
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>DÉBUT</div><div style={{ fontWeight: 700, fontSize: 13 }}>{formatDate(client.start_date)}</div></div>
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>SÉANCES/SEMAINE</div><div style={{ fontWeight: 700, fontSize: 13 }}>{client.sessions_per_week || 3}x</div></div>
                       <div style={{ background: "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>MONTANT</div><div style={{ fontWeight: 700, fontSize: 18, color: C.green }}>{client.monthly_amount || "—"} €</div></div>
-                      <div style={{ background: daysUntil(client.next_payment) <= 3 ? C.yellow + "15" : "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>PROCHAIN PAIEMENT</div><div style={{ fontWeight: 700, fontSize: 13, color: daysUntil(client.next_payment) <= 3 ? C.yellow : C.white }}>{formatDate(client.next_payment)}</div></div>
+                      <div style={{ background: !client.contract_ended && daysUntil(client.next_payment) <= 3 ? C.yellow + "15" : "#111", borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>PROCHAIN PAIEMENT</div><div style={{ fontWeight: 700, fontSize: 13, color: !client.contract_ended && daysUntil(client.next_payment) <= 3 ? C.yellow : C.white }}>{client.contract_ended ? "Contrat terminé" : formatDate(client.next_payment)}</div></div>
                     </div>
                   </Card>
                   <Card>
@@ -2903,7 +3022,7 @@ const ClientApp = ({ user, onLogout }) => {
   const todayWorkout = myWorkouts.find(w => w.scheduledDate === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
   const pendingClientTasks = [];
-  if (!todayEntry) pendingClientTasks.push({ title: "Compléter ton journal", subtitle: "Un petit check-in vaut souvent mieux que rien", icon: "📝", onClick: () => setScreen("journal"), accent: C.orange });
+  if (!todayEntry && !clientInfo?.contract_ended) pendingClientTasks.push({ title: "Compléter ton journal", subtitle: "Un petit check-in vaut souvent mieux que rien", icon: "📝", onClick: () => setScreen("journal"), accent: C.orange });
   if (todayWorkout) pendingClientTasks.push({ title: "Ta séance du jour", subtitle: "Prêt à démarrer ?", icon: "💪", onClick: () => setPreviewWorkout(todayWorkout), accent: C.pink });
   if (!clientInfo?.contract_accepted) pendingClientTasks.push({ title: "Valider ton contrat", subtitle: "Relis les règles et engage-toi", icon: "📄", onClick: () => setScreen("contrat"), accent: C.blue });
   const lastWeight = weights[weights.length - 1];
@@ -3008,7 +3127,7 @@ const ClientApp = ({ user, onLogout }) => {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
-            {todayEntry ? <Badge color={C.green}>✅ Journal OK</Badge> : <Badge color={C.orange}>📝 À compléter</Badge>}
+            {clientInfo.contract_ended ? <Badge color={C.textMuted}>🏁 Contrat terminé</Badge> : todayEntry ? <Badge color={C.green}>✅ Journal OK</Badge> : <Badge color={C.orange}>📝 À compléter</Badge>}
           </div>
         </PremiumHero>
 {!clientInfo.contract_accepted && (
@@ -3124,10 +3243,16 @@ const ClientApp = ({ user, onLogout }) => {
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
           <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
           <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon contrat 📄</h2>
+          {clientInfo.contract_ended && (
+            <div style={{ background: C.textMuted + "15", border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
+              <div style={{ fontWeight: 700, color: C.textMuted, marginBottom: 4 }}>🏁 Accompagnement terminé le {formatDate(clientInfo.contract_ended_at)}</div>
+              <div style={{ fontSize: 13, color: C.textMuted }}>Ton coach continue de te donner accès à certaines séances. Le suivi journal et paiement n'est plus actif.</div>
+            </div>
+          )}
           <Card style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>MON ACCOMPAGNEMENT</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[{ label: "Date de début", val: formatDate(clientInfo.start_date), icon: "📅" }, { label: "Séances par semaine", val: `${clientInfo.sessions_per_week || 3} séances`, icon: "💪" }, { label: "Montant toutes les 4 semaines", val: `${clientInfo.monthly_amount || "—"} €`, icon: "💶" }, { label: "Prochain paiement", val: formatDate(clientInfo.next_payment), icon: "💳", highlight: daysUntil(clientInfo.next_payment) <= 7 }].map(item => (
+              {[{ label: "Date de début", val: formatDate(clientInfo.start_date), icon: "📅" }, { label: "Séances par semaine", val: `${clientInfo.sessions_per_week || 3} séances`, icon: "💪" }, { label: "Montant toutes les 4 semaines", val: `${clientInfo.monthly_amount || "—"} €`, icon: "💶" }, { label: "Prochain paiement", val: clientInfo.contract_ended ? "Contrat terminé" : formatDate(clientInfo.next_payment), icon: "💳", highlight: !clientInfo.contract_ended && daysUntil(clientInfo.next_payment) <= 7 }].map(item => (
                 <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: item.highlight ? C.yellow + "15" : "#111", borderRadius: 10, border: item.highlight ? `1px solid ${C.yellow}44` : "none" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 18 }}>{item.icon}</span><span style={{ fontSize: 13, color: C.textMuted }}>{item.label}</span></div>
                   <span style={{ fontWeight: 700, fontSize: 14, color: item.highlight ? C.yellow : C.white }}>{item.val}</span>
@@ -3135,7 +3260,7 @@ const ClientApp = ({ user, onLogout }) => {
               ))}
             </div>
           </Card>
-          {daysUntil(clientInfo.next_payment) <= 7 && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}><div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div><div style={{ fontSize: 13 }}>Ton prochain paiement de <strong>{clientInfo.monthly_amount} €</strong> est dû le <strong>{formatDate(clientInfo.next_payment)}</strong>.</div></div>}
+          {!clientInfo.contract_ended && daysUntil(clientInfo.next_payment) <= 7 && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}><div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div><div style={{ fontSize: 13 }}>Ton prochain paiement de <strong>{clientInfo.monthly_amount} €</strong> est dû le <strong>{formatDate(clientInfo.next_payment)}</strong>.</div></div>}
           <Card style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 16 }}>📄 RÈGLEMENT DU COACHING</div>
             {CONTRACT_TEXT.sections.map((section, si) => (
