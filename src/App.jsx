@@ -1625,8 +1625,8 @@ const useClients = () => {
     setClients(result); setLoading(false);
   };
   useEffect(() => { fetch(); }, []);
-  const addClient = async (c) => { const { data } = await supabase.from("clients").insert([c]).select().single(); if (data) setClients(cl => [...cl, data]); return data; };
-  const updateClient = async (id, patch) => { const { data } = await supabase.from("clients").update(patch).eq("id", id).select().single(); if (data) setClients(c => c.map(x => x.id === id ? data : x)); return data; };
+  const addClient = async (c) => { const { data, error } = await supabase.from("clients").insert([c]).select().single(); if (error) { alert("Erreur lors de la création de la cliente : " + error.message); return null; } setClients(cl => [...cl, data]); return data; };
+  const updateClient = async (id, patch) => { const { data, error } = await supabase.from("clients").update(patch).eq("id", id).select().single(); if (error) { alert("Erreur lors de la mise à jour : " + error.message); return null; } setClients(c => c.map(x => x.id === id ? data : x)); return data; };
   const deleteClient = async (id) => { await supabase.from("clients").delete().eq("id", id); setClients(c => c.filter(x => x.id !== id)); };
   return { clients, loading, addClient, updateClient, deleteClient };
 };
@@ -2395,11 +2395,17 @@ const CoachApp = ({ user, onLogout }) => {
   const handleAddClient = async () => {
     if (!newClientForm.name || !newClientForm.email || !newClientForm.password) return alert("Remplis au minimum le nom, l'email et le mot de passe.");
     setAddingClient(true);
-    const { data: authData, error: authErr } = await supabase.auth.signUp({ email: newClientForm.email, password: newClientForm.password });
-    if (authErr) { alert("Erreur : " + authErr.message); setAddingClient(false); return; }
-    const userId = authData.user?.id;
+    // IMPORTANT : on ne fait JAMAIS supabase.auth.signUp() ici — ça remplacerait la session
+    // de la coach par celle du nouveau compte créé. La création du compte Auth doit se faire
+    // côté serveur (service role), via l'Edge Function admin, pour ne pas toucher à la session en cours.
+    const res = await callAdminFunction({ action: "create_client_user", email: newClientForm.email, password: newClientForm.password });
+    if (res.error) { alert("Erreur : " + res.error); setAddingClient(false); return; }
+    const userId = res.user?.id;
     const avatar = newClientForm.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, streak: 0, today_done: false, user_id: userId, contract_accepted: false });    setAddingClient(false); setShowAddClient(false);
+    const created = await addClient({ name: newClientForm.name, avatar, goal: newClientForm.goal, start_date: newClientForm.start_date, next_payment: newClientForm.next_payment, sessions_per_week: parseInt(newClientForm.sessions_per_week) || 3, monthly_amount: parseFloat(newClientForm.monthly_amount) || 0, streak: 0, today_done: false, user_id: userId, contract_accepted: false });
+    setAddingClient(false);
+    if (!created) return;
+    setShowAddClient(false);
     setNewClientForm({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
     alert(`✅ Compte créé !\n\nEmail : ${newClientForm.email}\nMot de passe : ${newClientForm.password}`);
   };
