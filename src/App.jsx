@@ -298,6 +298,13 @@ const SESSION_OPTIONS = [
 ];
 const sessionColor = v => SESSION_OPTIONS.find(o => o.value === v)?.color || C.textMuted;
 const sessionLabel = v => SESSION_OPTIONS.find(o => o.value === v)?.label || "—";
+const SEX_OPTIONS = [{ value: "F", label: "Femme" }, { value: "M", label: "Homme" }];
+const NUTRITION_GOAL_OPTIONS = [
+  { value: "cut", label: "Perte de poids" },
+  { value: "maintain", label: "Maintien" },
+  { value: "bulk", label: "Prise de masse" },
+];
+const nutritionGoalLabel = v => NUTRITION_GOAL_OPTIONS.find(o => o.value === v)?.label || "—";
 const feelings = ["😩", "😔", "😐", "🙂", "🔥"];
 const feelingLabels = ["Très difficile", "Difficile", "Neutre", "Bien", "Excellent"];
 const today = new Date().toISOString().slice(0, 10);
@@ -336,6 +343,62 @@ const readCache = (key) => {
 const writeCache = (key, value) => {
   if (typeof window === "undefined") return;
   try { window.sessionStorage.setItem(getCacheKey(key), JSON.stringify({ ts: Date.now(), value })); } catch {}
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DÉPENSE ÉNERGÉTIQUE — BMR (Mifflin-St Jeor), NEAT (pas), activité (MET), fiabilité
+// ══════════════════════════════════════════════════════════════════════════════
+const calcAge = (birthDate) => {
+  if (!birthDate) return null;
+  const b = new Date(birthDate);
+  if (isNaN(b.getTime())) return null;
+  return Math.floor((Date.now() - b.getTime()) / (365.25 * 86400000));
+};
+
+const calcBMR = ({ sex, weightKg, heightCm, age }) => {
+  if (!sex || !weightKg || !heightCm || !age) return null;
+  const base = 10 * weightKg + 6.25 * heightCm - 5 * age;
+  return Math.round(sex === "F" ? base - 161 : base + 5);
+};
+
+// ~0.0005 kcal/kg par pas — approximation NEAT standard, indépendante de l'intensité de marche
+const stepsToCalories = (steps, weightKg) => (steps && weightKg) ? Math.round(steps * weightKg * 0.0005) : 0;
+
+const activityCalories = (metValue, weightKg, durationMin) => (metValue && weightKg && durationMin) ? Math.round(metValue * weightKg * (durationMin / 60)) : 0;
+
+// Calories d'activité du jour : la montre (si renseignée) remplace l'estimation MET plutôt que de s'y additionner,
+// pour ne pas compter deux fois la même dépense.
+const daySportCalories = (sessions = []) => {
+  const watch = sessions.find(s => s.source === "watch");
+  if (watch) return watch.calories || 0;
+  return sessions.reduce((sum, s) => sum + (s.calories || 0), 0);
+};
+
+const calcDailyEnergy = ({ profile, weightKg, steps, activitySessions = [] }) => {
+  const age = calcAge(profile?.birth_date);
+  const bmr = calcBMR({ sex: profile?.sex, weightKg, heightCm: profile?.height_cm, age });
+  if (!bmr) return null;
+  const neat = stepsToCalories(steps, weightKg);
+  const sport = daySportCalories(activitySessions);
+  return { bmr, neat, sport, tdee: bmr + neat + sport };
+};
+
+// Message neutre selon l'objectif — jamais de jugement, juste un constat factuel
+const energyBalanceMessage = (balance, goal) => {
+  if (balance == null) return null;
+  const abs = Math.abs(Math.round(balance));
+  const matches =
+    goal === "cut" ? balance <= -150 :
+    goal === "bulk" ? balance >= 100 && balance <= 600 :
+    Math.abs(balance) <= 150; // maintain
+  const text = abs <= 50 ? "Balance proche de l'équilibre" : balance < 0 ? `Déficit de ${abs} kcal` : `Surplus de ${abs} kcal`;
+  return { text: matches ? `${text} — cohérent avec l'objectif` : text, color: matches ? C.green : C.textMuted };
+};
+
+// Indice de fiabilité v1 : complétude des champs qui alimentent le calcul du jour
+const calcReliability = ({ hasEntry, hasSteps, hasWeightThisWeek, hasActivityInfo, hasCalories }) => {
+  const checks = [hasEntry, hasSteps, hasWeightThisWeek, hasActivityInfo, hasCalories];
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 };
 
 // Accessibility: respect prefers-reduced-motion
@@ -1608,6 +1671,20 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // DATA HOOKS
 // ══════════════════════════════════════════════════════════════════════════════
+const useActivityTypes = () => {
+  const [activityTypes, setActivityTypes] = useState(() => readCache("activity_types") || []);
+  const [loadingActivityTypes, setLoadingActivityTypes] = useState(() => !readCache("activity_types"));
+  useEffect(() => {
+    supabase.from("activity_types").select("id, name, met_value").order("position").then(({ data }) => {
+      const result = data || [];
+      writeCache("activity_types", result);
+      setActivityTypes(result);
+      setLoadingActivityTypes(false);
+    });
+  }, []);
+  return { activityTypes, loadingActivityTypes };
+};
+
 const useClients = () => {
   const [clients, setClients] = useState(() => readCache("clients") || []);
   const [loading, setLoading] = useState(() => !readCache("clients"));
@@ -1727,6 +1804,8 @@ const useClientData = (clientId) => {
   const [assignedWorkouts, setAssignedWorkouts] = useState(() => readCache(cacheKey)?.assignedWorkouts || []);
   const [progressPhotos, setProgressPhotos] = useState(() => readCache(cacheKey)?.progressPhotos || []);
   const [payments, setPayments] = useState(() => readCache(cacheKey)?.payments || []);
+  const [profile, setProfile] = useState(() => readCache(cacheKey)?.profile || null);
+  const [activitySessions, setActivitySessions] = useState(() => readCache(cacheKey)?.activitySessions || []);
   const [loading, setLoading] = useState(() => !readCache(cacheKey));
 
   const fetch = async () => {
@@ -1738,19 +1817,28 @@ const useClientData = (clientId) => {
     if (cached) {
       setEntries(cached.entries || []); setWeights(cached.weights || []); setMeasurements(cached.measurements || []);
       setAssignedWorkouts(cached.assignedWorkouts || []); setProgressPhotos(cached.progressPhotos || []); setPayments(cached.payments || []);
+      setProfile(cached.profile || null); setActivitySessions(cached.activitySessions || []);
       setLoading(false);
     } else {
       setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
+      setProfile(null); setActivitySessions([]);
       setLoading(true);
     }
-    const [e, w, m, cw, pp, pay] = await Promise.all([
+    // allSettled plutôt que all : si une table manque encore (ex: migration nutrition pas encore
+    // exécutée) ou qu'une requête échoue, le reste du journal continue de se charger normalement
+    // au lieu de rester bloqué en chargement indéfiniment.
+    const settled = await Promise.allSettled([
       supabase.from("entries").select("id, client_id, date, feeling, steps, meal_note, photos, calories_total, protein_total, carb_total, fat_total, session_status, session_note, hydration, sleep_hours, nap, had_difficulty, difficulty_note, coach_message").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("weights").select("id, client_id, value, date").eq("client_id", clientId).order("date"),
       supabase.from("measurements").select("id, client_id, chest, waist, hips, thighs, date").eq("client_id", clientId).order("date"),
       supabase.from("client_workouts").select("workout_id, scheduled_date, workouts(id, name, description, blocks, exercises(*))").eq("client_id", clientId),
       supabase.from("progress_photos").select("id, client_id, photo, note, date").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").eq("client_id", clientId).order("paid_date", { ascending: false }),
+      supabase.from("client_profiles").select("client_id, birth_date, sex, height_cm, nutrition_goal").eq("client_id", clientId).maybeSingle(),
+      supabase.from("activity_sessions").select("id, client_id, date, activity_name, met_value, duration_min, source, calories").eq("client_id", clientId).order("date", { ascending: false }),
     ]);
+    const [e, w, m, cw, pp, pay, prof, acts] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
+    settled.forEach((r, i) => { if (r.status === "rejected") console.error("useClientData: requête échouée", i, r.reason); });
     const nextPayload = {
       entries: e.data || [],
       weights: w.data || [],
@@ -1758,10 +1846,13 @@ const useClientData = (clientId) => {
       assignedWorkouts: (cw.data || []).map(x => ({ workout_id: x.workout_id, scheduled_date: x.scheduled_date, workout: x.workouts })),
       progressPhotos: pp.data || [],
       payments: pay.data || [],
+      profile: prof.data || null,
+      activitySessions: acts.data || [],
     };
     writeCache(cacheKey, nextPayload);
     setEntries(nextPayload.entries); setWeights(nextPayload.weights); setMeasurements(nextPayload.measurements);
     setAssignedWorkouts(nextPayload.assignedWorkouts); setProgressPhotos(nextPayload.progressPhotos); setPayments(nextPayload.payments);
+    setProfile(nextPayload.profile); setActivitySessions(nextPayload.activitySessions);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
@@ -1791,10 +1882,26 @@ const useClientData = (clientId) => {
     if (data) { setPayments(p => [data, ...p]); await supabase.from("clients").update({ next_payment: nextDue }).eq("id", clientId); }
     return data;
   };
+  const updateProfile = async (patch) => {
+    const { data, error } = await supabase.from("client_profiles").upsert([{ client_id: clientId, ...patch, updated_at: new Date().toISOString() }], { onConflict: "client_id" }).select().single();
+    if (error) { alert("Erreur lors de la mise à jour du profil : " + error.message); return null; }
+    setProfile(data);
+    return data;
+  };
+  const addActivitySession = async (session) => {
+    const { data, error } = await supabase.from("activity_sessions").insert([{ ...session, client_id: clientId }]).select().single();
+    if (error) { alert("Erreur lors de l'enregistrement de la séance : " + error.message); return null; }
+    if (data) setActivitySessions(a => [data, ...a]);
+    return data;
+  };
+  const deleteActivitySession = async (id) => {
+    await supabase.from("activity_sessions").delete().eq("id", id);
+    setActivitySessions(a => a.filter(x => x.id !== id));
+  };
 
-  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment };
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession };
 };
-const JournalForm = ({ entries, onSave, onBack, clientId }) => {
+const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession }) => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
@@ -1812,6 +1919,31 @@ const JournalForm = ({ entries, onSave, onBack, clientId }) => {
   const [hadDifficulty, setHadDifficulty] = useState(null);
   const [difficultyNote, setDifficultyNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showAddActivity, setShowAddActivity] = useState(false);
+  const [activityMode, setActivityMode] = useState("met"); // "met" | "watch"
+  const [activityTypeId, setActivityTypeId] = useState("");
+  const [activityDuration, setActivityDuration] = useState("");
+  const [watchCalories, setWatchCalories] = useState("");
+  const [savingActivity, setSavingActivity] = useState(false);
+
+  const sessionsForDate = activitySessions.filter(s => s.date === selectedDate);
+  const dailyEnergy = calcDailyEnergy({ profile, weightKg: latestWeightKg, steps: parseInt(steps) || 0, activitySessions: sessionsForDate });
+  const balanceMsg = dailyEnergy && caloriesTotal ? energyBalanceMessage(parseInt(caloriesTotal) - dailyEnergy.tdee, profile?.nutrition_goal) : null;
+
+  const handleAddActivity = async () => {
+    if (activityMode === "watch") {
+      if (!watchCalories) return;
+      setSavingActivity(true);
+      await onAddActivitySession({ date: selectedDate, activity_name: "Séance (montre connectée)", met_value: null, duration_min: activityDuration ? parseInt(activityDuration) : null, source: "watch", calories: Math.round(parseFloat(watchCalories)) });
+    } else {
+      const type = activityTypes.find(t => t.id === activityTypeId);
+      if (!type || !activityDuration || !latestWeightKg) return;
+      setSavingActivity(true);
+      const calories = activityCalories(type.met_value, latestWeightKg, parseInt(activityDuration));
+      await onAddActivitySession({ date: selectedDate, activity_name: type.name, met_value: type.met_value, duration_min: parseInt(activityDuration), source: "met_estimate", calories });
+    }
+    setSavingActivity(false); setShowAddActivity(false); setActivityTypeId(""); setActivityDuration(""); setWatchCalories("");
+  };
 
   const existing = entries.find(e => e.date === selectedDate) || null;
 
@@ -1920,6 +2052,62 @@ const JournalForm = ({ entries, onSave, onBack, clientId }) => {
           {feeling && <div style={{ textAlign: "center", fontSize: 12, color: C.textMuted, marginTop: 6 }}>{feelingLabels[feeling - 1]}</div>}
         </div>
         <Inp label="Nombre de pas" type="number" inputMode="numeric" placeholder="ex: 9500" value={steps} onChange={e => setSteps(e.target.value)} />
+
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🏃 Activité sportive (hors musculation planifiée)</div>
+          {sessionsForDate.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+              {sessionsForDate.map(s => (
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", borderRadius: 10, padding: "10px 14px" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{s.activity_name}</div>
+                    <div style={{ fontSize: 11, color: C.textMuted }}>{s.duration_min ? `${s.duration_min} min · ` : ""}{s.calories} kcal{s.source === "watch" ? " · montre" : ""}</div>
+                  </div>
+                  <button onClick={() => onDeleteActivitySession(s.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 28, height: 28, color: C.red, cursor: "pointer" }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {!showAddActivity ? (
+            <button onClick={() => setShowAddActivity(true)} style={{ width: "100%", padding: 13, borderRadius: 12, border: `1px dashed ${C.pink}55`, background: "#111", color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Ajouter une séance</button>
+          ) : (
+            <div style={{ background: "#111", borderRadius: 12, padding: 14 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                {[["met", "Sans montre"], ["watch", "Avec montre"]].map(([v, label]) => (
+                  <button key={v} onClick={() => setActivityMode(v)} style={{ flex: 1, padding: 9, borderRadius: 8, border: `2px solid ${activityMode === v ? C.pink : C.border}`, background: activityMode === v ? C.pink + "22" : "transparent", color: activityMode === v ? C.pink : C.textMuted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{label}</button>
+                ))}
+              </div>
+              {activityMode === "met" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <select value={activityTypeId} onChange={e => setActivityTypeId(e.target.value)} style={inputSt}>
+                    <option value="">Type de séance...</option>
+                    {activityTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                  <Inp label="Durée (minutes)" type="number" inputMode="numeric" placeholder="ex: 45" value={activityDuration} onChange={e => setActivityDuration(e.target.value)} />
+                  {!latestWeightKg && <div style={{ fontSize: 12, color: C.orange }}>⚠️ Renseigne d'abord ton poids dans "Mon suivi corps" pour estimer les calories.</div>}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <Inp label="Calories actives (montre)" type="number" inputMode="numeric" placeholder="ex: 320" value={watchCalories} onChange={e => setWatchCalories(e.target.value)} />
+                  <Inp label="Durée (minutes, optionnel)" type="number" inputMode="numeric" placeholder="ex: 45" value={activityDuration} onChange={e => setActivityDuration(e.target.value)} />
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                <Btn variant="secondary" onClick={() => setShowAddActivity(false)} style={{ flex: 1 }}>Annuler</Btn>
+                <Btn onClick={handleAddActivity} disabled={savingActivity} style={{ flex: 2 }}>{savingActivity ? "..." : "Ajouter"}</Btn>
+              </div>
+            </div>
+          )}
+          {dailyEnergy && (
+            <div style={{ marginTop: 14, background: C.pink + "10", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14 }}>
+              <div style={{ fontSize: 11, color: C.pink, fontWeight: 700, marginBottom: 8 }}>⚡ DÉPENSE ESTIMÉE DU JOUR</div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>{dailyEnergy.tdee.toLocaleString()} kcal</div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>Métabolisme {dailyEnergy.bmr} · Pas {dailyEnergy.neat} · Activité {dailyEnergy.sport}</div>
+              {balanceMsg && <div style={{ fontSize: 13, fontWeight: 700, color: balanceMsg.color, marginTop: 8 }}>{balanceMsg.text}</div>}
+            </div>
+          )}
+        </div>
+
         <div>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>💧 Hydratation (hors thé & café)</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2039,7 +2227,20 @@ const PerfCard = ({ log, workout }) => {
   );
 };
 
-const EntryDetail = ({ entry, onBack }) => (
+const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = [] }) => {
+  const sessionsForDate = activitySessions.filter(s => s.date === entry.date);
+  const weightForDate = [...weights].reverse().find(w => w.date <= entry.date) || weights[0];
+  const dailyEnergy = calcDailyEnergy({ profile, weightKg: weightForDate?.value, steps: entry.steps, activitySessions: sessionsForDate });
+  const balanceMsg = dailyEnergy && entry.calories_total != null ? energyBalanceMessage(entry.calories_total - dailyEnergy.tdee, profile?.nutrition_goal) : null;
+  const hasWeightThisWeek = weights.some(w => Math.abs((new Date(w.date) - new Date(entry.date)) / 86400000) <= 7);
+  const reliability = calcReliability({
+    hasEntry: true,
+    hasSteps: !!entry.steps,
+    hasWeightThisWeek,
+    hasActivityInfo: sessionsForDate.length > 0 || !!entry.session_status,
+    hasCalories: entry.calories_total != null,
+  });
+  return (
   <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
     <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -2047,12 +2248,40 @@ const EntryDetail = ({ entry, onBack }) => (
       <span style={{ fontSize: 36 }}>{feelings[(entry.feeling || 3) - 1]}</span>
     </div>
     <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 20, fontWeight: 600 }}>{feelingLabels[(entry.feeling || 3) - 1]}</div>
+    {profile && (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.pink + "10", border: `1px solid ${C.pink}33`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 11, color: C.pink, fontWeight: 700, marginBottom: 4 }}>⚡ BALANCE ÉNERGÉTIQUE</div>
+          {dailyEnergy ? (
+            <>
+              <div style={{ fontSize: 13, color: C.textMuted }}>Dépense estimée : <strong style={{ color: C.white }}>{dailyEnergy.tdee.toLocaleString()} kcal</strong></div>
+              {balanceMsg ? <div style={{ fontSize: 14, fontWeight: 700, color: balanceMsg.color, marginTop: 4 }}>{balanceMsg.text}</div> : <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Calories du jour non renseignées</div>}
+            </>
+          ) : <div style={{ fontSize: 12, color: C.textMuted }}>Poids manquant pour estimer la dépense</div>}
+        </div>
+        <div style={{ textAlign: "center", flexShrink: 0 }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: reliability >= 80 ? C.green : reliability >= 50 ? C.orange : C.red }}>{reliability}%</div>
+          <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 700 }}>FIABILITÉ</div>
+        </div>
+      </div>
+    )}
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>PAS</div><div style={{ fontSize: 24, fontWeight: 900, color: C.pink }}>{(entry.steps || 0).toLocaleString()}</div></div>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>SÉANCE</div><div style={{ fontWeight: 700, fontSize: 13, color: sessionColor(entry.session_status) }}>{sessionLabel(entry.session_status)}</div></div>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>💧 HYDRATATION</div><div style={{ fontSize: 24, fontWeight: 900, color: C.blue }}>{entry.hydration || "—"} L</div></div>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>😴 SOMMEIL</div><div style={{ fontSize: 20, fontWeight: 900 }}>{entry.sleep_hours || "—"}h{entry.nap ? <span style={{ fontSize: 13, color: C.purple }}> · sieste</span> : ""}</div></div>
     </div>
+    {sessionsForDate.length > 0 && (
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🏃 ACTIVITÉ SPORTIVE</div>
+        {sessionsForDate.map(s => (
+          <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
+            <span>{s.activity_name}{s.duration_min ? ` · ${s.duration_min} min` : ""}</span>
+            <span style={{ fontWeight: 700, color: C.orange }}>{s.calories} kcal</span>
+          </div>
+        ))}
+      </div>
+    )}
     {(entry.calories_total || entry.protein_total || entry.carb_total || entry.fat_total) && (
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>🍽️ TOTAUX ALIMENTAIRES</div>
@@ -2076,7 +2305,8 @@ const EntryDetail = ({ entry, onBack }) => (
     {entry.had_difficulty && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.orange, fontWeight: 700, marginBottom: 8 }}>⚠️ DIFFICULTÉ</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.difficulty_note || "Difficulté signalée"}</div></div>}
     {entry.coach_message && <div style={{ background: C.pink + "15", border: `1px solid ${C.pink}44`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.pink, fontWeight: 700, marginBottom: 8 }}>💬 MESSAGE DE TON COACH</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.coach_message}</div></div>}
   </div>
-);
+  );
+};
 
 const EntryCard = ({ e, onClick }) => (
   <Card onClick={onClick} style={{ cursor: onClick ? "pointer" : "default" }}>
@@ -2326,7 +2556,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
   const client = clients.find(c => c.id === selected);
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
   // Exclure les clientes en pause et les contrats terminés des alertes paiement/journal
@@ -2438,7 +2668,7 @@ const CoachApp = ({ user, onLogout }) => {
     setMsgText(""); alert("✅ Message envoyé !");
   };
 
-  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} />;
+  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} />;
 
   if (buildingWorkout || editingWorkout) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
@@ -2800,6 +3030,22 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "journal" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {!loadingData && (
+                    <Card>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: profile ? 10 : 0 }}>
+                        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em" }}>🍽️ PROFIL NUTRITIONNEL</div>
+                        <button onClick={() => setEditingClient(client)} style={{ background: "none", border: "none", color: C.pink, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{profile ? "Modifier" : "+ Compléter"}</button>
+                      </div>
+                      {profile ? (
+                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13 }}>
+                          <span><strong>{calcAge(profile.birth_date) ?? "—"}</strong> ans</span>
+                          <span>{profile.sex === "F" ? "Femme" : profile.sex === "M" ? "Homme" : "—"}</span>
+                          <span><strong>{profile.height_cm || "—"}</strong> cm</span>
+                          <span style={{ color: C.pink, fontWeight: 700 }}>{nutritionGoalLabel(profile.nutrition_goal)}</span>
+                        </div>
+                      ) : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Profil non renseigné — la balance énergétique ne peut pas être calculée pour cette cliente.</p>}
+                    </Card>
+                  )}
                   {loadingData ? <Spinner /> : entries.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune entrée.</p></Card> : entries.map((e, i) => <EntryCard key={i} e={e} onClick={() => setSelectedEntry(e)} />)}
                 </div>
               )}
@@ -3020,7 +3266,8 @@ const ClientApp = ({ user, onLogout }) => {
     }
   }, [clientId]);
 
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto } = useClientData(clientId);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession } = useClientData(clientId);
+  const { activityTypes } = useActivityTypes();
 
   const myWorkouts = assignedWorkouts.filter(a => a.workout).map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
 
@@ -3033,6 +3280,9 @@ const ClientApp = ({ user, onLogout }) => {
   if (!clientInfo?.contract_accepted) pendingClientTasks.push({ title: "Valider ton contrat", subtitle: "Relis les règles et engage-toi", icon: "📄", onClick: () => setScreen("contrat"), accent: C.blue });
   const lastWeight = weights[weights.length - 1];
   const startWeight = weights[0];
+  const todayActivitySessions = activitySessions.filter(s => s.date === today);
+  const todayEnergy = todayEntry ? calcDailyEnergy({ profile, weightKg: lastWeight?.value, steps: todayEntry.steps, activitySessions: todayActivitySessions }) : null;
+  const todayBalanceMsg = todayEnergy && todayEntry?.calories_total != null ? energyBalanceMessage(todayEntry.calories_total - todayEnergy.tdee, profile?.nutrition_goal) : null;
 
   const handleSaveJournal = async (payload) => {
     const existingEntry = entries.find(e => e.date === payload.date);
@@ -3062,13 +3312,13 @@ const ClientApp = ({ user, onLogout }) => {
     setOnboardingDone(true);
   };
 
-  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} />;
+  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} />;
   if (previewWorkout) return <WorkoutPreview workout={previewWorkout} onBack={() => setPreviewWorkout(null)} onStart={() => { setActiveWorkout(previewWorkout); setPreviewWorkout(null); }} />;
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => { setActiveWorkout(null); supabase.from("session_logs").select("*").eq("client_id", clientId).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || [])); }} clientId={clientId} sessionLogs={sessionLogs} />;
 
   if (screen === "journal") {
     if (!clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
-    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} clientId={clientId} />;
+    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} />;
   }
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
@@ -3197,6 +3447,20 @@ const ClientApp = ({ user, onLogout }) => {
             </div>
           )}
         </Card>
+
+        {todayEnergy && (
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>⚡ BALANCE ÉNERGÉTIQUE DU JOUR</div>
+            <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 2 }}>{todayEnergy.tdee.toLocaleString()} kcal</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>Dépense estimée · métabolisme {todayEnergy.bmr} + pas {todayEnergy.neat} + activité {todayEnergy.sport}</div>
+            {todayBalanceMsg ? <div style={{ fontSize: 14, fontWeight: 700, color: todayBalanceMsg.color }}>{todayBalanceMsg.text}</div> : <div style={{ fontSize: 12, color: C.textMuted }}>Renseigne tes calories du jour dans le journal pour voir ta balance</div>}
+          </Card>
+        )}
+        {!todayEnergy && profile === null && !loading && (
+          <div style={{ background: C.blue + "10", border: `1px solid ${C.blue}33`, borderRadius: 14, padding: 16, marginBottom: 14, fontSize: 12, color: C.textMuted }}>
+            ⚡ Ton coach n'a pas encore complété ton profil nutritionnel (âge, taille, objectif) — la balance énergétique s'affichera dès que ce sera fait.
+          </div>
+        )}
 
         {loading ? <div style={{ marginBottom: 14 }}><Spinner /></div> : myWorkouts.length > 0 && (
           <div style={{ marginBottom: 14 }}>
@@ -3461,14 +3725,33 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
     monthly_amount: client.monthly_amount || "",
     start_date: client.start_date || "", next_payment: client.next_payment || "",
   });
+  const [profileForm, setProfileForm] = useState({ birth_date: "", sex: "", height_cm: "", nutrition_goal: "" });
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    supabase.from("client_profiles").select("birth_date, sex, height_cm, nutrition_goal").eq("client_id", client.id).maybeSingle().then(({ data }) => {
+      if (data) setProfileForm({ birth_date: data.birth_date || "", sex: data.sex || "", height_cm: data.height_cm || "", nutrition_goal: data.nutrition_goal || "" });
+      setLoadingProfile(false);
+    });
+  }, [client.id]);
 
   const handleSave = async () => {
     setSaving(true);
     const avatar = form.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
     await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment });
+    if (profileForm.birth_date || profileForm.sex || profileForm.height_cm || profileForm.nutrition_goal) {
+      await supabase.from("client_profiles").upsert([{
+        client_id: client.id,
+        birth_date: profileForm.birth_date || null,
+        sex: profileForm.sex || null,
+        height_cm: profileForm.height_cm ? parseFloat(profileForm.height_cm) : null,
+        nutrition_goal: profileForm.nutrition_goal || null,
+        updated_at: new Date().toISOString(),
+      }], { onConflict: "client_id" });
+    }
     setSaving(false); onClose();
   };
 
@@ -3493,6 +3776,27 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
           <Inp label="Montant toutes les 4 semaines (€)" type="number" value={form.monthly_amount} onChange={e => setForm({ ...form, monthly_amount: e.target.value })} />
           <Inp label="Date de début" type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
           <Inp label="Prochain paiement" type="date" value={form.next_payment} onChange={e => setForm({ ...form, next_payment: e.target.value })} />
+        </div>
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 16, marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>🍽️ Profil nutritionnel</div>
+          {loadingProfile ? <Spinner /> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <Inp label="Date de naissance" type="date" value={profileForm.birth_date} onChange={e => setProfileForm({ ...profileForm, birth_date: e.target.value })} />
+              <div>
+                <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Sexe</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {SEX_OPTIONS.map(o => (<button key={o.value} onClick={() => setProfileForm({ ...profileForm, sex: o.value })} style={{ flex: 1, padding: 11, borderRadius: 10, border: `2px solid ${profileForm.sex === o.value ? C.pink : C.border}`, background: profileForm.sex === o.value ? C.pink + "22" : "#111", color: profileForm.sex === o.value ? C.pink : C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{o.label}</button>))}
+                </div>
+              </div>
+              <Inp label="Taille (cm)" type="number" placeholder="ex: 165" value={profileForm.height_cm} onChange={e => setProfileForm({ ...profileForm, height_cm: e.target.value })} />
+              <div>
+                <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Objectif nutritionnel</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {NUTRITION_GOAL_OPTIONS.map(o => (<button key={o.value} onClick={() => setProfileForm({ ...profileForm, nutrition_goal: o.value })} style={{ padding: 11, borderRadius: 10, border: `2px solid ${profileForm.nutrition_goal === o.value ? C.pink : C.border}`, background: profileForm.nutrition_goal === o.value ? C.pink + "22" : "#111", color: profileForm.nutrition_goal === o.value ? C.pink : C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", textAlign: "left" }}>{o.label}</button>))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
           <Btn variant="secondary" onClick={onClose} style={{ flex: 1 }}>Annuler</Btn>
