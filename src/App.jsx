@@ -513,14 +513,14 @@ const callAdminFunction = async (payload) => {
 };
 
 const ANALYZE_MEAL_URL = `${SUPABASE_URL}/functions/v1/analyze-meal`;
-const analyzeMeal = async (text) => {
+const analyzeMeal = async ({ text, photoBase64 }) => {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
   try {
     const res = await fetch(ANALYZE_MEAL_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, photoBase64 }),
     });
     const json = await res.json();
     if (!res.ok) return { error: json.error || "Erreur lors de l'analyse du repas." };
@@ -1861,7 +1861,7 @@ const useClientData = (clientId) => {
       supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").eq("client_id", clientId).order("paid_date", { ascending: false }),
       supabase.from("client_profiles").select("client_id, birth_date, sex, height_cm, nutrition_goal").eq("client_id", clientId).maybeSingle(),
       supabase.from("activity_sessions").select("id, client_id, date, activity_name, met_value, duration_min, source, calories").eq("client_id", clientId).order("date", { ascending: false }),
-      supabase.from("meals").select("id, client_id, date, meal_slot, raw_text, source, items, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g, confidence").eq("client_id", clientId).order("created_at", { ascending: false }),
+      supabase.from("meals").select("id, client_id, date, meal_slot, raw_text, photo_url, source, items, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g, confidence").eq("client_id", clientId).order("created_at", { ascending: false }),
     ]);
     const [e, w, m, cw, pp, pay, prof, acts, mls] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
     settled.forEach((r, i) => { if (r.status === "rejected") console.error("useClientData: requête échouée", i, r.reason); });
@@ -1970,6 +1970,9 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
   const [editingMealId, setEditingMealId] = useState(null);
   const [mealSlot, setMealSlot] = useState(MEAL_SLOT_OPTIONS[0].value);
   const [mealText, setMealText] = useState("");
+  const [mealPhotoUrl, setMealPhotoUrl] = useState(null);
+  const [mealPhotoBase64, setMealPhotoBase64] = useState(null);
+  const [uploadingMealPhoto, setUploadingMealPhoto] = useState(false);
   const [analyzingMeal, setAnalyzingMeal] = useState(false);
   const [mealError, setMealError] = useState("");
 
@@ -1979,15 +1982,63 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
   const dailyEnergy = calcDailyEnergy({ profile, weightKg: latestWeightKg, steps: parseInt(steps) || 0, activitySessions: sessionsForDate });
   const balanceMsg = dailyEnergy && mealsForDate.length > 0 ? energyBalanceMessage(dayCalories - dailyEnergy.tdee, profile?.nutrition_goal) : null;
 
-  const resetMealForm = () => { setShowAddMeal(false); setEditingMealId(null); setMealText(""); setMealSlot(MEAL_SLOT_OPTIONS[0].value); setMealError(""); };
-  const startEditMeal = (m) => { setEditingMealId(m.id); setMealSlot(m.meal_slot); setMealText(m.raw_text); setShowAddMeal(true); setMealError(""); };
+  const resetMealForm = () => { setShowAddMeal(false); setEditingMealId(null); setMealText(""); setMealSlot(MEAL_SLOT_OPTIONS[0].value); setMealError(""); setMealPhotoUrl(null); setMealPhotoBase64(null); };
+  const startEditMeal = (m) => { setEditingMealId(m.id); setMealSlot(m.meal_slot); setMealText(m.raw_text || ""); setMealPhotoUrl(m.photo_url || null); setMealPhotoBase64(null); setShowAddMeal(true); setMealError(""); };
+
+  const compressMealPhoto = (file) => new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 800;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+        else { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      const base64 = canvas.toDataURL("image/jpeg", 0.75).split(",")[1];
+      canvas.toBlob(async (blob) => {
+        URL.revokeObjectURL(url);
+        const fileName = `${clientId}/meal_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+        const { error } = await supabase.storage.from("photos").upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
+        const publicUrl = error ? null : supabase.storage.from("photos").getPublicUrl(fileName).data.publicUrl;
+        resolve({ url: publicUrl, base64 });
+      }, "image/jpeg", 0.75);
+    };
+    img.src = url;
+  });
+
+  const handleMealPhoto = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    setUploadingMealPhoto(true);
+    const { url, base64 } = await compressMealPhoto(file);
+    setMealPhotoUrl(url); setMealPhotoBase64(base64);
+    setUploadingMealPhoto(false);
+  };
+
+  const fetchAsBase64 = async (url) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.readAsDataURL(blob);
+    });
+  };
+
   const handleSubmitMeal = async () => {
-    if (!mealText.trim()) return;
+    if (!mealText.trim() && !mealPhotoUrl) return;
     setAnalyzingMeal(true); setMealError("");
-    const { data, error } = await analyzeMeal(mealText.trim());
+    // Photo fraîchement attachée cette session -> base64 déjà en mémoire. Photo d'un repas
+    // existant en cours d'édition -> on la retélécharge pour la ré-analyser.
+    const photoBase64 = mealPhotoBase64 || (mealPhotoUrl ? await fetchAsBase64(mealPhotoUrl) : null);
+    const { data, error } = await analyzeMeal({ text: mealText.trim(), photoBase64 });
     if (error) { setMealError(error); setAnalyzingMeal(false); return; }
     const payload = {
-      date: selectedDate, meal_slot: mealSlot, raw_text: mealText.trim(), source: "text",
+      date: selectedDate, meal_slot: mealSlot, raw_text: mealText.trim(), source: mealPhotoUrl ? "photo" : "text",
+      photo_url: mealPhotoUrl || null,
       items: data.items || [], calories: data.calories || 0, protein_g: data.protein_g || 0,
       carb_g: data.carb_g || 0, fat_g: data.fat_g || 0, fiber_g: data.fiber_g || 0, sugar_g: data.sugar_g || 0,
       confidence: data.confidence ?? 0,
@@ -2207,7 +2258,8 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
                       <button onClick={() => onDeleteMeal(m.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 26, height: 26, color: C.red, cursor: "pointer" }}>✕</button>
                     </div>
                   </div>
-                  <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}>{m.raw_text}</div>
+                  {m.photo_url && <img src={m.photo_url} alt="" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, marginBottom: 8 }} />}
+                  {m.raw_text && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}>{m.raw_text}</div>}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <Badge color={C.yellow}>{Math.round(m.calories)} kcal</Badge>
                     <Badge color={C.green}>💪 {Math.round(m.protein_g)}g</Badge>
@@ -2228,11 +2280,23 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
                   <button key={o.value} onClick={() => setMealSlot(o.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `2px solid ${mealSlot === o.value ? C.pink : C.border}`, background: mealSlot === o.value ? C.pink + "22" : "transparent", color: mealSlot === o.value ? C.pink : C.textMuted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{o.label}</button>
                 ))}
               </div>
-              <TA placeholder="Décris ce que tu as mangé, le plus précisément possible si tu as pesé, sinon une estimation suffit..." value={mealText} onChange={e => setMealText(e.target.value)} style={{ marginBottom: 12 }} />
+              <TA placeholder="Décris ce que tu as mangé, le plus précisément possible si tu as pesé, sinon une estimation suffit (facultatif si tu ajoutes une photo)..." value={mealText} onChange={e => setMealText(e.target.value)} style={{ marginBottom: 12 }} />
+              {mealPhotoUrl ? (
+                <div style={{ position: "relative", marginBottom: 12, display: "inline-block" }}>
+                  <img src={mealPhotoUrl} alt="" style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 10 }} />
+                  <button onClick={() => { setMealPhotoUrl(null); setMealPhotoBase64(null); }} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 20, height: 20, color: "white", fontSize: 11, cursor: "pointer" }}>✕</button>
+                </div>
+              ) : (
+                <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#181818", border: `1px dashed ${C.border}`, borderRadius: 10, cursor: uploadingMealPhoto ? "wait" : "pointer", marginBottom: 12 }}>
+                  <span style={{ fontSize: 18 }}>📷</span>
+                  <span style={{ fontSize: 13, color: C.textMuted }}>{uploadingMealPhoto ? "Envoi de la photo..." : "Ajouter une photo (au lieu du texte ou en plus)"}</span>
+                  <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploadingMealPhoto} onChange={handleMealPhoto} />
+                </label>
+              )}
               {mealError && <div style={{ fontSize: 12, color: C.red, marginBottom: 10 }}>{mealError}</div>}
               <div style={{ display: "flex", gap: 10 }}>
                 <Btn variant="secondary" onClick={resetMealForm} style={{ flex: 1 }} disabled={analyzingMeal}>Annuler</Btn>
-                <Btn onClick={handleSubmitMeal} disabled={analyzingMeal || !mealText.trim()} style={{ flex: 2 }}>{analyzingMeal ? "Analyse en cours..." : editingMealId ? "Ré-analyser" : "Analyser"}</Btn>
+                <Btn onClick={handleSubmitMeal} disabled={analyzingMeal || uploadingMealPhoto || (!mealText.trim() && !mealPhotoUrl)} style={{ flex: 2 }}>{analyzingMeal ? "Analyse en cours..." : editingMealId ? "Ré-analyser" : "Analyser"}</Btn>
               </div>
             </div>
           )}
