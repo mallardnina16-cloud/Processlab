@@ -298,6 +298,12 @@ const SESSION_OPTIONS = [
 ];
 const sessionColor = v => SESSION_OPTIONS.find(o => o.value === v)?.color || C.textMuted;
 const sessionLabel = v => SESSION_OPTIONS.find(o => o.value === v)?.label || "—";
+const MEAL_SLOT_OPTIONS = [
+  { value: "petit-déjeuner", label: "🌅 Petit-déjeuner" },
+  { value: "déjeuner", label: "☀️ Déjeuner" },
+  { value: "dîner", label: "🌙 Dîner" },
+  { value: "collation", label: "🍎 Collation" },
+];
 const SEX_OPTIONS = [{ value: "F", label: "Femme" }, { value: "M", label: "Homme" }];
 const NUTRITION_GOAL_OPTIONS = [
   { value: "cut", label: "Perte de poids" },
@@ -503,6 +509,24 @@ const callAdminFunction = async (payload) => {
     return await res.json();
   } catch (err) {
     return { error: "Impossible de contacter le serveur." };
+  }
+};
+
+const ANALYZE_MEAL_URL = `${SUPABASE_URL}/functions/v1/analyze-meal`;
+const analyzeMeal = async (text) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  try {
+    const res = await fetch(ANALYZE_MEAL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ text }),
+    });
+    const json = await res.json();
+    if (!res.ok) return { error: json.error || "Erreur lors de l'analyse du repas." };
+    return { data: json };
+  } catch (err) {
+    return { error: "Impossible de contacter le serveur d'analyse." };
   }
 };
 
@@ -1806,6 +1830,7 @@ const useClientData = (clientId) => {
   const [payments, setPayments] = useState(() => readCache(cacheKey)?.payments || []);
   const [profile, setProfile] = useState(() => readCache(cacheKey)?.profile || null);
   const [activitySessions, setActivitySessions] = useState(() => readCache(cacheKey)?.activitySessions || []);
+  const [meals, setMeals] = useState(() => readCache(cacheKey)?.meals || []);
   const [loading, setLoading] = useState(() => !readCache(cacheKey));
 
   const fetch = async () => {
@@ -1817,11 +1842,11 @@ const useClientData = (clientId) => {
     if (cached) {
       setEntries(cached.entries || []); setWeights(cached.weights || []); setMeasurements(cached.measurements || []);
       setAssignedWorkouts(cached.assignedWorkouts || []); setProgressPhotos(cached.progressPhotos || []); setPayments(cached.payments || []);
-      setProfile(cached.profile || null); setActivitySessions(cached.activitySessions || []);
+      setProfile(cached.profile || null); setActivitySessions(cached.activitySessions || []); setMeals(cached.meals || []);
       setLoading(false);
     } else {
       setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
-      setProfile(null); setActivitySessions([]);
+      setProfile(null); setActivitySessions([]); setMeals([]);
       setLoading(true);
     }
     // allSettled plutôt que all : si une table manque encore (ex: migration nutrition pas encore
@@ -1836,8 +1861,9 @@ const useClientData = (clientId) => {
       supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").eq("client_id", clientId).order("paid_date", { ascending: false }),
       supabase.from("client_profiles").select("client_id, birth_date, sex, height_cm, nutrition_goal").eq("client_id", clientId).maybeSingle(),
       supabase.from("activity_sessions").select("id, client_id, date, activity_name, met_value, duration_min, source, calories").eq("client_id", clientId).order("date", { ascending: false }),
+      supabase.from("meals").select("id, client_id, date, meal_slot, raw_text, source, items, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g, confidence").eq("client_id", clientId).order("created_at", { ascending: false }),
     ]);
-    const [e, w, m, cw, pp, pay, prof, acts] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
+    const [e, w, m, cw, pp, pay, prof, acts, mls] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
     settled.forEach((r, i) => { if (r.status === "rejected") console.error("useClientData: requête échouée", i, r.reason); });
     const nextPayload = {
       entries: e.data || [],
@@ -1848,11 +1874,12 @@ const useClientData = (clientId) => {
       payments: pay.data || [],
       profile: prof.data || null,
       activitySessions: acts.data || [],
+      meals: mls.data || [],
     };
     writeCache(cacheKey, nextPayload);
     setEntries(nextPayload.entries); setWeights(nextPayload.weights); setMeasurements(nextPayload.measurements);
     setAssignedWorkouts(nextPayload.assignedWorkouts); setProgressPhotos(nextPayload.progressPhotos); setPayments(nextPayload.payments);
-    setProfile(nextPayload.profile); setActivitySessions(nextPayload.activitySessions);
+    setProfile(nextPayload.profile); setActivitySessions(nextPayload.activitySessions); setMeals(nextPayload.meals);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
@@ -1898,19 +1925,33 @@ const useClientData = (clientId) => {
     await supabase.from("activity_sessions").delete().eq("id", id);
     setActivitySessions(a => a.filter(x => x.id !== id));
   };
+  // Le trigger SQL meals_sync_entries recalcule entries.calories_total/meal_note côté serveur
+  // à chaque insert/update/delete sur meals — on refetch tout pour que le state local reflète
+  // ce recalcul, plutôt que de dupliquer la logique d'agrégation ici.
+  const addMeal = async (meal) => {
+    const { data, error } = await supabase.from("meals").insert([{ ...meal, client_id: clientId }]).select().single();
+    if (error) { alert("Erreur lors de l'enregistrement du repas : " + error.message); return null; }
+    await fetch();
+    return data;
+  };
+  const updateMeal = async (id, patch) => {
+    const { data, error } = await supabase.from("meals").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+    if (error) { alert("Erreur lors de la mise à jour du repas : " + error.message); return null; }
+    await fetch();
+    return data;
+  };
+  const deleteMeal = async (id) => {
+    await supabase.from("meals").delete().eq("id", id);
+    await fetch();
+  };
 
-  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession };
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal };
 };
-const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession }) => {
+const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal }) => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
-  const [mealNote, setMealNote] = useState("");
   const [photos, setPhotos] = useState([]);
-  const [caloriesTotal, setCaloriesTotal] = useState("");
-  const [proteinTotal, setProteinTotal] = useState("");
-  const [carbTotal, setCarbTotal] = useState("");
-  const [fatTotal, setFatTotal] = useState("");
   const [sessionStatus, setSessionStatus] = useState(null);
   const [sessionNote, setSessionNote] = useState("");
   const [hydration, setHydration] = useState("");
@@ -1925,10 +1966,36 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
   const [activityDuration, setActivityDuration] = useState("");
   const [watchCalories, setWatchCalories] = useState("");
   const [savingActivity, setSavingActivity] = useState(false);
+  const [showAddMeal, setShowAddMeal] = useState(false);
+  const [editingMealId, setEditingMealId] = useState(null);
+  const [mealSlot, setMealSlot] = useState(MEAL_SLOT_OPTIONS[0].value);
+  const [mealText, setMealText] = useState("");
+  const [analyzingMeal, setAnalyzingMeal] = useState(false);
+  const [mealError, setMealError] = useState("");
 
   const sessionsForDate = activitySessions.filter(s => s.date === selectedDate);
+  const mealsForDate = meals.filter(m => m.date === selectedDate);
+  const dayCalories = mealsForDate.reduce((sum, m) => sum + (m.calories || 0), 0);
   const dailyEnergy = calcDailyEnergy({ profile, weightKg: latestWeightKg, steps: parseInt(steps) || 0, activitySessions: sessionsForDate });
-  const balanceMsg = dailyEnergy && caloriesTotal ? energyBalanceMessage(parseInt(caloriesTotal) - dailyEnergy.tdee, profile?.nutrition_goal) : null;
+  const balanceMsg = dailyEnergy && mealsForDate.length > 0 ? energyBalanceMessage(dayCalories - dailyEnergy.tdee, profile?.nutrition_goal) : null;
+
+  const resetMealForm = () => { setShowAddMeal(false); setEditingMealId(null); setMealText(""); setMealSlot(MEAL_SLOT_OPTIONS[0].value); setMealError(""); };
+  const startEditMeal = (m) => { setEditingMealId(m.id); setMealSlot(m.meal_slot); setMealText(m.raw_text); setShowAddMeal(true); setMealError(""); };
+  const handleSubmitMeal = async () => {
+    if (!mealText.trim()) return;
+    setAnalyzingMeal(true); setMealError("");
+    const { data, error } = await analyzeMeal(mealText.trim());
+    if (error) { setMealError(error); setAnalyzingMeal(false); return; }
+    const payload = {
+      date: selectedDate, meal_slot: mealSlot, raw_text: mealText.trim(), source: "text",
+      items: data.items || [], calories: data.calories || 0, protein_g: data.protein_g || 0,
+      carb_g: data.carb_g || 0, fat_g: data.fat_g || 0, fiber_g: data.fiber_g || 0, sugar_g: data.sugar_g || 0,
+      confidence: data.confidence ?? 0,
+    };
+    if (editingMealId) await onUpdateMeal(editingMealId, payload);
+    else await onAddMeal(payload);
+    setAnalyzingMeal(false); resetMealForm();
+  };
 
   const handleAddActivity = async () => {
     if (activityMode === "watch") {
@@ -1948,18 +2015,16 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
   const existing = entries.find(e => e.date === selectedDate) || null;
 
   useEffect(() => {
+    resetMealForm();
     if (existing) {
       setFeeling(existing.feeling || null); setSteps(existing.steps?.toString() || "");
-      setMealNote(existing.meal_note || ""); setPhotos(existing.photos || []);
-      setCaloriesTotal(existing.calories_total?.toString() || ""); setProteinTotal(existing.protein_total?.toString() || "");
-      setCarbTotal(existing.carb_total?.toString() || ""); setFatTotal(existing.fat_total?.toString() || "");
+      setPhotos(existing.photos || []);
       setSessionStatus(existing.session_status || null); setSessionNote(existing.session_note || "");
       setHydration(existing.hydration?.toString() || ""); setSleepHours(existing.sleep_hours?.toString() || "");
       setNap(existing.nap ?? null); setHadDifficulty(existing.had_difficulty ?? null);
       setDifficultyNote(existing.difficulty_note || "");
     } else {
-      setFeeling(null); setSteps(""); setMealNote(""); setPhotos([]);
-      setCaloriesTotal(""); setProteinTotal(""); setCarbTotal(""); setFatTotal("");
+      setFeeling(null); setSteps(""); setPhotos([]);
       setSessionStatus(null); setSessionNote(""); setHydration("");
       setSleepHours(""); setNap(null); setHadDifficulty(null);
       setDifficultyNote("");
@@ -2005,16 +2070,20 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave({
-      date: selectedDate, steps: parseInt(steps) || 0, feeling: feeling || 3, meal_note: mealNote, photos,
-      calories_total: caloriesTotal ? parseInt(caloriesTotal) : null,
-      protein_total: proteinTotal ? parseFloat(proteinTotal) : null,
-      carb_total: carbTotal ? parseFloat(carbTotal) : null,
-      fat_total: fatTotal ? parseFloat(fatTotal) : null,
+    // meal_note / calories_total / protein_total / carb_total / fat_total sont désormais des
+    // champs dérivés, maintenus par le trigger SQL meals_sync_entries à partir de la table meals.
+    // On ne les touche pas ici sur une mise à jour (pour ne pas écraser ce que le trigger vient
+    // de calculer) ; on les initialise à vide uniquement à la création d'une toute nouvelle ligne.
+    const payload = {
+      date: selectedDate, steps: parseInt(steps) || 0, feeling: feeling || 3, photos,
       session_status: sessionStatus || "rest", session_note: sessionNote,
       hydration: parseFloat(hydration) || 0, sleep_hours: parseFloat(sleepHours) || 0,
       nap: nap || false, had_difficulty: hadDifficulty || false, difficulty_note: difficultyNote,
-    });
+    };
+    if (!existing) {
+      payload.meal_note = ""; payload.calories_total = null; payload.protein_total = null; payload.carb_total = null; payload.fat_total = null;
+    }
+    await onSave(payload);
     setSaving(false); onBack();
   };
 
@@ -2126,15 +2195,54 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
         </div>
 
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🍽️ Alimentation du jour</div>
-          <TA label="Commentaire repas" placeholder="Ce que tu as mangé aujourd'hui, ressenti, écarts..." value={mealNote} onChange={e => setMealNote(e.target.value)} style={{ marginBottom: 14 }} />
-          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🍽️ Repas du jour</div>
+          {mealsForDate.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+              {mealsForDate.map(m => (
+                <div key={m.id} style={{ background: "#111", borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: C.pink, fontWeight: 700 }}>{MEAL_SLOT_OPTIONS.find(o => o.value === m.meal_slot)?.label || m.meal_slot}</div>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => startEditMeal(m)} style={{ background: "#222", border: "none", borderRadius: 6, padding: "4px 9px", color: C.textMuted, fontSize: 11, cursor: "pointer" }}>✏️ Modifier</button>
+                      <button onClick={() => onDeleteMeal(m.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 26, height: 26, color: C.red, cursor: "pointer" }}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}>{m.raw_text}</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <Badge color={C.yellow}>{Math.round(m.calories)} kcal</Badge>
+                    <Badge color={C.green}>💪 {Math.round(m.protein_g)}g</Badge>
+                    <Badge color={C.blue}>🌾 {Math.round(m.carb_g)}g</Badge>
+                    <Badge color={C.pink}>🥑 {Math.round(m.fat_g)}g</Badge>
+                    {m.confidence < 0.6 && <Badge color={C.orange}>≈ estimation</Badge>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {!showAddMeal ? (
+            <button onClick={() => setShowAddMeal(true)} style={{ width: "100%", padding: 13, borderRadius: 12, border: `1px dashed ${C.pink}55`, background: "#111", color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Ajouter un repas</button>
+          ) : (
+            <div style={{ background: "#111", borderRadius: 12, padding: 14 }}>
+              <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+                {MEAL_SLOT_OPTIONS.map(o => (
+                  <button key={o.value} onClick={() => setMealSlot(o.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `2px solid ${mealSlot === o.value ? C.pink : C.border}`, background: mealSlot === o.value ? C.pink + "22" : "transparent", color: mealSlot === o.value ? C.pink : C.textMuted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{o.label}</button>
+                ))}
+              </div>
+              <TA placeholder="Décris ce que tu as mangé, le plus précisément possible si tu as pesé, sinon une estimation suffit..." value={mealText} onChange={e => setMealText(e.target.value)} style={{ marginBottom: 12 }} />
+              {mealError && <div style={{ fontSize: 12, color: C.red, marginBottom: 10 }}>{mealError}</div>}
+              <div style={{ display: "flex", gap: 10 }}>
+                <Btn variant="secondary" onClick={resetMealForm} style={{ flex: 1 }} disabled={analyzingMeal}>Annuler</Btn>
+                <Btn onClick={handleSubmitMeal} disabled={analyzingMeal || !mealText.trim()} style={{ flex: 2 }}>{analyzingMeal ? "Analyse en cours..." : editingMealId ? "Ré-analyser" : "Analyser"}</Btn>
+              </div>
+            </div>
+          )}
+          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer", marginTop: 14 }}>
             <span style={{ fontSize: 20 }}>📷</span>
-            <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter des photos repas</div><div style={{ fontSize: 11, color: C.textMuted }}>Pellicule ou appareil photo</div></div>
+            <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter des photos (optionnel)</div><div style={{ fontSize: 11, color: C.textMuted }}>Pour référence — l'analyse par photo arrive dans une prochaine mise à jour</div></div>
             <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handlePhoto} />
           </label>
           {photos.length > 0 && (
-            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
               {photos.map((p, i) => (
                 <div key={i} style={{ position: "relative" }}>
                   <img src={p} alt="" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 10 }} />
@@ -2143,13 +2251,6 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
               ))}
             </div>
           )}
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Totaux du jour (si tu les connais)</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <Inp label="Calories (kcal)" type="number" inputMode="numeric" placeholder="ex: 1750" value={caloriesTotal} onChange={e => setCaloriesTotal(e.target.value)} />
-            <Inp label="Protéines (g)" type="number" inputMode="numeric" placeholder="ex: 110" value={proteinTotal} onChange={e => setProteinTotal(e.target.value)} />
-            <Inp label="Glucides (g)" type="number" inputMode="numeric" placeholder="ex: 180" value={carbTotal} onChange={e => setCarbTotal(e.target.value)} />
-            <Inp label="Lipides (g)" type="number" inputMode="numeric" placeholder="ex: 60" value={fatTotal} onChange={e => setFatTotal(e.target.value)} />
-          </div>
         </div>
 
         <div>
@@ -3266,7 +3367,7 @@ const ClientApp = ({ user, onLogout }) => {
     }
   }, [clientId]);
 
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession } = useClientData(clientId);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal } = useClientData(clientId);
   const { activityTypes } = useActivityTypes();
 
   const myWorkouts = assignedWorkouts.filter(a => a.workout).map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
@@ -3318,7 +3419,7 @@ const ClientApp = ({ user, onLogout }) => {
 
   if (screen === "journal") {
     if (!clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
-    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} />;
+    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} meals={meals} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} />;
   }
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
