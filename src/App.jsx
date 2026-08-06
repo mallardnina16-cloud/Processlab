@@ -2648,7 +2648,7 @@ const handleResume = async () => {
 // ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT CARD (liste des séances coach + assignation directe)
 // ══════════════════════════════════════════════════════════════════════════════
-const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArchive, onUnarchive, assignedIds = [], onToggleAssign }) => {
+const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArchive, onUnarchive, onDuplicate, assignedIds = [], onToggleAssign }) => {
   const [showAssign, setShowAssign] = useState(false);
   const assignments = assignedIds;
   const toggle = (clientId) => onToggleAssign(w.id, clientId);
@@ -2666,6 +2666,7 @@ const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArch
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Btn small variant="secondary" onClick={onEdit} style={{ width: "auto" }}>✏️</Btn>
+          <Btn small variant="secondary" onClick={onDuplicate} style={{ width: "auto" }} title="Dupliquer">⧉</Btn>
           {w.is_archived ? (
             <Btn small variant="secondary" onClick={onUnarchive} style={{ width: "auto" }}>♻️</Btn>
           ) : (
@@ -2724,6 +2725,14 @@ const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArch
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
   const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment } = useWorkouts();
+  const handleDuplicateWorkout = async (workout) => {
+    await saveWorkout({
+      name: `${workout.name} (copie)`,
+      description: workout.description,
+      blocks: workout.blocks || [],
+      exercises: (workout.exercises || []).map(({ id, workout_id, ...rest }) => rest),
+    });
+  };
       const { payments: allPayments, loadingPayments, addPaymentRecord } = usePayments();
   const [selected, setSelected] = useState(null);
   const [mainTab, setMainTab] = useState("dashboard");
@@ -3032,6 +3041,7 @@ const CoachApp = ({ user, onLogout }) => {
                       onDelete={() => deleteWorkout(w.id)}
                       onArchive={() => setArchived(w.id, true)}
                       onUnarchive={() => setArchived(w.id, false)}
+                      onDuplicate={() => handleDuplicateWorkout(w)}
                     />
                   ))}
                   {archivedWorkoutsList.length > 0 && (
