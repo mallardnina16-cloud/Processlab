@@ -1985,36 +1985,58 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
   const resetMealForm = () => { setShowAddMeal(false); setEditingMealId(null); setMealText(""); setMealSlot(MEAL_SLOT_OPTIONS[0].value); setMealError(""); setMealPhotoUrl(null); setMealPhotoBase64(null); };
   const startEditMeal = (m) => { setEditingMealId(m.id); setMealSlot(m.meal_slot); setMealText(m.raw_text || ""); setMealPhotoUrl(m.photo_url || null); setMealPhotoBase64(null); setShowAddMeal(true); setMealError(""); };
 
-  const compressMealPhoto = (file) => new Promise((resolve) => {
+  // reject() est essentiel ici : sans elle, la moindre erreur (format image non décodable,
+  // échec du storage...) laisse la promesse en attente pour toujours, avec le bouton
+  // "Analyser" qui reste grisé indéfiniment et aucun message d'erreur affiché.
+  const compressMealPhoto = (file) => new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
+    const fail = (msg) => { URL.revokeObjectURL(url); reject(new Error(msg)); };
+    img.onerror = () => fail("Impossible de lire cette photo (format non supporté).");
     img.onload = () => {
-      const MAX = 800;
-      let { width, height } = img;
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
-        else { width = Math.round(width * MAX / height); height = MAX; }
+      try {
+        const MAX = 800;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const base64 = canvas.toDataURL("image/jpeg", 0.75).split(",")[1];
+        canvas.toBlob(async (blob) => {
+          if (!blob) { fail("Échec de la compression de la photo."); return; }
+          URL.revokeObjectURL(url);
+          try {
+            const fileName = `${clientId}/meal_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+            const { error } = await supabase.storage.from("photos").upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
+            if (error) { reject(new Error("Échec de l'envoi de la photo : " + error.message)); return; }
+            const publicUrl = supabase.storage.from("photos").getPublicUrl(fileName).data.publicUrl;
+            resolve({ url: publicUrl, base64 });
+          } catch (err) {
+            reject(err);
+          }
+        }, "image/jpeg", 0.75);
+      } catch (err) {
+        fail("Erreur lors du traitement de la photo.");
       }
-      const canvas = document.createElement("canvas");
-      canvas.width = width; canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      const base64 = canvas.toDataURL("image/jpeg", 0.75).split(",")[1];
-      canvas.toBlob(async (blob) => {
-        URL.revokeObjectURL(url);
-        const fileName = `${clientId}/meal_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
-        const { error } = await supabase.storage.from("photos").upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
-        const publicUrl = error ? null : supabase.storage.from("photos").getPublicUrl(fileName).data.publicUrl;
-        resolve({ url: publicUrl, base64 });
-      }, "image/jpeg", 0.75);
     };
     img.src = url;
+    // Garde-fou : si ni onload ni onerror ne se déclenchent (rare, certains navigateurs mobiles),
+    // on ne reste jamais bloqué plus de 20s sans retour.
+    setTimeout(() => fail("Le traitement de la photo prend trop de temps, réessaie."), 20000);
   });
 
   const handleMealPhoto = async (e) => {
     const file = e.target.files[0]; if (!file) return;
-    setUploadingMealPhoto(true);
-    const { url, base64 } = await compressMealPhoto(file);
-    setMealPhotoUrl(url); setMealPhotoBase64(base64);
+    setUploadingMealPhoto(true); setMealError("");
+    try {
+      const { url, base64 } = await compressMealPhoto(file);
+      setMealPhotoUrl(url); setMealPhotoBase64(base64);
+    } catch (err) {
+      setMealError(err.message || "Impossible d'ajouter cette photo.");
+    }
     setUploadingMealPhoto(false);
   };
 
@@ -2302,7 +2324,7 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
           )}
           <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: "#111", border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer", marginTop: 14 }}>
             <span style={{ fontSize: 20 }}>📷</span>
-            <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Ajouter des photos (optionnel)</div><div style={{ fontSize: 11, color: C.textMuted }}>Pour référence — l'analyse par photo arrive dans une prochaine mise à jour</div></div>
+            <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Photos supplémentaires (optionnel)</div><div style={{ fontSize: 11, color: C.textMuted }}>Non analysées — pour une photo de repas analysée, utilise "+ Ajouter un repas" ci-dessus</div></div>
             <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handlePhoto} />
           </label>
           {photos.length > 0 && (
