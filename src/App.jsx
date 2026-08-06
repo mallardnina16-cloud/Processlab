@@ -1831,6 +1831,8 @@ const useClientData = (clientId) => {
   const [profile, setProfile] = useState(() => readCache(cacheKey)?.profile || null);
   const [activitySessions, setActivitySessions] = useState(() => readCache(cacheKey)?.activitySessions || []);
   const [meals, setMeals] = useState(() => readCache(cacheKey)?.meals || []);
+  const [schedule, setSchedule] = useState(() => readCache(cacheKey)?.schedule || []);
+  const [appointments, setAppointments] = useState(() => readCache(cacheKey)?.appointments || []);
   const [loading, setLoading] = useState(() => !readCache(cacheKey));
 
   const fetch = async () => {
@@ -1843,10 +1845,11 @@ const useClientData = (clientId) => {
       setEntries(cached.entries || []); setWeights(cached.weights || []); setMeasurements(cached.measurements || []);
       setAssignedWorkouts(cached.assignedWorkouts || []); setProgressPhotos(cached.progressPhotos || []); setPayments(cached.payments || []);
       setProfile(cached.profile || null); setActivitySessions(cached.activitySessions || []); setMeals(cached.meals || []);
+      setSchedule(cached.schedule || []); setAppointments(cached.appointments || []);
       setLoading(false);
     } else {
       setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
-      setProfile(null); setActivitySessions([]); setMeals([]);
+      setProfile(null); setActivitySessions([]); setMeals([]); setSchedule([]); setAppointments([]);
       setLoading(true);
     }
     // allSettled plutôt que all : si une table manque encore (ex: migration nutrition pas encore
@@ -1862,8 +1865,10 @@ const useClientData = (clientId) => {
       supabase.from("client_profiles").select("client_id, birth_date, sex, height_cm, nutrition_goal").eq("client_id", clientId).maybeSingle(),
       supabase.from("activity_sessions").select("id, client_id, date, activity_name, met_value, duration_min, source, calories").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("meals").select("id, client_id, date, meal_slot, raw_text, photo_url, source, items, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g, confidence").eq("client_id", clientId).order("created_at", { ascending: false }),
+      supabase.from("workout_schedule").select("id, client_id, workout_id, date").eq("client_id", clientId).order("date"),
+      supabase.from("appointments").select("id, client_id, date, time, duration_min, note").eq("client_id", clientId).order("date"),
     ]);
-    const [e, w, m, cw, pp, pay, prof, acts, mls] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
+    const [e, w, m, cw, pp, pay, prof, acts, mls, sched, appts] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
     settled.forEach((r, i) => { if (r.status === "rejected") console.error("useClientData: requête échouée", i, r.reason); });
     const nextPayload = {
       entries: e.data || [],
@@ -1875,11 +1880,14 @@ const useClientData = (clientId) => {
       profile: prof.data || null,
       activitySessions: acts.data || [],
       meals: mls.data || [],
+      schedule: sched.data || [],
+      appointments: appts.data || [],
     };
     writeCache(cacheKey, nextPayload);
     setEntries(nextPayload.entries); setWeights(nextPayload.weights); setMeasurements(nextPayload.measurements);
     setAssignedWorkouts(nextPayload.assignedWorkouts); setProgressPhotos(nextPayload.progressPhotos); setPayments(nextPayload.payments);
     setProfile(nextPayload.profile); setActivitySessions(nextPayload.activitySessions); setMeals(nextPayload.meals);
+    setSchedule(nextPayload.schedule); setAppointments(nextPayload.appointments);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
@@ -1944,8 +1952,36 @@ const useClientData = (clientId) => {
     await supabase.from("meals").delete().eq("id", id);
     await fetch();
   };
+  // dates : tableau de dates "YYYY-MM-DD" — une seule date pour un placement ponctuel,
+  // plusieurs pour une récurrence (ex: le même jour chaque semaine sur N semaines).
+  const scheduleWorkout = async (workoutId, dates) => {
+    const rows = dates.map(date => ({ client_id: clientId, workout_id: workoutId, date }));
+    const { error } = await supabase.from("workout_schedule").upsert(rows, { onConflict: "client_id,workout_id,date" });
+    if (error) { alert("Erreur lors de la planification : " + error.message); return; }
+    await fetch();
+  };
+  const unscheduleWorkout = async (scheduleId) => {
+    await supabase.from("workout_schedule").delete().eq("id", scheduleId);
+    setSchedule(s => s.filter(x => x.id !== scheduleId));
+  };
+  // Retire cette occurrence et toutes celles de la même séance à partir de cette date —
+  // pratique pour arrêter une série récurrente en cours de route.
+  const unscheduleSeriesFrom = async (workoutId, fromDate) => {
+    await supabase.from("workout_schedule").delete().eq("client_id", clientId).eq("workout_id", workoutId).gte("date", fromDate);
+    setSchedule(s => s.filter(x => !(x.workout_id === workoutId && x.date >= fromDate)));
+  };
+  const addAppointment = async (appointment) => {
+    const { data, error } = await supabase.from("appointments").insert([{ ...appointment, client_id: clientId }]).select().single();
+    if (error) { alert("Erreur lors de la création du rendez-vous : " + error.message); return null; }
+    if (data) setAppointments(a => [...a, data].sort((x, y) => x.date.localeCompare(y.date)));
+    return data;
+  };
+  const deleteAppointment = async (id) => {
+    await supabase.from("appointments").delete().eq("id", id);
+    setAppointments(a => a.filter(x => x.id !== id));
+  };
 
-  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal };
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment };
 };
 const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal }) => {
   const [selectedDate, setSelectedDate] = useState(today);
@@ -2550,6 +2586,172 @@ const PaymentHistory = ({ payments }) => (
   </div>
 );
 
+const WorkoutScheduleEditor = ({ workoutId, schedule, onSchedule, onUnschedule }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [date, setDate] = useState(today);
+  const [weeks, setWeeks] = useState(1);
+  const upcoming = schedule.filter(s => s.workout_id === workoutId && s.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+
+  const handleAdd = () => {
+    if (!date) return;
+    const dates = Array.from({ length: Math.max(1, parseInt(weeks) || 1) }, (_, i) => addDays(date, i * 7));
+    onSchedule(workoutId, dates);
+    setShowForm(false); setDate(today); setWeeks(1);
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>📅 Programmation</div>
+      {upcoming.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+          {upcoming.map(s => (
+            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", borderRadius: 8, padding: "8px 12px" }}>
+              <span style={{ fontSize: 13 }}>{formatDate(s.date)}</span>
+              <button onClick={() => onUnschedule(s.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 24, height: 24, color: C.red, cursor: "pointer" }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {!showForm ? (
+        <button onClick={() => setShowForm(true)} style={{ width: "100%", padding: 10, borderRadius: 10, border: `1px dashed ${C.pink}55`, background: "#111", color: C.pink, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ Programmer une date</button>
+      ) : (
+        <div style={{ background: "#111", borderRadius: 10, padding: 12 }}>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ ...inputSt, fontSize: 13, marginBottom: 10 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, color: C.textMuted }}>Répéter chaque semaine, pendant</span>
+            <input type="number" min="1" max="26" value={weeks} onChange={e => setWeeks(e.target.value)} style={{ ...inputSt, width: 60, fontSize: 13, padding: "8px 10px" }} />
+            <span style={{ fontSize: 12, color: C.textMuted }}>semaine{weeks > 1 ? "s" : ""}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn variant="secondary" small onClick={() => setShowForm(false)} style={{ flex: 1 }}>Annuler</Btn>
+            <Btn small onClick={handleAdd} style={{ flex: 2 }}>Programmer</Btn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AppointmentScheduler = ({ appointments, onAdd, onDelete }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [date, setDate] = useState(today);
+  const [time, setTime] = useState("18:00");
+  const [note, setNote] = useState("");
+  const upcoming = appointments.filter(a => a.date >= today).sort((a, b) => a.date.localeCompare(b.date) || (a.time || "").localeCompare(b.time || ""));
+
+  const handleAdd = async () => {
+    if (!date) return;
+    await onAdd({ date, time, duration_min: 30, note });
+    setShowForm(false); setNote("");
+  };
+
+  return (
+    <Card>
+      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🗓️ Rendez-vous</div>
+      {upcoming.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+          {upcoming.map(a => (
+            <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", borderRadius: 8, padding: "8px 12px" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{formatDate(a.date)}{a.time ? ` · ${a.time.slice(0, 5)}` : ""}</div>
+                {a.note && <div style={{ fontSize: 11, color: C.textMuted }}>{a.note}</div>}
+              </div>
+              <button onClick={() => onDelete(a.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 24, height: 24, color: C.red, cursor: "pointer" }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {!showForm ? (
+        <button onClick={() => setShowForm(true)} style={{ width: "100%", padding: 10, borderRadius: 10, border: `1px dashed ${C.pink}55`, background: "#111", color: C.pink, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ Fixer un rendez-vous</button>
+      ) : (
+        <div style={{ background: "#111", borderRadius: 10, padding: 12 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ ...inputSt, flex: 1, fontSize: 13 }} />
+            <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ ...inputSt, width: 100, fontSize: 13 }} />
+          </div>
+          <input type="text" placeholder="Note (ex: bilan mensuel, appel...)" value={note} onChange={e => setNote(e.target.value)} style={{ ...inputSt, fontSize: 13, marginBottom: 10 }} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn variant="secondary" small onClick={() => setShowForm(false)} style={{ flex: 1 }}>Annuler</Btn>
+            <Btn small onClick={handleAdd} style={{ flex: 2 }}>Fixer le rendez-vous</Btn>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// WEEK STRIP — calendrier semaine (séances programmées + rendez-vous)
+// ══════════════════════════════════════════════════════════════════════════════
+const startOfWeek = (date) => {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=dim..6=sam
+  const diff = (day === 0 ? -6 : 1) - day; // ramène au lundi
+  d.setDate(d.getDate() + diff);
+  return d;
+};
+const dayKey = d => d.toISOString().slice(0, 10);
+const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
+
+const WeekStrip = ({ schedule = [], workoutsById = {}, appointments = [], compact = false }) => {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selected, setSelected] = useState(today);
+  const monday = startOfWeek(new Date());
+  monday.setDate(monday.getDate() + weekOffset * 7);
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return d; });
+
+  useEffect(() => {
+    if (!days.some(d => dayKey(d) === selected)) setSelected(dayKey(days[0]));
+  }, [weekOffset]);
+
+  const itemsForDay = (key) => [
+    ...schedule.filter(s => s.date === key).map(s => ({ type: "workout", name: workoutsById[s.workout_id]?.name || "Séance" })),
+    ...appointments.filter(a => a.date === key).map(a => ({ type: "appt", name: a.note || "Rendez-vous", time: a.time })),
+  ];
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <button onClick={() => setWeekOffset(o => o - 1)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 18, cursor: "pointer", padding: "0 8px" }}>‹</button>
+        <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 700 }}>{weekOffset === 0 ? "Cette semaine" : monday.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span>
+        <button onClick={() => setWeekOffset(o => o + 1)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 18, cursor: "pointer", padding: "0 8px" }}>›</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: compact ? 0 : 14 }}>
+        {days.map((d, i) => {
+          const key = dayKey(d);
+          const items = itemsForDay(key);
+          const isToday = key === today;
+          const isSelected = key === selected;
+          return (
+            <button key={key} onClick={() => setSelected(key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 2px", borderRadius: 12, border: `2px solid ${isSelected ? C.pink : isToday ? C.pink + "55" : C.border}`, background: isSelected ? C.pink + "22" : "#111", cursor: "pointer" }}>
+              <span style={{ fontSize: 10, color: C.textMuted, fontWeight: 700 }}>{DAY_LABELS[i]}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: isSelected ? C.pink : C.white }}>{d.getDate()}</span>
+              <span style={{ display: "flex", gap: 2, height: 5 }}>
+                {items.slice(0, 3).map((it, j) => <span key={j} style={{ width: 5, height: 5, borderRadius: "50%", background: it.type === "appt" ? C.blue : C.orange }} />)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {!compact && (
+        <div>
+          {itemsForDay(selected).length === 0 ? (
+            <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "10px 0" }}>Rien de prévu ce jour-là.</div>
+          ) : itemsForDay(selected).map((it, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: i > 0 ? `1px solid ${C.border}` : "none" }}>
+              <span style={{ fontSize: 16 }}>{it.type === "appt" ? "🗓️" : "💪"}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{it.name}</div>
+                {it.time && <div style={{ fontSize: 11, color: C.textMuted }}>{it.time.slice(0, 5)}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PauseModal = ({ client, onClose, onUpdate }) => {
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState("");
@@ -2767,7 +2969,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
   const client = clients.find(c => c.id === selected);
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment } = useClientData(selected);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, schedule, appointments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment } = useClientData(selected);
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
   // Exclure les clientes en pause et les contrats terminés des alertes paiement/journal
@@ -2777,6 +2979,7 @@ const CoachApp = ({ user, onLogout }) => {
   const sortByName = (a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" });
   const activeWorkoutsList = workouts.filter(w => !w.is_archived).sort(sortByName);
   const archivedWorkoutsList = workouts.filter(w => w.is_archived).sort(sortByName);
+  const workoutsById = Object.fromEntries(workouts.map(w => [w.id, w]));
 
   // Chargement des entrées du jour + abonnement temps réel
   useEffect(() => {
@@ -3264,6 +3467,10 @@ const CoachApp = ({ user, onLogout }) => {
 
               {clientTab === "seances" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <Card>
+                    <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} />
+                  </Card>
+                  <AppointmentScheduler appointments={appointments} onAdd={addAppointment} onDelete={deleteAppointment} />
                   {loadingData ? <Spinner /> : activeWorkoutsList.map(w => {
                     const assigned = assignedWorkouts.find(a => a.workout_id === w.id);
                     return (
@@ -3274,30 +3481,7 @@ const CoachApp = ({ user, onLogout }) => {
                             {assigned ? "✓ Assignée" : "+ Assigner"}
                           </button>
                         </div>
-                        {assigned && (
-                          <div>
-                            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>📅 Date prévue</div>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              {[
-                                { label: "Jour", values: Array.from({length:31},(_,i)=>String(i+1).padStart(2,'0')), part: 2 },
-                                { label: "Mois", values: ["01","02","03","04","05","06","07","08","09","10","11","12"], part: 1 },
-                                { label: "Année", values: ["2025","2026","2027"], part: 0 },
-                              ].map(({ label, values, part }) => {
-                                const parts = (assigned.scheduled_date || "--").split("-");
-                                return (
-                                  <select key={label} value={parts[part] || ""} onChange={e => {
-                                    const p = (assigned.scheduled_date || `${new Date().getFullYear()}-01-01`).split("-");
-                                    p[part] = e.target.value;
-                                    updateScheduledDate(w.id, p.join("-"));
-                                  }} style={{ ...inputSt, flex: 1, fontSize: 13, padding: "10px 6px" }}>
-                                    <option value="">{label}</option>
-                                    {values.map(v => <option key={v} value={v}>{v}</option>)}
-                                  </select>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
+                        {assigned && <WorkoutScheduleEditor workoutId={w.id} schedule={schedule} onSchedule={scheduleWorkout} onUnschedule={unscheduleWorkout} />}
                       </Card>
                     );
                   })}
@@ -3478,13 +3662,15 @@ const ClientApp = ({ user, onLogout }) => {
     }
   }, [clientId]);
 
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal } = useClientData(clientId);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal } = useClientData(clientId);
   const { activityTypes } = useActivityTypes();
 
   const myWorkouts = assignedWorkouts.filter(a => a.workout).map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
+  const workoutsById = Object.fromEntries(myWorkouts.map(w => [w.id, w]));
 
   const todayEntry = entries.find(e => e.date === today);
-  const todayWorkout = myWorkouts.find(w => w.scheduledDate === today);
+  const todaySchedule = schedule.filter(s => s.date === today);
+  const todayWorkout = myWorkouts.find(w => w.id === todaySchedule[0]?.workout_id) || myWorkouts.find(w => w.scheduledDate === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
   const pendingClientTasks = [];
   if (!todayEntry && !clientInfo?.contract_ended) pendingClientTasks.push({ title: "Compléter ton journal", subtitle: "Un petit check-in vaut souvent mieux que rien", icon: "📝", onClick: () => setScreen("journal"), accent: C.orange });
@@ -3554,8 +3740,11 @@ const ClientApp = ({ user, onLogout }) => {
   if (screen === "perfs") return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
       <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-      <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Mes performances 📊</h2>
-      <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 20 }}>{sessionLogs.length} séance{sessionLogs.length > 1 ? "s" : ""} au total</p>
+      <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Mes séances 📊</h2>
+      <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 16 }}>{sessionLogs.length} séance{sessionLogs.length > 1 ? "s" : ""} au total</p>
+      <Card style={{ marginBottom: 20 }}>
+        <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} />
+      </Card>
       {myWorkouts.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>PAR SÉANCE</div>
@@ -3642,6 +3831,11 @@ const ClientApp = ({ user, onLogout }) => {
         )}
 
         <Card style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>📅 MA SEMAINE</div>
+          <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} compact />
+        </Card>
+
+        <Card style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>JOURNAL DU JOUR</div>
           {!todayEntry && (
             <><p style={{ color: C.textMuted, fontSize: 13, marginBottom: 12, marginTop: 0 }}>Tu n'as pas encore rempli ton journal.</p><Btn onClick={() => setScreen("journal")}>Commencer mon journal →</Btn></>
@@ -3678,7 +3872,8 @@ const ClientApp = ({ user, onLogout }) => {
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>💪 Mes entraînements</div>
             {myWorkouts.map(w => {
-              const scheduledDate = w.scheduledDate;
+              const nextSchedule = schedule.filter(s => s.workout_id === w.id && s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
+              const scheduledDate = nextSchedule?.date || w.scheduledDate;
               const isToday = scheduledDate === today;
               const isPast = scheduledDate && scheduledDate < today;
               const myLogs = sessionLogs.filter(l => l.workout_id === w.id);
