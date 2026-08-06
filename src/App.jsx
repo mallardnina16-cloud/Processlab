@@ -2286,6 +2286,17 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
                   </div>
                   {m.photo_url && <img src={m.photo_url} alt="" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, marginBottom: 8 }} />}
                   {m.raw_text && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}>{m.raw_text}</div>}
+                  {m.items && m.items.length > 0 && (
+                    <div style={{ background: "#181818", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 4 }}>🔍 REPÉRÉ PAR L'IA</div>
+                      {m.items.map((it, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12, padding: "3px 0", borderBottom: i < m.items.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                          <span style={{ color: C.white }}>{it.name} <span style={{ color: C.textMuted }}>· {it.quantity}</span></span>
+                          <span style={{ color: C.textMuted, flexShrink: 0 }}>{Math.round(it.calories)} kcal</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <Badge color={C.yellow}>{Math.round(m.calories)} kcal</Badge>
                     <Badge color={C.green}>💪 {Math.round(m.protein_g)}g</Badge>
