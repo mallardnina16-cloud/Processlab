@@ -2004,18 +2004,22 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
         const canvas = document.createElement("canvas");
         canvas.width = width; canvas.height = height;
         canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        const base64 = canvas.toDataURL("image/jpeg", 0.75).split(",")[1];
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+        const base64 = dataUrl.split(",")[1];
         canvas.toBlob(async (blob) => {
           if (!blob) { fail("Échec de la compression de la photo."); return; }
           URL.revokeObjectURL(url);
+          // Le bucket "photos" a une policy RLS qui refuse cet upload (même limitation que
+          // la photo générique du journal, cf. compressAndUpload) : on retombe sur le data
+          // URL en base64 comme "url" d'affichage plutôt que de bloquer la cliente. Ça marche
+          // pour l'affichage, juste moins optimal en taille qu'un vrai fichier Storage.
           try {
             const fileName = `${clientId}/meal_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
             const { error } = await supabase.storage.from("photos").upload(fileName, blob, { contentType: "image/jpeg", upsert: true });
-            if (error) { reject(new Error("Échec de l'envoi de la photo : " + error.message)); return; }
-            const publicUrl = supabase.storage.from("photos").getPublicUrl(fileName).data.publicUrl;
+            const publicUrl = error ? dataUrl : supabase.storage.from("photos").getPublicUrl(fileName).data.publicUrl;
             resolve({ url: publicUrl, base64 });
           } catch (err) {
-            reject(err);
+            resolve({ url: dataUrl, base64 });
           }
         }, "image/jpeg", 0.75);
       } catch (err) {
