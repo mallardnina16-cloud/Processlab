@@ -359,6 +359,27 @@ const settleWithTimeout = (promise, ms = 15000) => Promise.race([
   new Promise(resolve => setTimeout(() => resolve({ status: "rejected", reason: new Error("Délai réseau dépassé") }), ms)),
 ]);
 
+// Récupère blocks + photos d'exercices pour UNE séance précise, à appeler juste avant de
+// l'ouvrir (édition, aperçu, lancement) — jamais chargé pour toute la liste d'un coup. Des
+// photos d'exercices jamais correctement envoyées vers le stockage (policy RLS manquante) ont
+// fini stockées en base64 directement en base, gonflant une liste complète à plusieurs
+// dizaines de Mo si on les charge toutes en même temps.
+const fetchWorkoutDetail = async (baseWorkout) => {
+  const [wRes, eRes] = await Promise.all([
+    settleWithTimeout(supabase.from("workouts").select("blocks").eq("id", baseWorkout.id).single()),
+    settleWithTimeout(supabase.from("exercises").select("id, photo").eq("workout_id", baseWorkout.id)),
+  ]);
+  if (wRes.status === "rejected") { console.error("fetchWorkoutDetail: échoué", wRes.reason); return baseWorkout; }
+  const blocks = wRes.value.data?.blocks;
+  const photosById = {};
+  if (eRes.status === "fulfilled") (eRes.value.data || []).forEach(e => { photosById[e.id] = e.photo; });
+  return {
+    ...baseWorkout,
+    blocks: blocks ?? baseWorkout.blocks ?? [],
+    exercises: (baseWorkout.exercises || []).map(e => ({ ...e, photo: photosById[e.id] ?? e.photo })),
+  };
+};
+
 // ══════════════════════════════════════════════════════════════════════════════
 // DÉPENSE ÉNERGÉTIQUE — BMR (Mifflin-St Jeor), NEAT (pas), activité (MET), fiabilité
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1764,9 +1785,15 @@ const useWorkouts = () => {
     } else {
       setLoading(true);
     }
+    // photo/blocks exclus de la liste : des photos d'exercices jamais correctement envoyées
+    // vers le stockage (policy RLS manquante) ont fini stockées en base64 directement dans
+    // ces colonnes, gonflant la réponse à plusieurs dizaines de Mo et provoquant des 503.
+    // Le détail complet (blocks, photo) est rechargé à la demande via fetchWorkoutDetail
+    // quand une séance précise est ouverte, pour ne jamais transférer TOUTES les séances
+    // à la fois.
     const [wsResult, exsResult] = await Promise.all([
-      supabase.from("workouts").select("id, name, description, created_at, is_archived, blocks").order("created_at"),
-      supabase.from("exercises").select("id, workout_id, name, sets, reps, rest, note, photo, position, suggested_weight, weight_type, tempo").order("position"),
+      supabase.from("workouts").select("id, name, description, created_at, is_archived").order("created_at"),
+      supabase.from("exercises").select("id, workout_id, name, sets, reps, rest, note, position, suggested_weight, weight_type, tempo").order("position"),
     ].map(p => settleWithTimeout(p)));
     await fetchAssignments();
     const ws = wsResult.status === "fulfilled" ? wsResult.value.data : null;
@@ -1807,7 +1834,14 @@ const useWorkouts = () => {
     await supabase.from("workouts").update({ is_archived: isArchived }).eq("id", id);
     setWorkouts(w => w.map(x => x.id === id ? { ...x, is_archived: isArchived } : x));
   };
-  return { workouts, loading, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment };
+  // Version liée au cache local : en plus de retourner la séance enrichie (comme la fonction
+  // partagée fetchWorkoutDetail), met aussi à jour la liste `workouts` en mémoire.
+  const loadWorkoutDetail = async (baseWorkout) => {
+    const enriched = await fetchWorkoutDetail(baseWorkout);
+    setWorkouts(ws => ws.map(w => w.id === enriched.id ? enriched : w));
+    return enriched;
+  };
+  return { workouts, loading, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment, fetchWorkoutDetail: loadWorkoutDetail };
 };
 const usePayments = () => {
   const [payments, setPayments] = useState(() => readCache("payments") || []);
@@ -1875,7 +1909,10 @@ const useClientData = (clientId) => {
       supabase.from("entries").select("id, client_id, date, feeling, steps, meal_note, photos, calories_total, protein_total, carb_total, fat_total, session_status, session_note, hydration, sleep_hours, nap, had_difficulty, difficulty_note, coach_message").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("weights").select("id, client_id, value, date").eq("client_id", clientId).order("date"),
       supabase.from("measurements").select("id, client_id, chest, waist, hips, thighs, date").eq("client_id", clientId).order("date"),
-      supabase.from("client_workouts").select("workout_id, scheduled_date, workouts(id, name, description, blocks, exercises(*))").eq("client_id", clientId),
+      // blocks/photo exclus ici pour la même raison que useWorkouts : évite de transférer des
+      // photos d'exercices potentiellement énormes (stockées en base64 faute de policy sur le
+      // bucket) juste pour afficher la liste des séances assignées.
+      supabase.from("client_workouts").select("workout_id, scheduled_date, workouts(id, name, description, exercises(id, workout_id, name, sets, reps, rest, note, position, suggested_weight, weight_type, tempo))").eq("client_id", clientId),
       supabase.from("progress_photos").select("id, client_id, photo, note, date").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").eq("client_id", clientId).order("paid_date", { ascending: false }),
       supabase.from("client_profiles").select("client_id, birth_date, sex, height_cm, nutrition_goal").eq("client_id", clientId).maybeSingle(),
@@ -2942,7 +2979,8 @@ const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArch
 // ══════════════════════════════════════════════════════════════════════════════
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
-  const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment } = useWorkouts();
+  const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment, fetchWorkoutDetail } = useWorkouts();
+  const openWorkoutEditor = async (w) => { setEditingWorkout(await fetchWorkoutDetail(w)); };
   const handleDuplicateWorkout = async (workout) => {
     await saveWorkout({
       name: `${workout.name} (copie)`,
@@ -3256,7 +3294,7 @@ const CoachApp = ({ user, onLogout }) => {
                       allClients={clients}
                       assignedIds={assignmentsByWorkout[w.id] || []}
                       onToggleAssign={toggleAssignment}
-                      onEdit={() => setEditingWorkout(w)}
+                      onEdit={() => openWorkoutEditor(w)}
                       onDelete={() => deleteWorkout(w.id)}
                       onArchive={() => setArchived(w.id, true)}
                       onUnarchive={() => setArchived(w.id, false)}
@@ -3279,7 +3317,7 @@ const CoachApp = ({ user, onLogout }) => {
                           allClients={clients}
                           assignedIds={assignmentsByWorkout[w.id] || []}
                           onToggleAssign={toggleAssignment}
-                          onEdit={() => setEditingWorkout(w)}
+                          onEdit={() => openWorkoutEditor(w)}
                           onDelete={() => deleteWorkout(w.id)}
                           onArchive={() => setArchived(w.id, true)}
                           onUnarchive={() => setArchived(w.id, false)}
@@ -3690,7 +3728,7 @@ const ClientApp = ({ user, onLogout }) => {
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
   const pendingClientTasks = [];
   if (!todayEntry && !clientInfo?.contract_ended) pendingClientTasks.push({ title: "Compléter ton journal", subtitle: "Un petit check-in vaut souvent mieux que rien", icon: "📝", onClick: () => setScreen("journal"), accent: C.orange });
-  if (todayWorkout) pendingClientTasks.push({ title: "Ta séance du jour", subtitle: "Prêt à démarrer ?", icon: "💪", onClick: () => setPreviewWorkout(todayWorkout), accent: C.pink });
+  if (todayWorkout) pendingClientTasks.push({ title: "Ta séance du jour", subtitle: "Prêt à démarrer ?", icon: "💪", onClick: () => openWorkoutPreview(todayWorkout), accent: C.pink });
   if (!clientInfo?.contract_accepted) pendingClientTasks.push({ title: "Valider ton contrat", subtitle: "Relis les règles et engage-toi", icon: "📄", onClick: () => setScreen("contrat"), accent: C.blue });
   const lastWeight = weights[weights.length - 1];
   const startWeight = weights[0];
@@ -3703,6 +3741,7 @@ const ClientApp = ({ user, onLogout }) => {
     if (existingEntry) { await updateEntry(existingEntry.id, payload); }
     else { await addEntry({ ...payload, client_id: clientId }); }
   };
+  const openWorkoutPreview = async (w) => setPreviewWorkout(await fetchWorkoutDetail(w));
 
   const handleAddWeight = async () => { if (!newWeight) return; await addWeight(parseFloat(newWeight)); setNewWeight(""); alert("✅ Poids enregistré !"); };
   const handleAddMeasure = async () => { await addMeasurement({ chest: parseFloat(newMeasure.chest), waist: parseFloat(newMeasure.waist), hips: parseFloat(newMeasure.hips), thighs: parseFloat(newMeasure.thighs) }); setNewMeasure({ chest: "", waist: "", hips: "", thighs: "" }); alert("✅ Mensurations enregistrées !"); };
@@ -3910,7 +3949,7 @@ const ClientApp = ({ user, onLogout }) => {
                       <button onClick={() => setViewingWorkoutPerfs(w)} style={{ fontSize: 12, color: C.purple, background: "none", border: "none", cursor: "pointer", fontWeight: 700, marginTop: 4, padding: 0 }}>Voir tout l'historique →</button>
                     </div>
                   )}
-                  <Btn onClick={() => setPreviewWorkout(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn>
+                  <Btn onClick={() => openWorkoutPreview(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn>
                 </Card>
               );
             })}
