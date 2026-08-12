@@ -351,6 +351,14 @@ const writeCache = (key, value) => {
   try { window.sessionStorage.setItem(getCacheKey(key), JSON.stringify({ ts: Date.now(), value })); } catch {}
 };
 
+// Comme Promise.allSettled, mais borné dans le temps : une requête réseau qui ne répond
+// jamais (wifi capricieux, portail captif...) ne bloque plus l'écran indéfiniment — au bout
+// de `ms`, elle est traitée comme un échec, exactement comme une vraie erreur Supabase.
+const settleWithTimeout = (promise, ms = 15000) => Promise.race([
+  promise.then(value => ({ status: "fulfilled", value })).catch(reason => ({ status: "rejected", reason })),
+  new Promise(resolve => setTimeout(() => resolve({ status: "rejected", reason: new Error("Délai réseau dépassé") }), ms)),
+]);
+
 // ══════════════════════════════════════════════════════════════════════════════
 // DÉPENSE ÉNERGÉTIQUE — BMR (Mifflin-St Jeor), NEAT (pas), activité (MET), fiabilité
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1699,8 +1707,9 @@ const useActivityTypes = () => {
   const [activityTypes, setActivityTypes] = useState(() => readCache("activity_types") || []);
   const [loadingActivityTypes, setLoadingActivityTypes] = useState(() => !readCache("activity_types"));
   useEffect(() => {
-    supabase.from("activity_types").select("id, name, met_value").order("position").then(({ data }) => {
-      const result = data || [];
+    settleWithTimeout(supabase.from("activity_types").select("id, name, met_value").order("position")).then(settled => {
+      if (settled.status === "rejected") console.error("useActivityTypes: chargement échoué", settled.reason);
+      const result = (settled.status === "fulfilled" ? settled.value.data : null) || [];
       writeCache("activity_types", result);
       setActivityTypes(result);
       setLoadingActivityTypes(false);
@@ -1720,8 +1729,9 @@ const useClients = () => {
     } else {
       setLoading(true);
     }
-    const { data } = await supabase.from("clients").select("id, name, avatar, goal, start_date, next_payment, sessions_per_week, monthly_amount, streak, today_done, user_id, contract_accepted, is_paused, contract_ended, contract_ended_at, created_at").order("created_at");
-    const result = data || [];
+    const settled = await settleWithTimeout(supabase.from("clients").select("id, name, avatar, goal, start_date, next_payment, sessions_per_week, monthly_amount, streak, today_done, user_id, contract_accepted, is_paused, contract_ended, contract_ended_at, created_at").order("created_at"));
+    if (settled.status === "rejected") console.error("useClients: chargement échoué", settled.reason);
+    const result = (settled.status === "fulfilled" ? settled.value.data : null) || [];
     writeCache("clients", result);
     setClients(result); setLoading(false);
   };
@@ -1739,7 +1749,9 @@ const useWorkouts = () => {
   // au lieu d'une requête séparée par carte (évite des dizaines d'appels réseau redondants).
   const [assignmentsByWorkout, setAssignmentsByWorkout] = useState({});
   const fetchAssignments = async () => {
-    const { data } = await supabase.from("client_workouts").select("workout_id, client_id");
+    const settled = await settleWithTimeout(supabase.from("client_workouts").select("workout_id, client_id"));
+    const data = settled.status === "fulfilled" ? settled.value.data : null;
+    if (settled.status === "rejected") console.error("useWorkouts: fetchAssignments échoué", settled.reason);
     const map = {};
     (data || []).forEach(r => { (map[r.workout_id] = map[r.workout_id] || []).push(r.client_id); });
     setAssignmentsByWorkout(map);
@@ -1752,11 +1764,14 @@ const useWorkouts = () => {
     } else {
       setLoading(true);
     }
-    const [{ data: ws }, { data: exs }] = await Promise.all([
+    const [wsResult, exsResult] = await Promise.all([
       supabase.from("workouts").select("id, name, description, created_at, is_archived, blocks").order("created_at"),
       supabase.from("exercises").select("id, workout_id, name, sets, reps, rest, note, photo, position, suggested_weight, weight_type, tempo").order("position"),
-    ]);
+    ].map(p => settleWithTimeout(p)));
     await fetchAssignments();
+    const ws = wsResult.status === "fulfilled" ? wsResult.value.data : null;
+    const exs = exsResult.status === "fulfilled" ? exsResult.value.data : null;
+    if (wsResult.status === "rejected") console.error("useWorkouts: chargement des séances échoué", wsResult.reason);
     if (!ws) { setLoading(false); return; }
     const result = ws.map(w => ({ ...w, exercises: (exs || []).filter(e => e.workout_id === w.id) }));
     writeCache("workouts", result);
@@ -1805,8 +1820,9 @@ const usePayments = () => {
     } else {
       setLoading(true);
     }
-    const { data } = await supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").order("paid_date", { ascending: false });
-    const result = data || [];
+    const settled = await settleWithTimeout(supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").order("paid_date", { ascending: false }));
+    if (settled.status === "rejected") console.error("usePayments: chargement échoué", settled.reason);
+    const result = (settled.status === "fulfilled" ? settled.value.data : null) || [];
     writeCache("payments", result);
     setPayments(result);
     setLoading(false);
@@ -1855,7 +1871,7 @@ const useClientData = (clientId) => {
     // allSettled plutôt que all : si une table manque encore (ex: migration nutrition pas encore
     // exécutée) ou qu'une requête échoue, le reste du journal continue de se charger normalement
     // au lieu de rester bloqué en chargement indéfiniment.
-    const settled = await Promise.allSettled([
+    const settled = await Promise.all([
       supabase.from("entries").select("id, client_id, date, feeling, steps, meal_note, photos, calories_total, protein_total, carb_total, fat_total, session_status, session_note, hydration, sleep_hours, nap, had_difficulty, difficulty_note, coach_message").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("weights").select("id, client_id, value, date").eq("client_id", clientId).order("date"),
       supabase.from("measurements").select("id, client_id, chest, waist, hips, thighs, date").eq("client_id", clientId).order("date"),
@@ -1867,7 +1883,7 @@ const useClientData = (clientId) => {
       supabase.from("meals").select("id, client_id, date, meal_slot, raw_text, photo_url, source, items, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g, confidence").eq("client_id", clientId).order("created_at", { ascending: false }),
       supabase.from("workout_schedule").select("id, client_id, workout_id, date").eq("client_id", clientId).order("date"),
       supabase.from("appointments").select("id, client_id, date, time, duration_min, note").eq("client_id", clientId).order("date"),
-    ]);
+    ].map(p => settleWithTimeout(p)));
     const [e, w, m, cw, pp, pay, prof, acts, mls, sched, appts] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
     settled.forEach((r, i) => { if (r.status === "rejected") console.error("useClientData: requête échouée", i, r.reason); });
     const nextPayload = {
