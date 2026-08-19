@@ -77,6 +77,9 @@ const CONTRACT_TEXT = {
 const C = {
   black: "#0a0a0a", white: "#ffffff", pink: "#E7B7BC",
   brandDark: "#4b0f0f", brandCream: "#F7EDE8",
+  // Rouge cerise/vin — couleur des actions principales (gros boutons), plus affirmée que le
+  // rose pastel qui reste réservé aux petites touches (badges, accents), comme sur le logo.
+  cherry: "#8C1D3F", cherryLight: "#B8355F",
   surface: "#141414", card: "#1a1a1a", border: "#2a2a2a",
   muted: "#555555", textMuted: "#888888", green: "#4ade80", red: "#f87171",
   purple: "#a78bfa", orange: "#fb923c", blue: "#60a5fa", yellow: "#fbbf24",
@@ -121,9 +124,9 @@ const Card = ({ children, style = {}, onClick }) => {
 const Btn = ({ children, onClick, variant = "primary", disabled, small, style = {} }) => {
   const [hover, setHover] = useState(false);
   const reduced = usePrefersReducedMotion();
-  const bg = variant === "primary" ? `linear-gradient(135deg, ${C.pink} 0%, #ff9bb0 100%)` : variant === "danger" ? C.red + "22" : variant === "ghost" ? "transparent" : variant === "green" ? `linear-gradient(135deg, ${C.green} 0%, #8ceea5 100%)` : "#222";
-  const fg = variant === "primary" ? C.black : variant === "danger" ? C.red : variant === "green" ? C.black : C.white;
-  const shadow = variant === "primary" ? `0 10px 24px ${C.pink}28` : variant === "green" ? `0 10px 24px ${C.green}24` : "none";
+  const bg = variant === "primary" ? `linear-gradient(135deg, ${C.cherry} 0%, ${C.cherryLight} 100%)` : variant === "danger" ? C.red + "22" : variant === "ghost" ? "transparent" : variant === "green" ? `linear-gradient(135deg, ${C.green} 0%, #8ceea5 100%)` : "#222";
+  const fg = variant === "primary" ? C.brandCream : variant === "danger" ? C.red : variant === "green" ? C.black : C.white;
+  const shadow = variant === "primary" ? `0 10px 24px ${C.cherry}40` : variant === "green" ? `0 10px 24px ${C.green}24` : "none";
   return (
     <button onClick={onClick} disabled={disabled} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onMouseDown={() => !reduced && setHover(true)} onMouseUp={() => !reduced && setHover(false)} style={{
       background: bg,
@@ -265,7 +268,7 @@ const ClientOnboarding = ({ clientName, onFinish, onEnableReminders, reminderEna
           {steps.map((_, idx) => <div key={idx} style={{ flex: 1, height: 5, borderRadius: 999, background: idx <= step ? C.pink : C.border }} />)}
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => (step < steps.length - 1 ? setStep(step + 1) : onFinish())} style={{ flex: 1, background: C.pink, border: "none", borderRadius: 12, padding: "12px 14px", color: C.black, fontWeight: 800, cursor: "pointer" }}>
+          <button onClick={() => (step < steps.length - 1 ? setStep(step + 1) : onFinish())} style={{ flex: 1, background: `linear-gradient(135deg, ${C.cherry} 0%, ${C.cherryLight} 100%)`, border: "none", borderRadius: 12, padding: "12px 14px", color: C.brandCream, fontWeight: 800, cursor: "pointer" }}>
             {step < steps.length - 1 ? "Continuer" : "C’est parti"}
           </button>
           {step > 0 ? (
@@ -2036,7 +2039,7 @@ const useClientData = (clientId) => {
 
   return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment };
 };
-const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal }) => {
+const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal }) => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
@@ -2255,7 +2258,10 @@ const JournalForm = ({ entries, onSave, onBack, clientId, profile, latestWeightK
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, padding: 0 }}>← Retour</button>
+        {onViewHistory && <button onClick={onViewHistory} style={{ background: "none", border: "none", color: C.cherryLight, cursor: "pointer", fontSize: 13, fontWeight: 700, padding: 0 }}>📋 Historique →</button>}
+      </div>
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 14px" }}>Mon journal 📋</h2>
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>📅 Pour quel jour ?</div>
@@ -2746,7 +2752,7 @@ const startOfWeek = (date) => {
 const dayKey = d => d.toISOString().slice(0, 10);
 const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
 
-const WeekStrip = ({ schedule = [], workoutsById = {}, appointments = [], compact = false }) => {
+const WeekStrip = ({ schedule = [], workoutsById = {}, appointments = [], onSelectWorkout, loadingWorkoutId }) => {
   const [weekOffset, setWeekOffset] = useState(0);
   const [selected, setSelected] = useState(today);
   const monday = startOfWeek(new Date());
@@ -2758,8 +2764,8 @@ const WeekStrip = ({ schedule = [], workoutsById = {}, appointments = [], compac
   }, [weekOffset]);
 
   const itemsForDay = (key) => [
-    ...schedule.filter(s => s.date === key).map(s => ({ type: "workout", name: workoutsById[s.workout_id]?.name || "Séance" })),
-    ...appointments.filter(a => a.date === key).map(a => ({ type: "appt", name: a.note || "Rendez-vous", time: a.time })),
+    ...schedule.filter(s => s.date === key).map(s => ({ type: "workout", workoutId: s.workout_id, name: workoutsById[s.workout_id]?.name || "Séance" })),
+    ...appointments.filter(a => a.date === key).map(a => ({ type: "appt", name: a.note ? `RDV coaching — ${a.note}` : "RDV coaching", time: a.time })),
   ];
 
   return (
@@ -2769,16 +2775,16 @@ const WeekStrip = ({ schedule = [], workoutsById = {}, appointments = [], compac
         <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 700 }}>{weekOffset === 0 ? "Cette semaine" : monday.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</span>
         <button onClick={() => setWeekOffset(o => o + 1)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 18, cursor: "pointer", padding: "0 8px" }}>›</button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: compact ? 0 : 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: 14 }}>
         {days.map((d, i) => {
           const key = dayKey(d);
           const items = itemsForDay(key);
           const isToday = key === today;
           const isSelected = key === selected;
           return (
-            <button key={key} onClick={() => setSelected(key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 2px", borderRadius: 12, border: `2px solid ${isSelected ? C.pink : isToday ? C.pink + "55" : C.border}`, background: isSelected ? C.pink + "22" : "#111", cursor: "pointer" }}>
+            <button key={key} onClick={() => setSelected(key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "8px 2px", borderRadius: 12, border: `2px solid ${isSelected ? C.cherryLight : isToday ? C.cherryLight + "55" : C.border}`, background: isSelected ? C.cherry + "22" : "#111", cursor: "pointer" }}>
               <span style={{ fontSize: 10, color: C.textMuted, fontWeight: 700 }}>{DAY_LABELS[i]}</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: isSelected ? C.pink : C.white }}>{d.getDate()}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: isSelected ? C.cherryLight : C.white }}>{d.getDate()}</span>
               <span style={{ display: "flex", gap: 2, height: 5 }}>
                 {items.slice(0, 3).map((it, j) => <span key={j} style={{ width: 5, height: 5, borderRadius: "50%", background: it.type === "appt" ? C.blue : C.orange }} />)}
               </span>
@@ -2786,21 +2792,25 @@ const WeekStrip = ({ schedule = [], workoutsById = {}, appointments = [], compac
           );
         })}
       </div>
-      {!compact && (
-        <div>
-          {itemsForDay(selected).length === 0 ? (
-            <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "10px 0" }}>Rien de prévu ce jour-là.</div>
-          ) : itemsForDay(selected).map((it, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: i > 0 ? `1px solid ${C.border}` : "none" }}>
+      <div>
+        {itemsForDay(selected).length === 0 ? (
+          <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center", padding: "10px 0" }}>Rien de prévu ce jour-là.</div>
+        ) : itemsForDay(selected).map((it, i) => {
+          const clickable = it.type === "workout" && onSelectWorkout && workoutsById[it.workoutId];
+          const isLoading = it.type === "workout" && loadingWorkoutId === it.workoutId;
+          const Row = clickable ? "button" : "div";
+          return (
+            <Row key={i} onClick={clickable ? () => onSelectWorkout(workoutsById[it.workoutId]) : undefined} disabled={isLoading} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "none", border: "none", padding: "9px 0", borderTop: i > 0 ? `1px solid ${C.border}` : "none", cursor: clickable ? "pointer" : "default", fontFamily: "inherit" }}>
               <span style={{ fontSize: 16 }}>{it.type === "appt" ? "🗓️" : "💪"}</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{it.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.white }}>{it.name}</div>
                 {it.time && <div style={{ fontSize: 11, color: C.textMuted }}>{it.time.slice(0, 5)}</div>}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+              {clickable && <span style={{ color: C.cherryLight, fontWeight: 700, fontSize: 12 }}>{isLoading ? "..." : "→"}</span>}
+            </Row>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -3686,6 +3696,7 @@ const ClientApp = ({ user, onLogout }) => {
   const [onboardingDone, setOnboardingDone] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(typeof Notification !== "undefined" && Notification?.permission === "granted");
   const [previewWorkout, setPreviewWorkout] = useState(null);
+  const [loadingWorkoutId, setLoadingWorkoutId] = useState(null);
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [viewingWorkoutPerfs, setViewingWorkoutPerfs] = useState(null);
@@ -3741,7 +3752,11 @@ const ClientApp = ({ user, onLogout }) => {
     if (existingEntry) { await updateEntry(existingEntry.id, payload); }
     else { await addEntry({ ...payload, client_id: clientId }); }
   };
-  const openWorkoutPreview = async (w) => setPreviewWorkout(await fetchWorkoutDetail(w));
+  const openWorkoutPreview = async (w) => {
+    setLoadingWorkoutId(w.id);
+    setPreviewWorkout(await fetchWorkoutDetail(w));
+    setLoadingWorkoutId(null);
+  };
 
   const handleAddWeight = async () => { if (!newWeight) return; await addWeight(parseFloat(newWeight)); setNewWeight(""); alert("✅ Poids enregistré !"); };
   const handleAddMeasure = async () => { await addMeasurement({ chest: parseFloat(newMeasure.chest), waist: parseFloat(newMeasure.waist), hips: parseFloat(newMeasure.hips), thighs: parseFloat(newMeasure.thighs) }); setNewMeasure({ chest: "", waist: "", hips: "", thighs: "" }); alert("✅ Mensurations enregistrées !"); };
@@ -3771,7 +3786,7 @@ const ClientApp = ({ user, onLogout }) => {
 
   if (screen === "journal") {
     if (!clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
-    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} meals={meals} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} />;
+    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} onViewHistory={() => setScreen("history")} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} meals={meals} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} />;
   }
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
@@ -3798,8 +3813,33 @@ const ClientApp = ({ user, onLogout }) => {
       <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Mes séances 📊</h2>
       <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 16 }}>{sessionLogs.length} séance{sessionLogs.length > 1 ? "s" : ""} au total</p>
       <Card style={{ marginBottom: 20 }}>
-        <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} />
+        <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} onSelectWorkout={openWorkoutPreview} loadingWorkoutId={loadingWorkoutId} />
       </Card>
+      {loading ? <div style={{ marginBottom: 20 }}><Spinner /></div> : myWorkouts.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>💪 À FAIRE</div>
+          {myWorkouts.map(w => {
+            const nextSchedule = schedule.filter(s => s.workout_id === w.id && s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
+            const scheduledDate = nextSchedule?.date || w.scheduledDate;
+            const isToday = scheduledDate === today;
+            const isPast = scheduledDate && scheduledDate < today;
+            return (
+              <Card key={w.id} style={{ marginBottom: 10, borderColor: isToday ? C.orange + "66" : C.border }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", border: `1.5px solid ${isToday ? C.orange : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💪</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
+                    <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div>
+                    {scheduledDate && <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>{isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>}
+                  </div>
+                </div>
+                {w.description && <div style={{ background: "#111", borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: C.textMuted }}>{w.description}</div>}
+                <Btn onClick={() => openWorkoutPreview(w)} disabled={loadingWorkoutId === w.id} style={{ fontSize: 14 }}>{loadingWorkoutId === w.id ? "Chargement..." : "▶ Commencer la séance"}</Btn>
+              </Card>
+            );
+          })}
+        </div>
+      )}
       {myWorkouts.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>PAR SÉANCE</div>
@@ -3819,159 +3859,11 @@ const ClientApp = ({ user, onLogout }) => {
       )}
       <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>HISTORIQUE COMPLET</div>
       {sessionLogs.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Pas encore de séance enregistrée.</p></Card> : sessionLogs.map((log, i) => <div key={i} style={{ marginBottom: 12 }}><PerfCard log={log} workout={myWorkouts.find(w => w.id === log.workout_id)} /></div>)}
+      <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
     </div>
   );
 
-  // ── HOME ──────────────────────────────────────────────────────────────────
-  return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
-      <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Logo />
-        <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
-      </div>
-
-      <div style={{ padding: 20, background: "radial-gradient(circle at top left, rgba(232,135,156,0.12), transparent 35%)" }}>
-        <PremiumHero
-          badge="Espace coaching"
-          title={`${clientInfo.name?.split(" ")[0] || "Bonjour"} 👋`}
-          subtitle="Tout est pensé pour te guider avec clarté, douceur et efficacité."
-          accent={C.pink}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
-            {clientInfo.contract_ended ? <Badge color={C.textMuted}>🏁 Contrat terminé</Badge> : todayEntry ? <Badge color={C.green}>✅ Journal OK</Badge> : <Badge color={C.orange}>📝 À compléter</Badge>}
-          </div>
-        </PremiumHero>
-{!clientInfo.contract_accepted && (
-          <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.blue }}>📄 Règlement à valider</div><div style={{ fontSize: 12, color: C.textMuted }}>Prends 2 minutes pour lire et accepter le règlement du coaching</div></div>
-            <button onClick={() => { setScreen("contrat"); window.scrollTo(0, 0); }} style={{ background: C.blue, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Voir</button>          </div>
-        )}
-        {!notifEnabled && (
-          <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div><div style={{ fontSize: 12, color: C.textMuted }}>Recevoir des notifications utiles pour ton suivi</div></div>
-            <button onClick={handleEnableNotifs} style={{ background: C.orange, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Activer</button>
-          </div>
-        )}
-
-        {notifEnabled && (
-          <div style={{ background: C.green + "15", border: `1px solid ${C.green}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: C.green }}>🔔 Rappels actifs</div>
-            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Tu seras aidée au bon moment sans surcharge.</div>
-          </div>
-        )}
-
-        {pendingClientTasks.length > 0 && (
-          <Card style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>À FAIRE MAINTENANT</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {pendingClientTasks.map(task => (
-                <QuickAction key={task.title} title={task.title} subtitle={task.subtitle} icon={task.icon} accent={task.accent} onClick={task.onClick} />
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {coachMsg && (
-          <Card style={{ marginBottom: 14, borderColor: C.pink + "44", background: C.pink + "08" }}>
-            <div style={{ fontSize: 10, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>MESSAGE DE TON COACH</div>
-            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{coachMsg}</div>
-            <button onClick={async () => {
-              const entry = entries.find(e => e.coach_message);
-              if (entry) await updateEntry(entry.id, { coach_message: "" });
-            }} style={{ background: "none", border: `1px solid ${C.pink}55`, borderRadius: 8, padding: "6px 12px", color: C.pink, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-              ✓ Marquer comme lu
-            </button>
-          </Card>
-        )}
-
-        <Card style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>📅 MA SEMAINE</div>
-          <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} compact />
-        </Card>
-
-        <Card style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>JOURNAL DU JOUR</div>
-          {!todayEntry && (
-            <><p style={{ color: C.textMuted, fontSize: 13, marginBottom: 12, marginTop: 0 }}>Tu n'as pas encore rempli ton journal.</p><Btn onClick={() => setScreen("journal")}>Commencer mon journal →</Btn></>
-          )}
-          {todayEntry && (
-            <div>
-              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
-                <span style={{ fontSize: 30 }}>{feelings[(todayEntry.feeling || 3) - 1]}</span>
-                <div>
-                  <div style={{ fontWeight: 700, marginBottom: 2 }}>Rempli aujourd'hui ✅</div>
-                  <div style={{ fontSize: 12, color: C.textMuted }}>{(todayEntry.steps || 0).toLocaleString()} pas · {todayEntry.hydration || "—"}L · {todayEntry.sleep_hours || "—"}h sommeil</div>
-                </div>
-              </div>
-              <Btn onClick={() => setScreen("journal")} variant="ghost" style={{ fontSize: 14 }}>✏️ Modifier mon journal</Btn>
-            </div>
-          )}
-        </Card>
-
-        {todayEnergy && (
-          <Card style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>⚡ BALANCE ÉNERGÉTIQUE DU JOUR</div>
-            <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 2 }}>{todayEnergy.tdee.toLocaleString()} kcal</div>
-            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>Dépense estimée · métabolisme {todayEnergy.bmr} + pas {todayEnergy.neat} + activité {todayEnergy.sport}</div>
-            {todayBalanceMsg ? <div style={{ fontSize: 14, fontWeight: 700, color: todayBalanceMsg.color }}>{todayBalanceMsg.text}</div> : <div style={{ fontSize: 12, color: C.textMuted }}>Renseigne tes calories du jour dans le journal pour voir ta balance</div>}
-          </Card>
-        )}
-        {!todayEnergy && profile === null && !loading && (
-          <div style={{ background: C.blue + "10", border: `1px solid ${C.blue}33`, borderRadius: 14, padding: 16, marginBottom: 14, fontSize: 12, color: C.textMuted }}>
-            ⚡ Ton coach n'a pas encore complété ton profil nutritionnel (âge, taille, objectif) — la balance énergétique s'affichera dès que ce sera fait.
-          </div>
-        )}
-
-        {loading ? <div style={{ marginBottom: 14 }}><Spinner /></div> : myWorkouts.length > 0 && (
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10, textTransform: "uppercase" }}>💪 Mes entraînements</div>
-            {myWorkouts.map(w => {
-              const nextSchedule = schedule.filter(s => s.workout_id === w.id && s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
-              const scheduledDate = nextSchedule?.date || w.scheduledDate;
-              const isToday = scheduledDate === today;
-              const isPast = scheduledDate && scheduledDate < today;
-              const myLogs = sessionLogs.filter(l => l.workout_id === w.id);
-              return (
-                <Card key={w.id} style={{ marginBottom: 10, borderColor: isToday ? C.orange + "66" : C.border }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: myLogs.length > 0 ? 12 : 0 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", border: `1.5px solid ${isToday ? C.orange : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💪</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
-                      <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices {myLogs.length > 0 ? `· ${myLogs.length} fois réalisée` : ""}</div>
-                      {scheduledDate && <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>{isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>}
-                    </div>
-                  </div>
-                  {myLogs.length > 0 && (
-                    <div style={{ background: C.purple + "12", borderRadius: 10, padding: "10px 12px", marginBottom: 12 }}>
-                      <div style={{ fontSize: 11, color: C.purple, fontWeight: 700, marginBottom: 6 }}>📊 DERNIÈRE FOIS — {formatDate(myLogs[0].date)}</div>
-                      {(() => { let logs = {}; try { logs = JSON.parse(myLogs[0].exercise_logs || "{}"); } catch {} return Object.values(logs).slice(0, 3).map((l, i) => { const s0 = (l.sets && l.sets[0]) || l; return (s0.weight || s0.reps) ? <div key={i} style={{ fontSize: 12, color: C.textMuted, marginBottom: 2 }}><span style={{ color: C.white, fontWeight: 600 }}>{l.name}</span> {s0.weight ? `· ${s0.weight}` : ""} {s0.reps ? `· ${s0.reps} reps` : ""}</div> : null; }); })()}
-                      <button onClick={() => setViewingWorkoutPerfs(w)} style={{ fontSize: 12, color: C.purple, background: "none", border: "none", cursor: "pointer", fontWeight: 700, marginTop: 4, padding: 0 }}>Voir tout l'historique →</button>
-                    </div>
-                  )}
-                  <Btn onClick={() => openWorkoutPreview(w)} style={{ fontSize: 14 }}>▶ Commencer la séance</Btn>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-          <Card onClick={() => setScreen("body")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>POIDS</div><div style={{ fontSize: 22, fontWeight: 900, color: C.pink }}>{lastWeight ? `${lastWeight.value} kg` : "—"}</div>{startWeight && lastWeight && startWeight.value !== lastWeight.value && <div style={{ fontSize: 11, color: C.green }}>-{(startWeight.value - lastWeight.value).toFixed(1)} kg</div>}</Card>
-          <Card onClick={() => setScreen("perfs")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>SÉANCES</div><div style={{ fontSize: 22, fontWeight: 900, color: C.purple }}>{sessionLogs.length}</div><div style={{ fontSize: 11, color: C.textMuted }}>réalisées</div></Card>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-          <Btn variant="ghost" onClick={() => setScreen("history")} style={{ flex: 1 }}>📋 Historique</Btn>
-          <Btn variant="ghost" onClick={() => setScreen("perfs")} style={{ flex: 1 }}>📊 Performances</Btn>
-        </div>
-        <div style={{ display: "flex" }}>
-          <Btn variant="ghost" onClick={() => setScreen("contrat")} style={{ flex: 1 }}>📄 Contrat</Btn>
-        </div>
-      </div>
-
-      <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
-
-      {screen === "contrat" && (
+  if (screen === "contrat") return (
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
           <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
           <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon contrat 📄</h2>
@@ -4075,10 +3967,11 @@ const ClientApp = ({ user, onLogout }) => {
           )}
          
           <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>HISTORIQUE DES PAIEMENTS</div><PaymentHistory payments={payments} /></Card>
+          <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
         </div>
-      )}
+  );
 
-      {screen === "body" && (
+  if (screen === "body") return (
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
           <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
           <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon suivi corps</h2>
@@ -4128,17 +4021,106 @@ const ClientApp = ({ user, onLogout }) => {
               {progressPhotos.length > 0 && <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>MON ÉVOLUTION</div><div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>{progressPhotos.map((p, i) => <div key={i}><img src={p.photo} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 12, marginBottom: 4 }} /><div style={{ fontSize: 11, color: C.textMuted }}>{formatDate(p.date)}</div>{p.note && <div style={{ fontSize: 11, color: C.white }}>{p.note}</div>}</div>)}</div></Card>}
             </div>
           )}
+          <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
         </div>
-      )}
+  );
 
-      {screen === "history" && (
+  if (screen === "history") return (
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
           <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
           <SectionTitle title="Mon historique" subtitle="Retour sur tes jours, tes ressentis et ton évolution" />
           {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => <div key={i} style={{ marginBottom: 12 }}><EntryCard e={e} onClick={() => setSelectedEntry(e)} /></div>)}
           <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
         </div>
-      )}
+  );
+
+  // ── HOME ──────────────────────────────────────────────────────────────────
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
+      <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Logo />
+        <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
+      </div>
+
+      <div style={{ padding: 20, background: "radial-gradient(circle at top left, rgba(232,135,156,0.12), transparent 35%)" }}>
+        <PremiumHero
+          badge="Espace coaching"
+          title={`${clientInfo.name?.split(" ")[0] || "Bonjour"} 👋`}
+          subtitle="Tout est pensé pour te guider avec clarté, douceur et efficacité."
+          accent={C.pink}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
+            {clientInfo.contract_ended ? <Badge color={C.textMuted}>🏁 Contrat terminé</Badge> : todayEntry ? <Badge color={C.green}>✅ Journal OK</Badge> : (
+              <button onClick={() => setScreen("journal")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+                <Badge color={C.orange}>📝 À compléter</Badge>
+              </button>
+            )}
+          </div>
+        </PremiumHero>
+{!clientInfo.contract_accepted && (
+          <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.blue }}>📄 Règlement à valider</div><div style={{ fontSize: 12, color: C.textMuted }}>Prends 2 minutes pour lire et accepter le règlement du coaching</div></div>
+            <button onClick={() => { setScreen("contrat"); window.scrollTo(0, 0); }} style={{ background: C.blue, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Voir</button>          </div>
+        )}
+        {!notifEnabled && (
+          <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div><div style={{ fontSize: 12, color: C.textMuted }}>Recevoir des notifications utiles pour ton suivi</div></div>
+            <button onClick={handleEnableNotifs} style={{ background: C.orange, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Activer</button>
+          </div>
+        )}
+
+        {pendingClientTasks.length > 0 && (
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>À FAIRE MAINTENANT</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {pendingClientTasks.map(task => (
+                <QuickAction key={task.title} title={task.title} subtitle={task.subtitle} icon={task.icon} accent={task.accent} onClick={task.onClick} />
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {coachMsg && (
+          <Card style={{ marginBottom: 14, borderColor: C.pink + "44", background: C.pink + "08" }}>
+            <div style={{ fontSize: 10, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>MESSAGE DE TON COACH</div>
+            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{coachMsg}</div>
+            <button onClick={async () => {
+              const entry = entries.find(e => e.coach_message);
+              if (entry) await updateEntry(entry.id, { coach_message: "" });
+            }} style={{ background: "none", border: `1px solid ${C.pink}55`, borderRadius: 8, padding: "6px 12px", color: C.pink, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              ✓ Marquer comme lu
+            </button>
+          </Card>
+        )}
+
+        <Card style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>📅 MA SEMAINE</div>
+          <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} onSelectWorkout={openWorkoutPreview} loadingWorkoutId={loadingWorkoutId} />
+        </Card>
+
+        {todayEnergy && (
+          <Card style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>⚡ BALANCE ÉNERGÉTIQUE DU JOUR</div>
+            <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 2 }}>{todayEnergy.tdee.toLocaleString()} kcal</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>Dépense estimée · métabolisme {todayEnergy.bmr} + pas {todayEnergy.neat} + activité {todayEnergy.sport}</div>
+            {todayBalanceMsg ? <div style={{ fontSize: 14, fontWeight: 700, color: todayBalanceMsg.color }}>{todayBalanceMsg.text}</div> : <div style={{ fontSize: 12, color: C.textMuted }}>Renseigne tes calories du jour dans le journal pour voir ta balance</div>}
+          </Card>
+        )}
+        {!todayEnergy && profile === null && !loading && (
+          <div style={{ background: C.blue + "10", border: `1px solid ${C.blue}33`, borderRadius: 14, padding: 16, marginBottom: 14, fontSize: 12, color: C.textMuted }}>
+            ⚡ Ton coach n'a pas encore complété ton profil nutritionnel (âge, taille, objectif) — la balance énergétique s'affichera dès que ce sera fait.
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <Card onClick={() => setScreen("body")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>POIDS</div><div style={{ fontSize: 22, fontWeight: 900, color: C.pink }}>{lastWeight ? `${lastWeight.value} kg` : "—"}</div>{startWeight && lastWeight && startWeight.value !== lastWeight.value && <div style={{ fontSize: 11, color: C.green }}>-{(startWeight.value - lastWeight.value).toFixed(1)} kg</div>}</Card>
+          <Card onClick={() => setScreen("perfs")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>SÉANCES</div><div style={{ fontSize: 22, fontWeight: 900, color: C.purple }}>{sessionLogs.length}</div><div style={{ fontSize: 11, color: C.textMuted }}>réalisées</div></Card>
+        </div>
+      </div>
+
+      <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
+
     </div>
   );
 };
