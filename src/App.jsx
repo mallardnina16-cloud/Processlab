@@ -3839,7 +3839,11 @@ const ClientApp = ({ user, onLogout }) => {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
-            {clientInfo.contract_ended ? <Badge color={C.textMuted}>🏁 Contrat terminé</Badge> : todayEntry ? <Badge color={C.green}>✅ Journal OK</Badge> : <Badge color={C.orange}>📝 À compléter</Badge>}
+            {clientInfo.contract_ended ? <Badge color={C.textMuted}>🏁 Contrat terminé</Badge> : todayEntry ? <Badge color={C.green}>✅ Journal OK</Badge> : (
+              <button onClick={() => setScreen("journal")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+                <Badge color={C.orange}>📝 À compléter</Badge>
+              </button>
+            )}
           </div>
         </PremiumHero>
 {!clientInfo.contract_accepted && (
@@ -3851,13 +3855,6 @@ const ClientApp = ({ user, onLogout }) => {
           <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div><div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div><div style={{ fontSize: 12, color: C.textMuted }}>Recevoir des notifications utiles pour ton suivi</div></div>
             <button onClick={handleEnableNotifs} style={{ background: C.orange, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Activer</button>
-          </div>
-        )}
-
-        {notifEnabled && (
-          <div style={{ background: C.green + "15", border: `1px solid ${C.green}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: C.green }}>🔔 Rappels actifs</div>
-            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Tu seras aidée au bon moment sans surcharge.</div>
           </div>
         )}
 
