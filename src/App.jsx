@@ -79,7 +79,7 @@ const C = {
   brandDark: "#4b0f0f", brandCream: "#F7EDE8",
   // Rouge cerise/vin — couleur des actions principales (gros boutons), plus affirmée que le
   // rose pastel qui reste réservé aux petites touches (badges, accents), comme sur le logo.
-  cherry: "#8C1D3F", cherryLight: "#B8355F",
+  cherry: "#4B0F0F", cherryLight: "#6E2020",
   surface: "#141414", card: "#1a1a1a", border: "#2a2a2a",
   muted: "#555555", textMuted: "#888888", green: "#4ade80", red: "#f87171",
   purple: "#a78bfa", orange: "#fb923c", blue: "#60a5fa", yellow: "#fbbf24",
