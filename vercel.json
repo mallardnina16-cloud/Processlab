@@ -3,5 +3,9 @@
     { "source": "/api/openfood/:path*", "destination": "https://world.openfoodfacts.org/:path*" },
     { "source": "/decouverte.html", "destination": "/decouverte.html" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/daily-journal-check", "schedule": "0 7 * * *" },
+    { "path": "/api/weekly-report", "schedule": "0 18 * * 0" }
   ]
 }
