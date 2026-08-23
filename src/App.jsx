@@ -1935,6 +1935,7 @@ const useClientData = (clientId) => {
   const [schedule, setSchedule] = useState(() => readCache(cacheKey)?.schedule || []);
   const [appointments, setAppointments] = useState(() => readCache(cacheKey)?.appointments || []);
   const [weeklyFocus, setWeeklyFocus] = useState(() => readCache(cacheKey)?.weeklyFocus || []);
+  const [weeklyCheckins, setWeeklyCheckins] = useState(() => readCache(cacheKey)?.weeklyCheckins || []);
   const [loading, setLoading] = useState(() => !readCache(cacheKey));
 
   const fetch = async () => {
@@ -1948,10 +1949,12 @@ const useClientData = (clientId) => {
       setAssignedWorkouts(cached.assignedWorkouts || []); setProgressPhotos(cached.progressPhotos || []); setPayments(cached.payments || []);
       setProfile(cached.profile || null); setActivitySessions(cached.activitySessions || []); setMeals(cached.meals || []);
       setSchedule(cached.schedule || []); setAppointments(cached.appointments || []); setWeeklyFocus(cached.weeklyFocus || []);
+      setWeeklyCheckins(cached.weeklyCheckins || []);
       setLoading(false);
     } else {
       setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
       setProfile(null); setActivitySessions([]); setMeals([]); setSchedule([]); setAppointments([]); setWeeklyFocus([]);
+      setWeeklyCheckins([]);
       setLoading(true);
     }
     // allSettled plutôt que all : si une table manque encore (ex: migration nutrition pas encore
@@ -1973,8 +1976,9 @@ const useClientData = (clientId) => {
       supabase.from("workout_schedule").select("id, client_id, workout_id, date").eq("client_id", clientId).order("date"),
       supabase.from("appointments").select("id, client_id, date, time, duration_min, note").eq("client_id", clientId).order("date"),
       supabase.from("weekly_focus").select("id, client_id, week_start, objectif, engagement, pourquoi").eq("client_id", clientId).order("week_start", { ascending: false }),
+      supabase.from("weekly_checkins").select("id, client_id, week_start, energie, faim, stress, sommeil, confiance, facile, difficile, besoin").eq("client_id", clientId).order("week_start", { ascending: false }),
     ].map(p => settleWithTimeout(p)));
-    const [e, w, m, cw, pp, pay, prof, acts, mls, sched, appts, wf] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
+    const [e, w, m, cw, pp, pay, prof, acts, mls, sched, appts, wf, wc] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
     settled.forEach((r, i) => { if (r.status === "rejected") console.error("useClientData: requête échouée", i, r.reason); });
     const nextPayload = {
       entries: e.data || [],
@@ -1989,12 +1993,14 @@ const useClientData = (clientId) => {
       schedule: sched.data || [],
       appointments: appts.data || [],
       weeklyFocus: wf.data || [],
+      weeklyCheckins: wc.data || [],
     };
     writeCache(cacheKey, nextPayload);
     setEntries(nextPayload.entries); setWeights(nextPayload.weights); setMeasurements(nextPayload.measurements);
     setAssignedWorkouts(nextPayload.assignedWorkouts); setProgressPhotos(nextPayload.progressPhotos); setPayments(nextPayload.payments);
     setProfile(nextPayload.profile); setActivitySessions(nextPayload.activitySessions); setMeals(nextPayload.meals);
     setSchedule(nextPayload.schedule); setAppointments(nextPayload.appointments); setWeeklyFocus(nextPayload.weeklyFocus);
+    setWeeklyCheckins(nextPayload.weeklyCheckins);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
@@ -2093,8 +2099,14 @@ const useClientData = (clientId) => {
     setWeeklyFocus(wf => [data, ...wf.filter(x => x.week_start !== weekStart)]);
     return data;
   };
+  const upsertWeeklyCheckin = async (weekStart, patch) => {
+    const { data, error } = await supabase.from("weekly_checkins").upsert([{ client_id: clientId, week_start: weekStart, ...patch, updated_at: new Date().toISOString() }], { onConflict: "client_id,week_start" }).select().single();
+    if (error) { alert("Erreur lors de l'enregistrement de ton ressenti : " + error.message); return null; }
+    setWeeklyCheckins(wc => [data, ...wc.filter(x => x.week_start !== weekStart)]);
+    return data;
+  };
 
-  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus };
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus, upsertWeeklyCheckin };
 };
 const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal }) => {
   const [selectedDate, setSelectedDate] = useState(today);
@@ -2802,7 +2814,7 @@ const WeeklyFocusEditor = ({ weeklyFocus = [], onSave }) => {
   );
 };
 
-const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile }) => {
+const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, weeklyCheckins = [] }) => {
   const [offset, setOffset] = useState(0);
   const monday = startOfWeek(new Date());
   monday.setDate(monday.getDate() + offset * 7);
@@ -2855,6 +2867,87 @@ const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile })
           </Card>
         </div>
       )}
+      <Card style={{ marginTop: 12 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🧠 RESSENTI DE LA CLIENTE</div>
+        <WeeklyCheckinCard weekStart={weekDates[0]} existing={weeklyCheckins.find(c => c.week_start === weekDates[0])} readOnly />
+      </Card>
+    </div>
+  );
+};
+
+const CHECKIN_DIMENSIONS = [
+  { key: "energie", label: "Énergie" },
+  { key: "faim", label: "Faim" },
+  { key: "stress", label: "Stress" },
+  { key: "sommeil", label: "Sommeil" },
+  { key: "confiance", label: "Confiance" },
+];
+
+// readOnly (coach) : affichage seul. Sinon (cliente) : formulaire de saisie/édition.
+const WeeklyCheckinCard = ({ weekStart, existing, onSave, readOnly }) => {
+  const [editing, setEditing] = useState(!existing);
+  const [values, setValues] = useState(() => Object.fromEntries(CHECKIN_DIMENSIONS.map(d => [d.key, existing?.[d.key] ?? null])));
+  const [facile, setFacile] = useState(existing?.facile || "");
+  const [difficile, setDifficile] = useState(existing?.difficile || "");
+  const [besoin, setBesoin] = useState(existing?.besoin || "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValues(Object.fromEntries(CHECKIN_DIMENSIONS.map(d => [d.key, existing?.[d.key] ?? null])));
+    setFacile(existing?.facile || ""); setDifficile(existing?.difficile || ""); setBesoin(existing?.besoin || "");
+    setEditing(!existing);
+  }, [weekStart, existing?.id]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(weekStart, { ...values, facile, difficile, besoin });
+    setSaving(false); setEditing(false);
+  };
+
+  const summary = existing && (
+    <div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        {CHECKIN_DIMENSIONS.map(d => (
+          <div key={d.key} style={{ background: "#111", borderRadius: 10, padding: "8px 10px", textAlign: "center", minWidth: 64 }}>
+            <div style={{ fontSize: 16, fontWeight: 900 }}>{existing[d.key] ?? "—"}/5</div>
+            <div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>{d.label.toUpperCase()}</div>
+          </div>
+        ))}
+      </div>
+      {existing.facile && <div style={{ fontSize: 13, marginBottom: 6 }}><strong>Facile :</strong> {existing.facile}</div>}
+      {existing.difficile && <div style={{ fontSize: 13, marginBottom: 6 }}><strong>Difficile :</strong> {existing.difficile}</div>}
+      {existing.besoin && <div style={{ fontSize: 13 }}><strong>Besoin :</strong> {existing.besoin}</div>}
+    </div>
+  );
+
+  if (readOnly) return existing ? summary : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Pas encore de ressenti renseigné pour cette semaine.</p>;
+
+  if (!editing) return (
+    <div>
+      {summary}
+      <Btn variant="ghost" small onClick={() => setEditing(true)} style={{ marginTop: 10 }}>✏️ Modifier mon ressenti</Btn>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {CHECKIN_DIMENSIONS.map(d => (
+        <div key={d.key}>
+          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>{d.label.toUpperCase()}</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[1, 2, 3, 4, 5].map(n => (
+              <button key={n} onClick={() => setValues(v => ({ ...v, [d.key]: n }))} style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: `2px solid ${values[d.key] === n ? C.cherryLight : C.border}`, background: values[d.key] === n ? C.cherry + "22" : "#111", color: values[d.key] === n ? C.cherryLight : C.textMuted, fontWeight: 800, cursor: "pointer" }}>{n}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <TA label="Qu'est-ce qui a été le plus facile cette semaine ?" value={facile} onChange={e => setFacile(e.target.value)} />
+      <TA label="Qu'est-ce qui a été le plus difficile ?" value={difficile} onChange={e => setDifficile(e.target.value)} />
+      <TA label="De quoi as-tu besoin pour mieux vivre ta prochaine semaine ?" value={besoin} onChange={e => setBesoin(e.target.value)} />
+      <div style={{ display: "flex", gap: 10 }}>
+        {existing && <Btn variant="secondary" onClick={() => setEditing(false)} style={{ flex: 1 }}>Annuler</Btn>}
+        <Btn onClick={handleSave} disabled={saving} style={{ flex: existing ? 2 : 1 }}>{saving ? "..." : "Enregistrer mon ressenti"}</Btn>
+      </div>
     </div>
   );
 };
@@ -2867,7 +2960,7 @@ const calcWeeklyAchievements = (summary) => {
   return items;
 };
 
-const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile, weeklyFocus = [], onBack }) => {
+const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile, weeklyFocus = [], weeklyCheckins = [], onSaveCheckin, onBack }) => {
   const [offset, setOffset] = useState(-1); // par défaut : la semaine qui vient de se terminer
   const monday = startOfWeek(new Date());
   monday.setDate(monday.getDate() + offset * 7);
@@ -2928,6 +3021,11 @@ const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile,
               <div style={{ fontSize: 11, color: C.textMuted, marginTop: 8, lineHeight: 1.5 }}>Le poids peut varier naturellement selon ton cycle, ton hydratation, ton alimentation et ton transit — c'est la tendance sur plusieurs semaines qui compte, pas une seule pesée.</div>
             </Card>
           )}
+
+          <Card>
+            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🧠 MON RESSENTI</div>
+            <WeeklyCheckinCard weekStart={weekDates[0]} existing={weeklyCheckins.find(c => c.week_start === weekDates[0])} onSave={onSaveCheckin} />
+          </Card>
 
           {achievements.length > 0 && (
             <Card style={{ borderColor: C.green + "44" }}>
@@ -3296,7 +3394,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
   const client = clients.find(c => c.id === selected);
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus } = useClientData(selected);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus } = useClientData(selected);
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
   // Exclure les clientes en pause et les contrats terminés des alertes paiement/journal
@@ -3796,7 +3894,7 @@ const CoachApp = ({ user, onLogout }) => {
                 loadingData ? <Spinner /> : (
                   <div>
                     <WeeklyFocusEditor weeklyFocus={weeklyFocus} onSave={upsertWeeklyFocus} />
-                    <WeeklyBilanView entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} />
+                    <WeeklyBilanView entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyCheckins={weeklyCheckins} />
                   </div>
                 )
               )}
@@ -3999,7 +4097,7 @@ const ClientApp = ({ user, onLogout }) => {
     }
   }, [clientId]);
 
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal } = useClientData(clientId);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, upsertWeeklyCheckin } = useClientData(clientId);
   const { activityTypes } = useActivityTypes();
 
   const myWorkouts = assignedWorkouts.filter(a => a.workout).map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
@@ -4244,7 +4342,7 @@ const ClientApp = ({ user, onLogout }) => {
   );
 
   if (screen === "bilan") return (
-    <ClientWeeklyBilan entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyFocus={weeklyFocus} onBack={() => setScreen("home")} />
+    <ClientWeeklyBilan entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyFocus={weeklyFocus} weeklyCheckins={weeklyCheckins} onSaveCheckin={upsertWeeklyCheckin} onBack={() => setScreen("home")} />
   );
 
   if (screen === "body") return (
