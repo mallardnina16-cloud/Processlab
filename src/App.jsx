@@ -1934,6 +1934,7 @@ const useClientData = (clientId) => {
   const [meals, setMeals] = useState(() => readCache(cacheKey)?.meals || []);
   const [schedule, setSchedule] = useState(() => readCache(cacheKey)?.schedule || []);
   const [appointments, setAppointments] = useState(() => readCache(cacheKey)?.appointments || []);
+  const [weeklyFocus, setWeeklyFocus] = useState(() => readCache(cacheKey)?.weeklyFocus || []);
   const [loading, setLoading] = useState(() => !readCache(cacheKey));
 
   const fetch = async () => {
@@ -1946,11 +1947,11 @@ const useClientData = (clientId) => {
       setEntries(cached.entries || []); setWeights(cached.weights || []); setMeasurements(cached.measurements || []);
       setAssignedWorkouts(cached.assignedWorkouts || []); setProgressPhotos(cached.progressPhotos || []); setPayments(cached.payments || []);
       setProfile(cached.profile || null); setActivitySessions(cached.activitySessions || []); setMeals(cached.meals || []);
-      setSchedule(cached.schedule || []); setAppointments(cached.appointments || []);
+      setSchedule(cached.schedule || []); setAppointments(cached.appointments || []); setWeeklyFocus(cached.weeklyFocus || []);
       setLoading(false);
     } else {
       setEntries([]); setWeights([]); setMeasurements([]); setAssignedWorkouts([]); setProgressPhotos([]); setPayments([]);
-      setProfile(null); setActivitySessions([]); setMeals([]); setSchedule([]); setAppointments([]);
+      setProfile(null); setActivitySessions([]); setMeals([]); setSchedule([]); setAppointments([]); setWeeklyFocus([]);
       setLoading(true);
     }
     // allSettled plutôt que all : si une table manque encore (ex: migration nutrition pas encore
@@ -1971,8 +1972,9 @@ const useClientData = (clientId) => {
       supabase.from("meals").select("id, client_id, date, meal_slot, raw_text, photo_url, source, items, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g, confidence").eq("client_id", clientId).order("created_at", { ascending: false }),
       supabase.from("workout_schedule").select("id, client_id, workout_id, date").eq("client_id", clientId).order("date"),
       supabase.from("appointments").select("id, client_id, date, time, duration_min, note").eq("client_id", clientId).order("date"),
+      supabase.from("weekly_focus").select("id, client_id, week_start, objectif, engagement, pourquoi").eq("client_id", clientId).order("week_start", { ascending: false }),
     ].map(p => settleWithTimeout(p)));
-    const [e, w, m, cw, pp, pay, prof, acts, mls, sched, appts] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
+    const [e, w, m, cw, pp, pay, prof, acts, mls, sched, appts, wf] = settled.map(r => r.status === "fulfilled" ? r.value : { data: null, error: r.reason });
     settled.forEach((r, i) => { if (r.status === "rejected") console.error("useClientData: requête échouée", i, r.reason); });
     const nextPayload = {
       entries: e.data || [],
@@ -1986,12 +1988,13 @@ const useClientData = (clientId) => {
       meals: mls.data || [],
       schedule: sched.data || [],
       appointments: appts.data || [],
+      weeklyFocus: wf.data || [],
     };
     writeCache(cacheKey, nextPayload);
     setEntries(nextPayload.entries); setWeights(nextPayload.weights); setMeasurements(nextPayload.measurements);
     setAssignedWorkouts(nextPayload.assignedWorkouts); setProgressPhotos(nextPayload.progressPhotos); setPayments(nextPayload.payments);
     setProfile(nextPayload.profile); setActivitySessions(nextPayload.activitySessions); setMeals(nextPayload.meals);
-    setSchedule(nextPayload.schedule); setAppointments(nextPayload.appointments);
+    setSchedule(nextPayload.schedule); setAppointments(nextPayload.appointments); setWeeklyFocus(nextPayload.weeklyFocus);
     setLoading(false);
   };
   useEffect(() => { fetch(); }, [clientId]);
@@ -2084,8 +2087,14 @@ const useClientData = (clientId) => {
     await supabase.from("appointments").delete().eq("id", id);
     setAppointments(a => a.filter(x => x.id !== id));
   };
+  const upsertWeeklyFocus = async (weekStart, patch) => {
+    const { data, error } = await supabase.from("weekly_focus").upsert([{ client_id: clientId, week_start: weekStart, ...patch, updated_at: new Date().toISOString() }], { onConflict: "client_id,week_start" }).select().single();
+    if (error) { alert("Erreur lors de l'enregistrement de l'objectif : " + error.message); return null; }
+    setWeeklyFocus(wf => [data, ...wf.filter(x => x.week_start !== weekStart)]);
+    return data;
+  };
 
-  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment };
+  return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus };
 };
 const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal }) => {
   const [selectedDate, setSelectedDate] = useState(today);
@@ -2739,6 +2748,60 @@ const WorkoutScheduleEditor = ({ workoutId, schedule, onSchedule, onUnschedule }
   );
 };
 
+const nextWeekMonday = () => {
+  const d = startOfWeek(new Date());
+  d.setDate(d.getDate() + 7);
+  return dayKey(d);
+};
+
+const WeeklyFocusEditor = ({ weeklyFocus = [], onSave }) => {
+  const weekStart = nextWeekMonday();
+  const existing = weeklyFocus.find(w => w.week_start === weekStart);
+  const [editing, setEditing] = useState(false);
+  const [objectif, setObjectif] = useState(existing?.objectif || "");
+  const [engagement, setEngagement] = useState(existing?.engagement || "");
+  const [pourquoi, setPourquoi] = useState(existing?.pourquoi || "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setObjectif(existing?.objectif || ""); setEngagement(existing?.engagement || ""); setPourquoi(existing?.pourquoi || "");
+  }, [existing?.id]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(weekStart, { objectif, engagement, pourquoi });
+    setSaving(false); setEditing(false);
+  };
+
+  return (
+    <Card style={{ marginBottom: 14, borderColor: C.cherry + "55" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700 }}>🎯 OBJECTIF — SEMAINE DU {new Date(weekStart).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>
+        {!editing && <button onClick={() => setEditing(true)} style={{ background: "none", border: "none", color: C.cherryLight, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{existing ? "Modifier" : "+ Définir"}</button>}
+      </div>
+      {editing ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Inp label="Objectif" placeholder="ex: Mieux répartir mes protéines sur la journée" value={objectif} onChange={e => setObjectif(e.target.value)} />
+          <Inp label="Engagement concret" placeholder="ex: Ajouter une source de protéines au petit-déj, 4 jours cette semaine" value={engagement} onChange={e => setEngagement(e.target.value)} />
+          <TA label="Pourquoi (optionnel)" placeholder="ex: Pour améliorer la satiété" value={pourquoi} onChange={e => setPourquoi(e.target.value)} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn variant="secondary" small onClick={() => setEditing(false)} style={{ flex: 1 }}>Annuler</Btn>
+            <Btn small onClick={handleSave} disabled={saving} style={{ flex: 2 }}>{saving ? "..." : "Enregistrer"}</Btn>
+          </div>
+        </div>
+      ) : existing ? (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{existing.objectif}</div>
+          {existing.engagement && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 4 }}>→ {existing.engagement}</div>}
+          {existing.pourquoi && <div style={{ fontSize: 12, color: C.textMuted, fontStyle: "italic" }}>{existing.pourquoi}</div>}
+        </div>
+      ) : (
+        <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Pas encore d'objectif défini pour la semaine à venir.</p>
+      )}
+    </Card>
+  );
+};
+
 const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile }) => {
   const [offset, setOffset] = useState(0);
   const monday = startOfWeek(new Date());
@@ -2789,6 +2852,101 @@ const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile })
               <div style={{ background: "#111", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{summary.sessionsCount}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>SÉANCES</div></div>
               <div style={{ background: "#111", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{summary.totalDurationMin}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>MIN TOTAL</div></div>
             </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const calcWeeklyAchievements = (summary) => {
+  const items = [];
+  if (summary.sessionsCount > 0) items.push(`Tu as réalisé ${summary.sessionsCount} séance${summary.sessionsCount > 1 ? "s" : ""}.`);
+  if (summary.daysCompleted > 0) items.push(`Tu as rempli ton journal ${summary.daysCompleted}/${summary.totalDays} jours.`);
+  if (summary.mealDaysCount > 0) items.push(`Tu as suivi ton alimentation ${summary.mealDaysCount}/${summary.totalDays} jours.`);
+  return items;
+};
+
+const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile, weeklyFocus = [], onBack }) => {
+  const [offset, setOffset] = useState(-1); // par défaut : la semaine qui vient de se terminer
+  const monday = startOfWeek(new Date());
+  monday.setDate(monday.getDate() + offset * 7);
+  const weekDates = isoWeekDates(monday);
+  const summary = calcWeeklySummary({ entries, meals, activitySessions, weights, profile, weekDates });
+  const balanceMsg = summary.balanceAvg != null ? energyBalanceMessage(summary.balanceAvg, profile?.nutrition_goal) : null;
+  const achievements = calcWeeklyAchievements(summary);
+
+  const currentWeekStart = dayKey(startOfWeek(new Date()));
+  const focus = weeklyFocus.find(w => w.week_start === currentWeekStart);
+
+  const weightsInWeek = weights.filter(w => weekDates.includes(w.date));
+  const weightBefore = [...weights].reverse().find(w => w.date < weekDates[0]);
+  const weightTrend = weightsInWeek.length > 0 && weightBefore ? (weightsInWeek[weightsInWeek.length - 1].value - weightBefore.value) : null;
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
+      <h2 style={{ fontSize: 22, fontWeight: 900, margin: "0 0 4px" }}>Mon bilan de la semaine</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <button onClick={() => setOffset(o => o - 1)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 18, cursor: "pointer", padding: "0 8px 0 0" }}>‹</button>
+        <p style={{ color: C.textMuted, fontSize: 13, margin: 0 }}>Du {new Date(weekDates[0]).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} au {new Date(weekDates[6]).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</p>
+        <button onClick={() => offset < -1 && setOffset(o => o + 1)} style={{ background: "none", border: "none", color: offset >= -1 ? C.border : C.textMuted, fontSize: 18, cursor: offset >= -1 ? "default" : "pointer", padding: "0 0 0 8px" }}>›</button>
+      </div>
+      <p style={{ color: C.textMuted, fontSize: 12, fontStyle: "italic", marginBottom: 24 }}>Une semaine ne se juge pas sur une journée. On regarde la tendance.</p>
+
+      {!profile ? (
+        <Card><p style={{ color: C.textMuted, fontSize: 13, textAlign: "center", margin: 0 }}>Ton profil n'est pas encore complet — parles-en à ta coach pour débloquer ton bilan complet.</p></Card>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Card style={{ padding: 14 }}>
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>⚖️ BALANCE</div>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>{summary.balanceTotal != null ? `${summary.balanceTotal > 0 ? "+" : ""}${summary.balanceTotal} kcal` : "—"}</div>
+              {balanceMsg && <div style={{ fontSize: 11, color: balanceMsg.color, fontWeight: 700, marginTop: 2 }}>{balanceMsg.text}</div>}
+            </Card>
+            <Card style={{ padding: 14 }}>
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥗 ALIMENTATION</div>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>{summary.mealDaysCount}/{summary.totalDays} jours</div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>suivis</div>
+            </Card>
+            <Card style={{ padding: 14 }}>
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🏃‍♀️ PAS/JOUR</div>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>{summary.avgSteps?.toLocaleString() ?? "—"}</div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>en moyenne</div>
+            </Card>
+            <Card style={{ padding: 14 }}>
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🏋🏽‍♀️ SÉANCES</div>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>{summary.sessionsCount}</div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>réalisées</div>
+            </Card>
+          </div>
+
+          {weightTrend != null && (
+            <Card>
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>MON ÉVOLUTION</div>
+              <div style={{ fontSize: 20, fontWeight: 900 }}>{weightTrend > 0 ? "+" : ""}{weightTrend.toFixed(1)} kg <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>cette semaine</span></div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 8, lineHeight: 1.5 }}>Le poids peut varier naturellement selon ton cycle, ton hydratation, ton alimentation et ton transit — c'est la tendance sur plusieurs semaines qui compte, pas une seule pesée.</div>
+            </Card>
+          )}
+
+          {achievements.length > 0 && (
+            <Card style={{ borderColor: C.green + "44" }}>
+              <div style={{ fontSize: 10, color: C.green, fontWeight: 700, marginBottom: 10 }}>✨ CETTE SEMAINE</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {achievements.map((a, i) => <div key={i} style={{ fontSize: 13 }}>{a}</div>)}
+              </div>
+            </Card>
+          )}
+
+          <Card style={{ borderColor: C.cherry + "55" }}>
+            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🎯 MON OBJECTIF DE LA SEMAINE</div>
+            {focus ? (
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{focus.objectif}</div>
+                {focus.engagement && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 6 }}>→ {focus.engagement}</div>}
+                {focus.pourquoi && <div style={{ fontSize: 12, color: C.textMuted, fontStyle: "italic" }}>{focus.pourquoi}</div>}
+              </div>
+            ) : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Ta coach n'a pas encore défini d'objectif pour cette semaine.</p>}
           </Card>
         </div>
       )}
@@ -3138,7 +3296,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
   const client = clients.find(c => c.id === selected);
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment } = useClientData(selected);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus } = useClientData(selected);
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
   // Exclure les clientes en pause et les contrats terminés des alertes paiement/journal
@@ -3635,7 +3793,12 @@ const CoachApp = ({ user, onLogout }) => {
               )}
 
               {clientTab === "bilan" && (
-                loadingData ? <Spinner /> : <WeeklyBilanView entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} />
+                loadingData ? <Spinner /> : (
+                  <div>
+                    <WeeklyFocusEditor weeklyFocus={weeklyFocus} onSave={upsertWeeklyFocus} />
+                    <WeeklyBilanView entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} />
+                  </div>
+                )
               )}
 
               {clientTab === "seances" && (
@@ -3836,7 +3999,7 @@ const ClientApp = ({ user, onLogout }) => {
     }
   }, [clientId]);
 
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal } = useClientData(clientId);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal } = useClientData(clientId);
   const { activityTypes } = useActivityTypes();
 
   const myWorkouts = assignedWorkouts.filter(a => a.workout).map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
@@ -4080,6 +4243,10 @@ const ClientApp = ({ user, onLogout }) => {
         </div>
   );
 
+  if (screen === "bilan") return (
+    <ClientWeeklyBilan entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyFocus={weeklyFocus} onBack={() => setScreen("home")} />
+  );
+
   if (screen === "body") return (
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
           <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
@@ -4206,6 +4373,14 @@ const ClientApp = ({ user, onLogout }) => {
         <Card style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>📅 MA SEMAINE</div>
           <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} onSelectWorkout={openWorkoutPreview} loadingWorkoutId={loadingWorkoutId} />
+        </Card>
+
+        <Card onClick={() => setScreen("bilan")} style={{ marginBottom: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>📊 Mon bilan de la semaine</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Ta tendance, tes réussites, ton objectif</div>
+          </div>
+          <span style={{ color: C.cherryLight, fontWeight: 700 }}>→</span>
         </Card>
 
         {todayEnergy && (
