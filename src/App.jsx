@@ -610,6 +610,24 @@ const analyzeMeal = async ({ text, photoBase64 }) => {
   }
 };
 
+const ANALYZE_WEEKLY_BILAN_URL = `${SUPABASE_URL}/functions/v1/analyze-weekly-bilan`;
+const analyzeWeeklyBilan = async (payload) => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  try {
+    const res = await fetch(ANALYZE_WEEKLY_BILAN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) return { error: json.error || "Erreur lors de l'analyse." };
+    return { data: json };
+  } catch (err) {
+    return { error: "Impossible de contacter le serveur d'analyse." };
+  }
+};
+
 const ADMIN_PW_WORDS = ["Fort", "Puissant", "Energie", "Focus", "Victoire", "Motiv", "Champion", "Solide"];
 const generateSimplePassword = () => {
   const w = ADMIN_PW_WORDS[Math.floor(Math.random() * ADMIN_PW_WORDS.length)];
@@ -2821,16 +2839,18 @@ const WeeklyFocusEditor = ({ weeklyFocus = [], onSave }) => {
   );
 };
 
-const CoachAnalysisCard = ({ weekStart, existing, onSave }) => {
+const CoachAnalysisCard = ({ weekStart, weekLabel, clientName, goal, summary, checkin, existing, onSave }) => {
   const [editing, setEditing] = useState(false);
   const [fonctionne, setFonctionne] = useState(existing?.analyse_fonctionne || "");
   const [surveiller, setSurveiller] = useState(existing?.analyse_surveiller || "");
   const [decision, setDecision] = useState(existing?.decision || "");
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   useEffect(() => {
     setFonctionne(existing?.analyse_fonctionne || ""); setSurveiller(existing?.analyse_surveiller || ""); setDecision(existing?.decision || "");
-    setEditing(false);
+    setEditing(false); setAiError("");
   }, [weekStart, existing?.id]);
 
   const hasContent = existing?.analyse_fonctionne || existing?.analyse_surveiller || existing?.decision;
@@ -2839,6 +2859,14 @@ const CoachAnalysisCard = ({ weekStart, existing, onSave }) => {
     setSaving(true);
     await onSave(weekStart, { analyse_fonctionne: fonctionne, analyse_surveiller: surveiller, decision });
     setSaving(false); setEditing(false);
+  };
+
+  const handleAiSuggest = async () => {
+    setEditing(true); setAiLoading(true); setAiError("");
+    const { data, error } = await analyzeWeeklyBilan({ clientName, weekLabel, goal, summary, checkin });
+    if (error) { setAiError(error); setAiLoading(false); return; }
+    setFonctionne(data.ce_qui_fonctionne || ""); setSurveiller(data.a_surveiller || ""); setDecision(data.decision_suggeree || "");
+    setAiLoading(false);
   };
 
   if (!editing) return (
@@ -2850,12 +2878,17 @@ const CoachAnalysisCard = ({ weekStart, existing, onSave }) => {
           {existing.decision && <div style={{ fontSize: 13 }}><strong style={{ color: C.cherryLight }}>Décision :</strong> {existing.decision}</div>}
         </div>
       ) : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Pas encore d'analyse pour cette semaine.</p>}
-      <Btn variant="ghost" small onClick={() => setEditing(true)} style={{ marginTop: 10 }}>{hasContent ? "✏️ Modifier" : "+ Ajouter mon analyse"}</Btn>
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <Btn variant="ghost" small onClick={() => setEditing(true)}>{hasContent ? "✏️ Modifier" : "+ Écrire moi-même"}</Btn>
+        <Btn variant="ghost" small onClick={handleAiSuggest} disabled={aiLoading}>{aiLoading ? "Analyse..." : "🤖 Suggestion IA"}</Btn>
+      </div>
     </div>
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <Btn variant="ghost" small onClick={handleAiSuggest} disabled={aiLoading} style={{ alignSelf: "flex-start" }}>{aiLoading ? "Analyse en cours..." : "🤖 " + (hasContent || fonctionne ? "Régénérer la" : "Générer une") + " suggestion IA"}</Btn>
+      {aiError && <div style={{ fontSize: 12, color: C.red }}>{aiError}</div>}
       <TA label="Ce qui fonctionne" value={fonctionne} onChange={e => setFonctionne(e.target.value)} />
       <TA label="À surveiller" value={surveiller} onChange={e => setSurveiller(e.target.value)} />
       <TA label="Décision" value={decision} onChange={e => setDecision(e.target.value)} />
@@ -2912,7 +2945,7 @@ const FourWeekComparison = ({ entries, meals, activitySessions, weights, profile
   );
 };
 
-const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, weeklyCheckins = [], weeklyFocus = [], onSaveFocus }) => {
+const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, weeklyCheckins = [], weeklyFocus = [], onSaveFocus, clientName }) => {
   const [offset, setOffset] = useState(0);
   const monday = startOfWeek(new Date());
   monday.setDate(monday.getDate() + offset * 7);
@@ -2971,7 +3004,16 @@ const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, w
       </Card>
       <Card style={{ marginTop: 12, borderColor: C.cherry + "55" }}>
         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🔒 MON ANALYSE (privé, jamais visible côté cliente)</div>
-        <CoachAnalysisCard weekStart={weekDates[0]} existing={weeklyFocus.find(f => f.week_start === weekDates[0])} onSave={onSaveFocus} />
+        <CoachAnalysisCard
+          weekStart={weekDates[0]}
+          weekLabel={`${new Date(weekDates[0]).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} – ${new Date(weekDates[6]).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}
+          clientName={clientName}
+          goal={profile?.nutrition_goal}
+          summary={summary}
+          checkin={weeklyCheckins.find(c => c.week_start === weekDates[0])}
+          existing={weeklyFocus.find(f => f.week_start === weekDates[0])}
+          onSave={onSaveFocus}
+        />
       </Card>
     </div>
   );
@@ -3997,7 +4039,7 @@ const CoachApp = ({ user, onLogout }) => {
                   <div>
                     <WeeklyFocusEditor weeklyFocus={weeklyFocus} onSave={upsertWeeklyFocus} />
                     <FourWeekComparison entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyCheckins={weeklyCheckins} />
-                    <WeeklyBilanView entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyCheckins={weeklyCheckins} weeklyFocus={weeklyFocus} onSaveFocus={upsertWeeklyFocus} />
+                    <WeeklyBilanView entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyCheckins={weeklyCheckins} weeklyFocus={weeklyFocus} onSaveFocus={upsertWeeklyFocus} clientName={client?.name} />
                   </div>
                 )
               )}
