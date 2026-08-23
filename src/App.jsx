@@ -433,6 +433,54 @@ const energyBalanceMessage = (balance, goal) => {
   return { text: matches ? `${text} — cohérent avec l'objectif` : text, color: matches ? C.green : C.textMuted };
 };
 
+// Les 7 dates (lundi → dimanche, "YYYY-MM-DD") de la semaine ISO contenant `date`
+const isoWeekDates = (date) => {
+  const monday = startOfWeek(new Date(date));
+  return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return dayKey(d); });
+};
+
+// Bilan hebdomadaire d'une cliente — agrège meals/entries/activity_sessions sur les 7 dates
+// données. Les moyennes nutrition se basent sur les jours où au moins un repas a été loggé
+// (pas sur les 7 jours) pour ne pas fausser la moyenne avec des jours à zéro par absence de saisie.
+const calcWeeklySummary = ({ entries = [], meals = [], activitySessions = [], weights = [], profile, weekDates }) => {
+  const weekEntries = entries.filter(e => weekDates.includes(e.date));
+  const weekMeals = meals.filter(m => weekDates.includes(m.date));
+  const weekActivity = activitySessions.filter(a => weekDates.includes(a.date));
+  const mealDays = [...new Set(weekMeals.map(m => m.date))];
+
+  const sumMeals = key => weekMeals.reduce((s, m) => s + (m[key] || 0), 0);
+  const avgOverMealDays = key => mealDays.length ? Math.round(sumMeals(key) / mealDays.length) : null;
+
+  let balanceSum = 0, balanceDays = 0;
+  weekDates.forEach(d => {
+    const entry = weekEntries.find(e => e.date === d);
+    const dayMeals = weekMeals.filter(m => m.date === d);
+    if (!entry || dayMeals.length === 0) return;
+    const weightForDate = [...weights].reverse().find(w => w.date <= d) || weights[0];
+    const energy = calcDailyEnergy({ profile, weightKg: weightForDate?.value, steps: entry.steps, activitySessions: weekActivity.filter(a => a.date === d) });
+    if (!energy) return;
+    balanceSum += dayMeals.reduce((s, m) => s + (m.calories || 0), 0) - energy.tdee;
+    balanceDays++;
+  });
+
+  const stepsEntries = weekEntries.filter(e => e.steps);
+  const avgSteps = stepsEntries.length ? Math.round(stepsEntries.reduce((s, e) => s + e.steps, 0) / stepsEntries.length) : null;
+
+  return {
+    daysCompleted: weekDates.filter(d => weekEntries.some(e => e.date === d)).length,
+    totalDays: weekDates.length,
+    mealDaysCount: mealDays.length,
+    avgCalories: avgOverMealDays("calories"), avgProtein: avgOverMealDays("protein_g"),
+    avgCarb: avgOverMealDays("carb_g"), avgFat: avgOverMealDays("fat_g"),
+    avgFiber: avgOverMealDays("fiber_g"), avgSugar: avgOverMealDays("sugar_g"),
+    balanceTotal: balanceDays ? Math.round(balanceSum) : null,
+    balanceAvg: balanceDays ? Math.round(balanceSum / balanceDays) : null,
+    avgSteps,
+    sessionsCount: weekActivity.length,
+    totalDurationMin: weekActivity.reduce((s, a) => s + (a.duration_min || 0), 0),
+  };
+};
+
 // Indice de fiabilité v1 : complétude des champs qui alimentent le calcul du jour
 const calcReliability = ({ hasEntry, hasSteps, hasWeightThisWeek, hasActivityInfo, hasCalories }) => {
   const checks = [hasEntry, hasSteps, hasWeightThisWeek, hasActivityInfo, hasCalories];
@@ -2691,6 +2739,63 @@ const WorkoutScheduleEditor = ({ workoutId, schedule, onSchedule, onUnschedule }
   );
 };
 
+const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile }) => {
+  const [offset, setOffset] = useState(0);
+  const monday = startOfWeek(new Date());
+  monday.setDate(monday.getDate() + offset * 7);
+  const weekDates = isoWeekDates(monday);
+  const summary = calcWeeklySummary({ entries, meals, activitySessions, weights, profile, weekDates });
+  const balanceMsg = summary.balanceAvg != null ? energyBalanceMessage(summary.balanceAvg, profile?.nutrition_goal) : null;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <button onClick={() => setOffset(o => o - 1)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 20, cursor: "pointer", padding: "0 8px" }}>‹</button>
+        <span style={{ fontSize: 13, fontWeight: 700 }}>{new Date(weekDates[0]).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} – {new Date(weekDates[6]).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
+        <button onClick={() => offset < 0 && setOffset(o => o + 1)} style={{ background: "none", border: "none", color: offset >= 0 ? C.border : C.textMuted, fontSize: 20, cursor: offset >= 0 ? "default" : "pointer", padding: "0 8px" }}>›</button>
+      </div>
+      {!profile ? (
+        <Card><p style={{ color: C.textMuted, fontSize: 13, textAlign: "center", margin: 0 }}>Profil nutritionnel non renseigné — certains indicateurs ne peuvent pas être calculés.</p></Card>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Card>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>RÉGULARITÉ</div>
+            <div style={{ fontSize: 22, fontWeight: 900 }}>{summary.daysCompleted}/{summary.totalDays} <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 400 }}>jours de journal remplis</span></div>
+          </Card>
+          <Card>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>⚡ BALANCE ÉNERGÉTIQUE</div>
+            {summary.balanceTotal != null ? (
+              <>
+                <div style={{ fontSize: 22, fontWeight: 900 }}>{summary.balanceTotal > 0 ? "+" : ""}{summary.balanceTotal.toLocaleString()} kcal <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>cumulé</span></div>
+                {balanceMsg && <div style={{ fontSize: 13, fontWeight: 700, color: balanceMsg.color, marginTop: 4 }}>Moyenne/jour : {balanceMsg.text}</div>}
+              </>
+            ) : <div style={{ fontSize: 13, color: C.textMuted }}>Pas assez de données cette semaine.</div>}
+          </Card>
+          <Card>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🍽️ NUTRITION — MOYENNE/JOUR ({summary.mealDaysCount} jour{summary.mealDaysCount > 1 ? "s" : ""} loggé{summary.mealDaysCount > 1 ? "s" : ""})</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              {[["Calories", summary.avgCalories, "kcal", C.yellow], ["Protéines", summary.avgProtein, "g", C.green], ["Glucides", summary.avgCarb, "g", C.blue], ["Lipides", summary.avgFat, "g", C.pink], ["Fibres", summary.avgFiber, "g", C.purple], ["Sucres", summary.avgSugar, "g", C.orange]].map(([label, val, unit, color]) => (
+                <div key={label} style={{ background: "#111", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 900, color }}>{val != null ? `${val}${unit}` : "—"}</div>
+                  <div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>{label.toUpperCase()}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🏃 ACTIVITÉ</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              <div style={{ background: "#111", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{summary.avgSteps?.toLocaleString() ?? "—"}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>PAS/JOUR</div></div>
+              <div style={{ background: "#111", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{summary.sessionsCount}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>SÉANCES</div></div>
+              <div style={{ background: "#111", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{summary.totalDurationMin}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>MIN TOTAL</div></div>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AppointmentScheduler = ({ appointments, onAdd, onDelete }) => {
   const [showForm, setShowForm] = useState(false);
   const [date, setDate] = useState(today);
@@ -3033,7 +3138,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
   const client = clients.find(c => c.id === selected);
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, schedule, appointments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment } = useClientData(selected);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment } = useClientData(selected);
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
   // Exclure les clientes en pause et les contrats terminés des alertes paiement/journal
@@ -3505,7 +3610,7 @@ const CoachApp = ({ user, onLogout }) => {
                 </div>
               )}
 
-              <Tab tabs={[["journal", "📋 Journal"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
+              <Tab tabs={[["journal", "📋 Journal"], ["bilan", "🗓️ Bilan"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
 
               {clientTab === "journal" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -3527,6 +3632,10 @@ const CoachApp = ({ user, onLogout }) => {
                   )}
                   {loadingData ? <Spinner /> : entries.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune entrée.</p></Card> : entries.map((e, i) => <EntryCard key={i} e={e} onClick={() => setSelectedEntry(e)} />)}
                 </div>
+              )}
+
+              {clientTab === "bilan" && (
+                loadingData ? <Spinner /> : <WeeklyBilanView entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} />
               )}
 
               {clientTab === "seances" && (
