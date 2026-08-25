@@ -482,6 +482,28 @@ const calcWeeklySummary = ({ entries = [], meals = [], activitySessions = [], we
 };
 
 // Indice de fiabilité v1 : complétude des champs qui alimentent le calcul du jour
+// Suivi de cycle — optionnel, renseigné par la cliente. Estimation approximative à partir
+// de la date de début des dernières règles + durées moyennes ; ce n'est ni un diagnostic ni
+// un suivi médical, juste un repère de contexte pour lire les variations de la semaine.
+const CYCLE_PHASE_LABELS = { period: "Règles", follicular: "Phase folliculaire", ovulation: "Ovulation", luteal: "Phase lutéale" };
+const calcCyclePhase = (profile, dateStr) => {
+  if (!profile?.cycle_last_period_start) return null;
+  const cycleLength = profile.cycle_avg_length || 28;
+  const periodLength = profile.cycle_avg_period_length || 5;
+  const start = new Date(profile.cycle_last_period_start);
+  const date = new Date(dateStr);
+  const daysSinceStart = Math.floor((date - start) / 86400000);
+  if (daysSinceStart < 0) return null;
+  const dayInCycle = (daysSinceStart % cycleLength) + 1;
+  const ovulationDay = Math.max(periodLength + 2, cycleLength - 14);
+  let phase;
+  if (dayInCycle <= periodLength) phase = "period";
+  else if (dayInCycle < ovulationDay - 1) phase = "follicular";
+  else if (dayInCycle <= ovulationDay + 1) phase = "ovulation";
+  else phase = "luteal";
+  return { phase, dayInCycle, label: CYCLE_PHASE_LABELS[phase] };
+};
+
 const calcReliability = ({ hasEntry, hasSteps, hasWeightThisWeek, hasActivityInfo, hasCalories }) => {
   const checks = [hasEntry, hasSteps, hasWeightThisWeek, hasActivityInfo, hasCalories];
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
@@ -1995,7 +2017,7 @@ const useClientData = (clientId, { isCoach = false } = {}) => {
       supabase.from("client_workouts").select("workout_id, scheduled_date, workouts(id, name, description, exercises(id, workout_id, name, sets, reps, rest, note, position, suggested_weight, weight_type, tempo))").eq("client_id", clientId),
       supabase.from("progress_photos").select("id, client_id, photo, note, date").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").eq("client_id", clientId).order("paid_date", { ascending: false }),
-      supabase.from("client_profiles").select("client_id, birth_date, sex, height_cm, nutrition_goal").eq("client_id", clientId).maybeSingle(),
+      supabase.from("client_profiles").select("client_id, birth_date, sex, height_cm, nutrition_goal, cycle_last_period_start, cycle_avg_length, cycle_avg_period_length").eq("client_id", clientId).maybeSingle(),
       supabase.from("activity_sessions").select("id, client_id, date, activity_name, met_value, duration_min, source, calories").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("meals").select("id, client_id, date, meal_slot, raw_text, photo_url, source, items, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g, confidence").eq("client_id", clientId).order("created_at", { ascending: false }),
       supabase.from("workout_schedule").select("id, client_id, workout_id, date").eq("client_id", clientId).order("date"),
@@ -2839,7 +2861,7 @@ const WeeklyFocusEditor = ({ weeklyFocus = [], onSave }) => {
   );
 };
 
-const CoachAnalysisCard = ({ weekStart, weekLabel, clientName, goal, summary, checkin, existing, onSave }) => {
+const CoachAnalysisCard = ({ weekStart, weekLabel, clientName, goal, summary, checkin, cyclePhase, existing, onSave }) => {
   const [editing, setEditing] = useState(false);
   const [fonctionne, setFonctionne] = useState(existing?.analyse_fonctionne || "");
   const [surveiller, setSurveiller] = useState(existing?.analyse_surveiller || "");
@@ -2863,7 +2885,7 @@ const CoachAnalysisCard = ({ weekStart, weekLabel, clientName, goal, summary, ch
 
   const handleAiSuggest = async () => {
     setEditing(true); setAiLoading(true); setAiError("");
-    const { data, error } = await analyzeWeeklyBilan({ clientName, weekLabel, goal, summary, checkin });
+    const { data, error } = await analyzeWeeklyBilan({ clientName, weekLabel, goal, summary, checkin, cyclePhase });
     if (error) { setAiError(error); setAiLoading(false); return; }
     setFonctionne(data.ce_qui_fonctionne || ""); setSurveiller(data.a_surveiller || ""); setDecision(data.decision_suggeree || "");
     setAiLoading(false);
@@ -2952,6 +2974,7 @@ const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, w
   const weekDates = isoWeekDates(monday);
   const summary = calcWeeklySummary({ entries, meals, activitySessions, weights, profile, weekDates });
   const balanceMsg = summary.balanceAvg != null ? energyBalanceMessage(summary.balanceAvg, profile?.nutrition_goal) : null;
+  const cyclePhase = calcCyclePhase(profile, weekDates[6]);
 
   return (
     <div>
@@ -2960,6 +2983,9 @@ const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, w
         <span style={{ fontSize: 13, fontWeight: 700 }}>{new Date(weekDates[0]).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} – {new Date(weekDates[6]).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
         <button onClick={() => offset < 0 && setOffset(o => o + 1)} style={{ background: "none", border: "none", color: offset >= 0 ? C.border : C.textMuted, fontSize: 20, cursor: offset >= 0 ? "default" : "pointer", padding: "0 8px" }}>›</button>
       </div>
+      {cyclePhase && (
+        <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 14, textAlign: "center" }}>🌙 Cycle (estimé) : <strong style={{ color: C.white }}>{cyclePhase.label}</strong></div>
+      )}
       {!profile ? (
         <Card><p style={{ color: C.textMuted, fontSize: 13, textAlign: "center", margin: 0 }}>Profil nutritionnel non renseigné — certains indicateurs ne peuvent pas être calculés.</p></Card>
       ) : (
@@ -3011,6 +3037,7 @@ const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, w
           goal={profile?.nutrition_goal}
           summary={summary}
           checkin={weeklyCheckins.find(c => c.week_start === weekDates[0])}
+          cyclePhase={cyclePhase?.label}
           existing={weeklyFocus.find(f => f.week_start === weekDates[0])}
           onSave={onSaveFocus}
         />
@@ -3119,6 +3146,7 @@ const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile,
   const weightsInWeek = weights.filter(w => weekDates.includes(w.date));
   const weightBefore = [...weights].reverse().find(w => w.date < weekDates[0]);
   const weightTrend = weightsInWeek.length > 0 && weightBefore ? (weightsInWeek[weightsInWeek.length - 1].value - weightBefore.value) : null;
+  const cyclePhase = calcCyclePhase(profile, weekDates[6]);
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
@@ -3164,6 +3192,12 @@ const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile,
               <div style={{ fontSize: 20, fontWeight: 900 }}>{weightTrend > 0 ? "+" : ""}{weightTrend.toFixed(1)} kg <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>cette semaine</span></div>
               <div style={{ fontSize: 11, color: C.textMuted, marginTop: 8, lineHeight: 1.5 }}>Le poids peut varier naturellement selon ton cycle, ton hydratation, ton alimentation et ton transit — c'est la tendance sur plusieurs semaines qui compte, pas une seule pesée.</div>
             </Card>
+          )}
+
+          {cyclePhase && (
+            <div style={{ background: C.purple + "10", border: `1px solid ${C.purple}33`, borderRadius: 14, padding: 16, fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>
+              🌙 Cette semaine correspond (approximativement) à ta <strong style={{ color: C.white }}>{cyclePhase.label.toLowerCase()}</strong>. Certaines variations de poids, de faim ou d'énergie peuvent être normales à ce moment du cycle.
+            </div>
           )}
 
           <Card>
@@ -3317,6 +3351,50 @@ const WeekStrip = ({ schedule = [], workoutsById = {}, appointments = [], onSele
         })}
       </div>
     </div>
+  );
+};
+
+const CycleTracker = ({ profile, onSave }) => {
+  const [editing, setEditing] = useState(!profile?.cycle_last_period_start);
+  const [lastPeriod, setLastPeriod] = useState(profile?.cycle_last_period_start || "");
+  const [cycleLength, setCycleLength] = useState(profile?.cycle_avg_length || 28);
+  const [periodLength, setPeriodLength] = useState(profile?.cycle_avg_period_length || 5);
+  const [saving, setSaving] = useState(false);
+
+  const currentPhase = calcCyclePhase(profile, today);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave({ cycle_last_period_start: lastPeriod || null, cycle_avg_length: parseInt(cycleLength) || 28, cycle_avg_period_length: parseInt(periodLength) || 5 });
+    setSaving(false); setEditing(false);
+  };
+
+  return (
+    <Card>
+      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🌙 MON CYCLE</div>
+      <p style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.5, marginTop: 0 }}>
+        Optionnel — sert uniquement à afficher un repère de contexte dans ton bilan hebdo (ex : "cette semaine correspond à ta phase lutéale — des variations de poids, faim ou énergie peuvent être normales"). Estimation approximative, ce n'est pas un suivi médical.
+      </p>
+      {currentPhase && !editing && (
+        <div style={{ background: "#111", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>PHASE ACTUELLE (ESTIMÉE)</div>
+          <div style={{ fontSize: 16, fontWeight: 900 }}>{currentPhase.label}</div>
+        </div>
+      )}
+      {editing ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Inp label="Date de début des dernières règles" type="date" value={lastPeriod} onChange={e => setLastPeriod(e.target.value)} />
+          <Inp label="Durée moyenne du cycle (jours)" type="number" value={cycleLength} onChange={e => setCycleLength(e.target.value)} />
+          <Inp label="Durée moyenne des règles (jours)" type="number" value={periodLength} onChange={e => setPeriodLength(e.target.value)} />
+          <div style={{ display: "flex", gap: 8 }}>
+            {profile?.cycle_last_period_start && <Btn variant="secondary" onClick={() => setEditing(false)} style={{ flex: 1 }}>Annuler</Btn>}
+            <Btn onClick={handleSave} disabled={saving || !lastPeriod} style={{ flex: 2 }}>{saving ? "..." : "Enregistrer"}</Btn>
+          </div>
+        </div>
+      ) : (
+        <Btn variant="ghost" onClick={() => setEditing(true)}>{profile?.cycle_last_period_start ? "✏️ Modifier" : "+ Renseigner mon cycle"}</Btn>
+      )}
+    </Card>
   );
 };
 
@@ -4242,7 +4320,7 @@ const ClientApp = ({ user, onLogout }) => {
     }
   }, [clientId]);
 
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, upsertWeeklyCheckin } = useClientData(clientId);
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading, addEntry, updateEntry, addWeight, addMeasurement, addProgressPhoto, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, upsertWeeklyCheckin, updateProfile } = useClientData(clientId);
   const { activityTypes } = useActivityTypes();
 
   const myWorkouts = assignedWorkouts.filter(a => a.workout).map(a => ({ ...a.workout, scheduledDate: a.scheduled_date }));
@@ -4494,7 +4572,7 @@ const ClientApp = ({ user, onLogout }) => {
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
           <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
           <h2 style={{ fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Mon suivi corps</h2>
-          <Tab tabs={[["weight", "⚖️ Poids"], ["measures", "📏 Mensurations"], ["photos", "📸 Photos"]]} active={bodyTab} onChange={setBodyTab} />
+          <Tab tabs={[["weight", "⚖️ Poids"], ["measures", "📏 Mensurations"], ["photos", "📸 Photos"], ["cycle", "🌙 Cycle"]]} active={bodyTab} onChange={setBodyTab} />
           {bodyTab === "weight" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {weights.length > 1 && <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>{[{ l: "DÉPART", v: `${startWeight.value} kg`, c: C.white }, { l: "ACTUEL", v: `${lastWeight.value} kg`, c: C.pink }, { l: "PERDU", v: `-${(startWeight.value - lastWeight.value).toFixed(1)} kg`, c: C.green }].map(s => <Card key={s.l} style={{ padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></Card>)}</div>}
@@ -4540,6 +4618,7 @@ const ClientApp = ({ user, onLogout }) => {
               {progressPhotos.length > 0 && <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>MON ÉVOLUTION</div><div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>{progressPhotos.map((p, i) => <div key={i}><img src={p.photo} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 12, marginBottom: 4 }} /><div style={{ fontSize: 11, color: C.textMuted }}>{formatDate(p.date)}</div>{p.note && <div style={{ fontSize: 11, color: C.white }}>{p.note}</div>}</div>)}</div></Card>}
             </div>
           )}
+          {bodyTab === "cycle" && <CycleTracker profile={profile} onSave={updateProfile} />}
           <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
         </div>
   );
