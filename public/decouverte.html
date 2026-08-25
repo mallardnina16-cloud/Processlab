@@ -3,17 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nina · Her Process</title>
+<title>Her Process · Découverte</title>
+<link rel="icon" type="image/png" href="/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #F7F4EF;
-    --ink: #1C1B19;
-    --sand: #C9BBA8;
-    --sand-line: #DED4C6;
-    --white: #FFFFFF;
+    --cherry-deep: #17080a;
+    --cherry: #4b1616;
+    --cherry-light: #6e2020;
+    --pink: #e8879c;
+    --pink-soft: #e7b7bc;
+    --cream: #f7ede8;
+    --white: #ffffff;
+    --line: rgba(247,237,232,0.16);
   }
 
   *{ box-sizing: border-box; }
@@ -25,52 +29,62 @@
   html, body{
     margin: 0;
     padding: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: 'Work Sans', sans-serif;
+    background: radial-gradient(120% 90% at 50% -10%, var(--cherry) 0%, var(--cherry-deep) 55%, #0d0405 100%);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
   }
 
   .wrap{
     max-width: 640px;
     margin: 0 auto;
-    padding: 8vh 24px 10vh;
+    padding: 7vh 24px 10vh;
   }
 
-  /* Placard header, like a museum wall label */
   .placard{
     text-align: center;
-    margin-bottom: 6vh;
+    margin-bottom: 5vh;
     opacity: 0;
     animation: rise 0.9s ease-out forwards;
   }
 
-  .placard .name{
-    font-family: 'Fraunces', serif;
-    font-size: clamp(2.4rem, 6vw, 3.4rem);
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    margin: 0;
-    line-height: 1;
-  }
-
   .placard .role{
-    display: inline-block;
-    margin-top: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
     font-size: 0.72rem;
     letter-spacing: 0.28em;
     text-transform: uppercase;
-    color: #6B6357;
-    padding-top: 12px;
-    border-top: 1px solid var(--sand-line);
+    color: var(--pink-soft);
   }
 
-  /* Video framed like an artwork */
+  .placard .role img{
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+  }
+
+  .placard .title{
+    margin: 10px 0 0;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: clamp(1.6rem, 5vw, 2.1rem);
+    letter-spacing: -0.01em;
+    color: var(--white);
+  }
+
+  /* Video framed like a keepsake */
   .frame{
     position: relative;
-    border: 1px solid var(--sand-line);
-    padding: 14px;
-    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(2px);
     opacity: 0;
     animation: rise 0.9s ease-out 0.15s forwards;
   }
@@ -81,15 +95,17 @@
     aspect-ratio: 9 / 16;
     max-height: 70vh;
     object-fit: cover;
-    background: #EDE8E0;
+    border-radius: 16px;
+    background: var(--cherry-deep);
   }
 
   .caption{
     text-align: center;
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    color: #8A8175;
-    margin-top: 14px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    color: var(--pink-soft);
+    margin-top: 16px;
     text-transform: uppercase;
   }
 
@@ -97,7 +113,7 @@
     margin-top: 7vh;
     font-size: 1.05rem;
     line-height: 1.75;
-    color: #33312D;
+    color: var(--cream);
     opacity: 0;
     animation: rise 0.9s ease-out 0.3s forwards;
   }
@@ -107,7 +123,7 @@
 
   .intro strong{
     font-weight: 500;
-    color: var(--ink);
+    color: var(--white);
   }
 
   .cta-zone{
@@ -119,25 +135,28 @@
 
   .cta{
     display: inline-block;
-    background: var(--ink);
-    color: var(--bg);
+    background: var(--pink);
+    color: var(--cherry-deep);
     text-decoration: none;
-    font-family: 'Work Sans', sans-serif;
-    font-size: 0.9rem;
-    letter-spacing: 0.02em;
-    padding: 18px 32px;
-    border: 1px solid var(--ink);
-    transition: background 0.25s ease, color 0.25s ease;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+    padding: 18px 34px;
+    border-radius: 999px;
+    border: 1px solid var(--pink);
+    transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
     max-width: 90%;
   }
 
   .cta:hover, .cta:focus-visible{
     background: transparent;
-    color: var(--ink);
+    color: var(--pink);
+    transform: translateY(-1px);
   }
 
   .cta:focus-visible{
-    outline: 2px solid var(--ink);
+    outline: 2px solid var(--pink);
     outline-offset: 4px;
   }
 
@@ -145,7 +164,8 @@
     margin-top: 18px;
     font-size: 0.78rem;
     letter-spacing: 0.05em;
-    color: #8A8175;
+    color: var(--pink-soft);
+    opacity: 0.85;
   }
 
   @keyframes rise{
@@ -163,8 +183,8 @@
   <div class="wrap">
 
     <div class="placard">
-      <p class="name">Nina</p>
-      <span class="role">Her Process</span>
+      <p class="title">Nina</p>
+      <span class="role"><img src="/logo.png" alt="">Her Process</span>
     </div>
 
     <div class="frame">
