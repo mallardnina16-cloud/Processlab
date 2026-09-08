@@ -10,7 +10,7 @@ export function makeSupabaseDb(supabase) {
       let q = supabase.from(table).select(columns);
       for (const [col, op, val] of filters) {
         if (op === "eq") q = q.eq(col, val);
-        else if (op === "ilike") q = q.ilike(col, val);
+        else if (op === "ilike") q = q.ilike(col, String(val).replace(/\*/g, "%"));
         else if (op === "in") q = q.in(col, val);
         else q = q.filter(col, op, val);
       }

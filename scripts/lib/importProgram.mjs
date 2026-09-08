@@ -61,9 +61,10 @@ export function denormFromBlocks(blocks) {
 
 async function resolveClientId(db, clientRef) {
   if (!clientRef) return { id: null, error: "Aucune cliente indiquée." };
+  // motif façon PostgREST (`*` = joker) ; l'adaptateur supabase-js le convertit en `%`
   const filters = isUuid(clientRef)
     ? [["id", "eq", clientRef]]
-    : [["name", "ilike", `%${clientRef}%`]];
+    : [["name", "ilike", `*${clientRef}*`]];
   const rows = await db.select("clients", { columns: "id,name", filters });
   if (!rows || rows.length === 0) return { id: null, error: `Aucune cliente ne correspond à "${clientRef}".` };
   if (rows.length > 1) return { id: null, error: `Plusieurs clientes correspondent à "${clientRef}" : ${rows.map((c) => c.name).join(", ")}.` };
