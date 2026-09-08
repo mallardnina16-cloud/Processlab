@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, Children, cloneElement } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { importProgram } from "../scripts/lib/importProgram.mjs";
+import { makeSupabaseDb } from "../scripts/lib/db-supabase.mjs";
 
 const SUPABASE_URL = "https://wetjzebxuyefzvulujxl.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndldGp6ZWJ4dXllZnp2dWx1anhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTUxMDcsImV4cCI6MjA5MTA3MTEwN30.8DvkApXsMT7hGahVQD5kpAJdD92Tzyo7qC0nwmnGEaU";
@@ -980,8 +982,8 @@ const CatalogPickerButton = ({ onApply }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // WORKOUT BUILDER
 // ══════════════════════════════════════════════════════════════════════════════
-const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", mode: "reps", duration: 30, rest: 60, tempo: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
-const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", mode: "reps", duration: 30, work_time: 30, rest_time: 30, tempo: "", note: "", suggested_weight: "", weight_type: "haltères" }] });
+const newSimpleEx = () => ({ id: Date.now().toString(), type: "exercise", name: "", sets: 3, reps: "12", mode: "reps", duration: 30, rest: 60, tempo: "", rpe: "", technique: "", note: "", photo: null, suggested_weight: "", weight_type: "haltères" });
+const newCircuit = () => ({ id: Date.now().toString(), type: "circuit", rounds: 3, rest_between_rounds: 120, interval_mode: false, exercises: [{ id: Date.now().toString() + "a", name: "", reps: "12", mode: "reps", duration: 30, work_time: 30, rest_time: 30, tempo: "", rpe: "", technique: "", note: "", suggested_weight: "", weight_type: "haltères" }] });
 const newWarmup = () => ({ id: Date.now().toString(), type: "warmup", exercises: [{ id: Date.now().toString() + "w", name: "", reps: "", note: "", photo: null }] });
 
 const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode = false }) => {
@@ -1084,6 +1086,16 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
           <span style={{ fontSize: 10, color: C.textMuted, flexShrink: 0, lineHeight: 1.3 }}>desc-bas-<br/>mont-haut</span>
         </div>
       </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>🎯 RPE (optionnel)</label>
+          <input type="text" placeholder="ex: 8 ou 7-8" value={ex.rpe || ""} onChange={e => onChange({ ...ex, rpe: e.target.value })} style={{ ...inputSt, width: "100%" }} />
+        </div>
+        <div style={{ flex: 2 }}>
+          <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>🔥 Technique (optionnel)</label>
+          <input type="text" placeholder="ex: Dropset 1 × -25 %, AMRAP, rest-pause..." value={ex.technique || ""} onChange={e => onChange({ ...ex, technique: e.target.value })} style={{ ...inputSt, width: "100%" }} />
+        </div>
+      </div>
       <TA label="Consigne" placeholder="Ex: descends bien..." value={ex.note || ""} onChange={e => onChange({ ...ex, note: e.target.value })} style={{ minHeight: 48 }} />
       <div>
         {ex.photo ? (
@@ -1123,7 +1135,7 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
     const arr = [...blocks]; [arr[i], arr[i + dir]] = [arr[i + dir], arr[i]]; setBlocks(arr);
   };
   const updCircuitEx = (cid, eid, patch) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.map(e => e.id === eid ? { ...e, ...patch } : e) } : x));
-  const addCircuitEx = cid => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "12", mode: "reps", duration: 30, work_time: 30, rest_time: 30, note: "", suggested_weight: "", weight_type: "haltères" }] } : x));
+  const addCircuitEx = cid => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "12", mode: "reps", duration: 30, work_time: 30, rest_time: 30, tempo: "", rpe: "", technique: "", note: "", suggested_weight: "", weight_type: "haltères" }] } : x));
   const delCircuitEx = (cid, eid) => setBlocks(b => b.map(x => x.id === cid ? { ...x, exercises: x.exercises.filter(e => e.id !== eid) } : x));
   const addWarmupEx = wid => setBlocks(b => b.map(x => x.id === wid ? { ...x, exercises: [...x.exercises, { id: Date.now().toString(), name: "", reps: "", note: "", photo: null }] } : x));
   const delWarmupEx = (wid, eid) => setBlocks(b => b.map(x => x.id === wid ? { ...x, exercises: x.exercises.filter(e => e.id !== eid) } : x));
@@ -1713,6 +1725,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
             {currentBlock.photo && <img src={currentBlock.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
             {currentBlock.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
             {currentBlock.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {currentBlock.tempo}</div>}
+            {currentBlock.rpe && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🎯 <span style={{ color: C.yellow, fontWeight: 700 }}>RPE :</span> {currentBlock.rpe}</div>}
+            {currentBlock.technique && <div style={{ background: C.red + "12", border: `1px solid ${C.red}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, whiteSpace: "pre-line" }}>🔥 <span style={{ color: C.red, fontWeight: 700 }}>Technique :</span> {currentBlock.technique}</div>}
             {(() => { const lp = getLastPerf(currentBlock.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
             {getAllPerfs(currentBlock.name).length > 0 && (
               <div style={{ marginBottom: 14 }}>
@@ -1776,6 +1790,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
             {circuitEx.photo && <img src={circuitEx.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
             {circuitEx.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
             {circuitEx.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {circuitEx.tempo}</div>}
+            {circuitEx.rpe && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🎯 <span style={{ color: C.yellow, fontWeight: 700 }}>RPE :</span> {circuitEx.rpe}</div>}
+            {circuitEx.technique && <div style={{ background: C.red + "12", border: `1px solid ${C.red}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, whiteSpace: "pre-line" }}>🔥 <span style={{ color: C.red, fontWeight: 700 }}>Technique :</span> {circuitEx.technique}</div>}
             {(() => { const lp = getLastPerf(circuitEx.name); return lp && (lp.weight || lp.reps) ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois :</span> {lp.weight ? `${lp.weight}` : ""}{lp.weight && lp.reps ? " · " : ""}{lp.reps ? `${lp.reps} reps` : ""}</div> : null; })()}
             {currentBlock.interval_mode ? (
               <div>
@@ -1932,7 +1948,7 @@ const useWorkouts = () => {
     setWorkouts(ws => ws.map(w => w.id === enriched.id ? enriched : w));
     return enriched;
   };
-  return { workouts, loading, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment, fetchWorkoutDetail: loadWorkoutDetail };
+  return { workouts, loading, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment, fetchWorkoutDetail: loadWorkoutDetail, reload: fetch };
 };
 const usePayments = () => {
   const [payments, setPayments] = useState(() => readCache("payments") || []);
@@ -3572,7 +3588,23 @@ const WorkoutCard = ({ workout: w, clients, allClients, onEdit, onDelete, onArch
 // ══════════════════════════════════════════════════════════════════════════════
 const CoachApp = ({ user, onLogout }) => {
   const { clients, loading: loadingClients, addClient, updateClient, deleteClient } = useClients();
-  const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment, fetchWorkoutDetail } = useWorkouts();
+  const { workouts, loading: loadingWorkouts, saveWorkout, deleteWorkout, setArchived, assignmentsByWorkout, toggleAssignment, fetchWorkoutDetail, reload: reloadWorkouts } = useWorkouts();
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importBusy, setImportBusy] = useState(false);
+  const [importReport, setImportReport] = useState(null);
+  const [importError, setImportError] = useState("");
+  const runProgramImport = async (dryRun) => {
+    setImportBusy(true); setImportError(""); setImportReport(null);
+    try {
+      const program = JSON.parse(importText);
+      const report = await importProgram(makeSupabaseDb(supabase), program, { dryRun });
+      setImportReport({ ...report, dryRun });
+      if (!dryRun) await reloadWorkouts();
+    } catch (e) {
+      setImportError(e.message + (e.details ? " — " + e.details.join(" ") : ""));
+    } finally { setImportBusy(false); }
+  };
   const openWorkoutEditor = async (w) => { setEditingWorkout(await fetchWorkoutDetail(w)); };
   const handleDuplicateWorkout = async (workout) => {
     await saveWorkout({
@@ -3876,6 +3908,52 @@ const CoachApp = ({ user, onLogout }) => {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                 <SectionTitle title="Mes séances 💪" subtitle="Construis et gère tes programmes en quelques clics" action={<Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Nouvelle séance</Btn>} />
               </div>
+
+              <Card style={{ marginBottom: 20, borderColor: C.purple + "44" }}>
+                <button
+                  onClick={() => setShowImport(v => !v)}
+                  style={{ background: "none", border: "none", color: C.purple, fontWeight: 800, fontSize: 14, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  {showImport ? "▲" : "▼"} 📥 Importer un programme (JSON)
+                </button>
+                {showImport && (
+                  <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>
+                      Colle un JSON de programme (format <code>docs/program-spec.md</code>). Crée les séances avec tout saisi (séries, reps, repos, tempo, RPE, technique, consigne), ajoute les exercices manquants à la médiathèque, et assigne à la cliente indiquée. Les photos restent à charger à la main. « Prévisualiser » n'écrit rien.
+                    </div>
+                    <textarea
+                      value={importText}
+                      onChange={e => setImportText(e.target.value)}
+                      placeholder='{ "program_name": "...", "client": "Lidia", "workouts": [ ... ] }'
+                      spellCheck={false}
+                      style={{ ...inputSt, minHeight: 140, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
+                    />
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <Btn small variant="secondary" disabled={importBusy || !importText.trim()} onClick={() => runProgramImport(true)} style={{ width: "auto" }}>
+                        {importBusy ? "…" : "👁 Prévisualiser"}
+                      </Btn>
+                      <Btn small disabled={importBusy || !importText.trim()} onClick={() => runProgramImport(false)} style={{ width: "auto" }}>
+                        {importBusy ? "Import en cours…" : "📥 Importer"}
+                      </Btn>
+                    </div>
+                    {importError && (
+                      <div style={{ background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 10, padding: 12, fontSize: 13, color: C.red, whiteSpace: "pre-wrap" }}>{importError}</div>
+                    )}
+                    {importReport && (
+                      <div style={{ background: (importReport.dryRun ? C.blue : C.green) + "12", border: `1px solid ${(importReport.dryRun ? C.blue : C.green)}44`, borderRadius: 10, padding: 12, fontSize: 13, lineHeight: 1.6 }}>
+                        <div style={{ fontWeight: 800, marginBottom: 4 }}>{importReport.dryRun ? "Prévisualisation (rien écrit)" : "✅ Import terminé"}</div>
+                        <div>Programme : {importReport.program}</div>
+                        {importReport.client && <div>Cliente : {importReport.client}</div>}
+                        <div>Séances : {importReport.workoutsCreated.length} · assignations : {importReport.assignments}</div>
+                        <div>Médiathèque : +{importReport.catalogueCreated.length} ({importReport.catalogueSkipped.length} déjà présentes)</div>
+                        {importReport.nameCollisions.length > 0 && (
+                          <div style={{ color: C.orange, marginTop: 4 }}>⚠ Noms déjà utilisés : {importReport.nameCollisions.join(", ")}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
               {loadingWorkouts ? <Spinner /> : (
                 <>
                   {activeWorkoutsList.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance active. Clique sur "+ Nouvelle séance" pour commencer.</p></Card>}

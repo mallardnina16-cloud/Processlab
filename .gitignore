@@ -1,0 +1,10 @@
+node_modules/
+dist/
+package-lock.json
+.DS_Store
+.vercel
+*.local
+.env
+.env.*
+.service-key
+service-key.txt
