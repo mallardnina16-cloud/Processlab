@@ -6,3 +6,4 @@ package-lock.json
 *.local
 .env
 .env.*
+.service-key
