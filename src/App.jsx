@@ -3616,7 +3616,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
   const client = clients.find(c => c.id === selected);
-  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus } = useClientData(selected, { isCoach: true });
+  const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, updateProfile, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus } = useClientData(selected, { isCoach: true });
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
   const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
   // Exclure les clientes en pause et les contrats terminés des alertes paiement/journal
@@ -4272,7 +4272,7 @@ const CoachApp = ({ user, onLogout }) => {
           </div>
         </div>
       )}
-      {editingClient && <EditClientModal client={editingClient} onSave={handleSaveClient} onDelete={handleDeleteClient} onClose={() => setEditingClient(null)} />}
+      {editingClient && <EditClientModal client={editingClient} onSave={handleSaveClient} onUpdateProfile={updateProfile} onDelete={handleDeleteClient} onClose={() => setEditingClient(null)} />}
      {showPauseModal && client && <PauseModal client={client} onClose={() => setShowPauseModal(false)} onUpdate={(updatedClient) => {
         if (updatedClient) updateClient(client.id, updatedClient);
       }} />}
@@ -4768,7 +4768,7 @@ const LoginScreen = ({ onLogin }) => {
 // ══════════════════════════════════════════════════════════════════════════════
 // EDIT CLIENT MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
+const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose }) => {
   const [form, setForm] = useState({
     name: client.name || "", goal: client.goal || "",
     sessions_per_week: client.sessions_per_week || 3,
@@ -4777,6 +4777,7 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
   });
   const [profileForm, setProfileForm] = useState({ birth_date: "", sex: "", height_cm: "", nutrition_goal: "" });
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -4790,17 +4791,24 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
 
   const handleSave = async () => {
     setSaving(true);
+    setProfileError("");
     const avatar = form.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
     await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment });
     if (profileForm.birth_date || profileForm.sex || profileForm.height_cm || profileForm.nutrition_goal) {
-      await supabase.from("client_profiles").upsert([{
-        client_id: client.id,
+      // Passe par le hook (updateProfile) : il fait l'upsert AVEC .select(), rafraîchit
+      // l'état `profile` immédiatement (la carte se met à jour sans quitter la fiche) et
+      // remonte l'erreur Postgres exacte en cas d'échec (policy RLS, contrainte manquante…).
+      const saved = await onUpdateProfile({
         birth_date: profileForm.birth_date || null,
         sex: profileForm.sex || null,
         height_cm: profileForm.height_cm ? parseFloat(profileForm.height_cm) : null,
         nutrition_goal: profileForm.nutrition_goal || null,
-        updated_at: new Date().toISOString(),
-      }], { onConflict: "client_id" });
+      });
+      if (!saved) {
+        setSaving(false);
+        setProfileError("Le profil nutritionnel n'a pas pu être enregistré. Réessaie.");
+        return;
+      }
     }
     setSaving(false); onClose();
   };
@@ -4847,6 +4855,7 @@ const EditClientModal = ({ client, onSave, onDelete, onClose }) => {
               </div>
             </div>
           )}
+          {profileError && <div style={{ marginTop: 12, background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 10, padding: 12, fontSize: 12, color: C.red }}>{profileError}</div>}
         </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
           <Btn variant="secondary" onClick={onClose} style={{ flex: 1 }}>Annuler</Btn>
