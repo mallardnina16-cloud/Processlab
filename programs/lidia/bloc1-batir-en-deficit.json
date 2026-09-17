@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "program_name": "Bâtir en Déficit — Lidia (6 sem.)",
+  "program_name": "Lidia — Bâtir en Déficit (6 sem.)",
   "client": "Lidia",
   "assign": true,
   "archive_existing_named": false,
@@ -225,7 +225,7 @@
   ],
   "workouts": [
     {
-      "name": "S1 · J1 — Extension lourde + ischios",
+      "name": "Lidia · S1 · J1 — Extension lourde + ischios",
       "description": "Semaine 1/6 — Reprise assidue. RPE plafonné à 7, pas d'AMRAP ni de dropset cette semaine. On rétablit l'assiduité et la technique sans chercher les courbatures maximales.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 8 000 pas/jour · 2 LISS de 25 min les jours off.",
       "blocks": [
         {
@@ -512,7 +512,7 @@
       ]
     },
     {
-      "name": "S1 · J2 — Haut du corps (densité)",
+      "name": "Lidia · S1 · J2 — Haut du corps (densité)",
       "description": "Semaine 1/6 — Reprise assidue. RPE plafonné à 7, pas d'AMRAP ni de dropset cette semaine. On rétablit l'assiduité et la technique sans chercher les courbatures maximales.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 8 000 pas/jour · 2 LISS de 25 min les jours off.",
       "blocks": [
         {
@@ -837,7 +837,7 @@
       ]
     },
     {
-      "name": "S1 · J3 — Charnière lourde + abduction",
+      "name": "Lidia · S1 · J3 — Charnière lourde + abduction",
       "description": "Semaine 1/6 — Reprise assidue. RPE plafonné à 7, pas d'AMRAP ni de dropset cette semaine. On rétablit l'assiduité et la technique sans chercher les courbatures maximales.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 8 000 pas/jour · 2 LISS de 25 min les jours off.",
       "blocks": [
         {
@@ -1124,7 +1124,7 @@
       ]
     },
     {
-      "name": "S1 · J4 — Unilatéral + métabolique + traîneau",
+      "name": "Lidia · S1 · J4 — Unilatéral + métabolique + traîneau",
       "description": "Semaine 1/6 — Reprise assidue. RPE plafonné à 7, pas d'AMRAP ni de dropset cette semaine. On rétablit l'assiduité et la technique sans chercher les courbatures maximales.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 8 000 pas/jour · 2 LISS de 25 min les jours off.",
       "blocks": [
         {
@@ -1437,7 +1437,7 @@
       ]
     },
     {
-      "name": "S2 · J1 — Extension lourde + ischios",
+      "name": "Lidia · S2 · J1 — Extension lourde + ischios",
       "description": "Semaine 2/6 — Accumulation 1. RPE 7–8. Le travail métabolique (circuits congestion) démarre. Premier dropset léger sur l'abduction.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 8 500 pas/jour · 2 LISS de 30 min les jours off.",
       "blocks": [
         {
@@ -1724,7 +1724,7 @@
       ]
     },
     {
-      "name": "S2 · J2 — Haut du corps (densité)",
+      "name": "Lidia · S2 · J2 — Haut du corps (densité)",
       "description": "Semaine 2/6 — Accumulation 1. RPE 7–8. Le travail métabolique (circuits congestion) démarre. Premier dropset léger sur l'abduction.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 8 500 pas/jour · 2 LISS de 30 min les jours off.",
       "blocks": [
         {
@@ -2049,7 +2049,7 @@
       ]
     },
     {
-      "name": "S2 · J3 — Charnière lourde + abduction",
+      "name": "Lidia · S2 · J3 — Charnière lourde + abduction",
       "description": "Semaine 2/6 — Accumulation 1. RPE 7–8. Le travail métabolique (circuits congestion) démarre. Premier dropset léger sur l'abduction.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 8 500 pas/jour · 2 LISS de 30 min les jours off.",
       "blocks": [
         {
@@ -2336,7 +2336,7 @@
       ]
     },
     {
-      "name": "S2 · J4 — Unilatéral + métabolique + traîneau",
+      "name": "Lidia · S2 · J4 — Unilatéral + métabolique + traîneau",
       "description": "Semaine 2/6 — Accumulation 1. RPE 7–8. Le travail métabolique (circuits congestion) démarre. Premier dropset léger sur l'abduction.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 8 500 pas/jour · 2 LISS de 30 min les jours off.",
       "blocks": [
         {
@@ -2649,7 +2649,7 @@
       ]
     },
     {
-      "name": "S3 · J1 — Extension lourde + ischios",
+      "name": "Lidia · S3 · J1 — Extension lourde + ischios",
       "description": "Semaine 3/6 — Accumulation 2. RPE 8. +1 série sur les accessoires, dropsets et rest-pause. REFEED le week-end : les 2 jours off, glucides au niveau 'jour training'.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 9 000 pas/jour · 2 LISS de 30 min + 1 séance d'intervalles optionnelle 10×(20 s fort / 40 s facile).",
       "blocks": [
         {
@@ -2936,7 +2936,7 @@
       ]
     },
     {
-      "name": "S3 · J2 — Haut du corps (densité)",
+      "name": "Lidia · S3 · J2 — Haut du corps (densité)",
       "description": "Semaine 3/6 — Accumulation 2. RPE 8. +1 série sur les accessoires, dropsets et rest-pause. REFEED le week-end : les 2 jours off, glucides au niveau 'jour training'.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 9 000 pas/jour · 2 LISS de 30 min + 1 séance d'intervalles optionnelle 10×(20 s fort / 40 s facile).",
       "blocks": [
         {
@@ -3261,7 +3261,7 @@
       ]
     },
     {
-      "name": "S3 · J3 — Charnière lourde + abduction",
+      "name": "Lidia · S3 · J3 — Charnière lourde + abduction",
       "description": "Semaine 3/6 — Accumulation 2. RPE 8. +1 série sur les accessoires, dropsets et rest-pause. REFEED le week-end : les 2 jours off, glucides au niveau 'jour training'.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 9 000 pas/jour · 2 LISS de 30 min + 1 séance d'intervalles optionnelle 10×(20 s fort / 40 s facile).",
       "blocks": [
         {
@@ -3548,7 +3548,7 @@
       ]
     },
     {
-      "name": "S3 · J4 — Unilatéral + métabolique + traîneau",
+      "name": "Lidia · S3 · J4 — Unilatéral + métabolique + traîneau",
       "description": "Semaine 3/6 — Accumulation 2. RPE 8. +1 série sur les accessoires, dropsets et rest-pause. REFEED le week-end : les 2 jours off, glucides au niveau 'jour training'.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 9 000 pas/jour · 2 LISS de 30 min + 1 séance d'intervalles optionnelle 10×(20 s fort / 40 s facile).",
       "blocks": [
         {
@@ -3861,7 +3861,7 @@
       ]
     },
     {
-      "name": "S4 · J1 — Extension lourde + ischios",
+      "name": "Lidia · S4 · J1 — Extension lourde + ischios",
       "description": "Semaine 4/6 — Intensification. RPE 8. Hip thrust & RDL lourds (5–6 reps, repos 3 min). Le volume accessoire est maintenu.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 9 500 pas/jour · 2 LISS de 30 min les jours off.",
       "blocks": [
         {
@@ -4148,7 +4148,7 @@
       ]
     },
     {
-      "name": "S4 · J2 — Haut du corps (densité)",
+      "name": "Lidia · S4 · J2 — Haut du corps (densité)",
       "description": "Semaine 4/6 — Intensification. RPE 8. Hip thrust & RDL lourds (5–6 reps, repos 3 min). Le volume accessoire est maintenu.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 9 500 pas/jour · 2 LISS de 30 min les jours off.",
       "blocks": [
         {
@@ -4473,7 +4473,7 @@
       ]
     },
     {
-      "name": "S4 · J3 — Charnière lourde + abduction",
+      "name": "Lidia · S4 · J3 — Charnière lourde + abduction",
       "description": "Semaine 4/6 — Intensification. RPE 8. Hip thrust & RDL lourds (5–6 reps, repos 3 min). Le volume accessoire est maintenu.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 9 500 pas/jour · 2 LISS de 30 min les jours off.",
       "blocks": [
         {
@@ -4760,7 +4760,7 @@
       ]
     },
     {
-      "name": "S4 · J4 — Unilatéral + métabolique + traîneau",
+      "name": "Lidia · S4 · J4 — Unilatéral + métabolique + traîneau",
       "description": "Semaine 4/6 — Intensification. RPE 8. Hip thrust & RDL lourds (5–6 reps, repos 3 min). Le volume accessoire est maintenu.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 9 500 pas/jour · 2 LISS de 30 min les jours off.",
       "blocks": [
         {
@@ -5073,7 +5073,7 @@
       ]
     },
     {
-      "name": "S5 · J1 — Extension lourde + ischios",
+      "name": "Lidia · S5 · J1 — Extension lourde + ischios",
       "description": "Semaine 5/6 — Pic. RPE 8–9. Dropsets + rest-pause. Série AMRAP sur le hip thrust. REFEED le week-end.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 10 000 pas/jour · 2 LISS de 35 min les jours off.",
       "blocks": [
         {
@@ -5388,7 +5388,7 @@
       ]
     },
     {
-      "name": "S5 · J2 — Haut du corps (densité)",
+      "name": "Lidia · S5 · J2 — Haut du corps (densité)",
       "description": "Semaine 5/6 — Pic. RPE 8–9. Dropsets + rest-pause. Série AMRAP sur le hip thrust. REFEED le week-end.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 10 000 pas/jour · 2 LISS de 35 min les jours off.",
       "blocks": [
         {
@@ -5713,7 +5713,7 @@
       ]
     },
     {
-      "name": "S5 · J3 — Charnière lourde + abduction",
+      "name": "Lidia · S5 · J3 — Charnière lourde + abduction",
       "description": "Semaine 5/6 — Pic. RPE 8–9. Dropsets + rest-pause. Série AMRAP sur le hip thrust. REFEED le week-end.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 10 000 pas/jour · 2 LISS de 35 min les jours off.",
       "blocks": [
         {
@@ -6000,7 +6000,7 @@
       ]
     },
     {
-      "name": "S5 · J4 — Unilatéral + métabolique + traîneau",
+      "name": "Lidia · S5 · J4 — Unilatéral + métabolique + traîneau",
       "description": "Semaine 5/6 — Pic. RPE 8–9. Dropsets + rest-pause. Série AMRAP sur le hip thrust. REFEED le week-end.\n\nNutrition : jour training ~1950 kcal (P 150 / C 200 / F 60) · jour off ~1600 kcal (P 150 / C 120 / F 55). Planchers tous les jours : protéines ≥ 145 g, lipides ≥ 50 g. Pesée le matin, on ne lit que la moyenne des 7 jours (cible −0,3 à −0,6 kg/sem).\n\nNEAT : 10 000 pas/jour · 2 LISS de 35 min les jours off.",
       "blocks": [
         {
@@ -6313,7 +6313,7 @@
       ]
     },
     {
-      "name": "S6 · J1 — Extension lourde + ischios",
+      "name": "Lidia · S6 · J1 — Extension lourde + ischios",
       "description": "Semaine 6/6 — Décharge + retest. Volume −50 %, RPE 6–7, on soigne la technique. En fin de semaine : test hip thrust / RDL / abduction (à distance d'une séance lourde).\n\nNutrition : MAINTENANCE toute la semaine, ~2200 kcal (P 150 / C 250 / F 65). Semaine de décharge : on remplit les muscles, on relance le métabolisme, on prépare la suite.\n\nNEAT : 10 000 pas/jour · 2 LISS de 25 min faciles.",
       "blocks": [
         {
@@ -6572,7 +6572,7 @@
       ]
     },
     {
-      "name": "S6 · J2 — Haut du corps (densité)",
+      "name": "Lidia · S6 · J2 — Haut du corps (densité)",
       "description": "Semaine 6/6 — Décharge + retest. Volume −50 %, RPE 6–7, on soigne la technique. En fin de semaine : test hip thrust / RDL / abduction (à distance d'une séance lourde).\n\nNutrition : MAINTENANCE toute la semaine, ~2200 kcal (P 150 / C 250 / F 65). Semaine de décharge : on remplit les muscles, on relance le métabolisme, on prépare la suite.\n\nNEAT : 10 000 pas/jour · 2 LISS de 25 min faciles.",
       "blocks": [
         {
@@ -6897,7 +6897,7 @@
       ]
     },
     {
-      "name": "S6 · J3 — Charnière lourde + abduction",
+      "name": "Lidia · S6 · J3 — Charnière lourde + abduction",
       "description": "Semaine 6/6 — Décharge + retest. Volume −50 %, RPE 6–7, on soigne la technique. En fin de semaine : test hip thrust / RDL / abduction (à distance d'une séance lourde).\n\nNutrition : MAINTENANCE toute la semaine, ~2200 kcal (P 150 / C 250 / F 65). Semaine de décharge : on remplit les muscles, on relance le métabolisme, on prépare la suite.\n\nNEAT : 10 000 pas/jour · 2 LISS de 25 min faciles.",
       "blocks": [
         {
@@ -7184,7 +7184,7 @@
       ]
     },
     {
-      "name": "S6 · J4 — Unilatéral + métabolique + traîneau",
+      "name": "Lidia · S6 · J4 — Unilatéral + métabolique + traîneau",
       "description": "Semaine 6/6 — Décharge + retest. Volume −50 %, RPE 6–7, on soigne la technique. En fin de semaine : test hip thrust / RDL / abduction (à distance d'une séance lourde).\n\nNutrition : MAINTENANCE toute la semaine, ~2200 kcal (P 150 / C 250 / F 65). Semaine de décharge : on remplit les muscles, on relance le métabolisme, on prépare la suite.\n\nNEAT : 10 000 pas/jour · 2 LISS de 25 min faciles.",
       "blocks": [
         {
