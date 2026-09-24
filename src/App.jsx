@@ -1478,7 +1478,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const [exLogs, setExLogs] = useState({});
   const [globalNote, setGlobalNote] = useState("");
   const [simpleSets, setSimpleSets] = useState(0);
-  const [showSimpleLog, setShowSimpleLog] = useState(false);
+  const [loggingSet, setLoggingSet] = useState(false);
+  const [loggingCircuitSet, setLoggingCircuitSet] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [currentRound, setCurrentRound] = useState(1);
   const [circuitExIdx, setCircuitExIdx] = useState(0);
@@ -1488,7 +1489,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const timerRef = useRef(null);
 
   const currentBlock = blocks[blockIdx];
-  const allExercises = blocks.flatMap(b => b.type === "circuit" ? b.exercises : (b.type === "warmup" ? b.exercises : [b]));
+  const allExercises = blocks.flatMap(b => b.type === "circuit" ? b.exercises.map(e => ({ ...e, sets: b.rounds })) : (b.type === "warmup" ? b.exercises : [b]));
 
   // Nombre de séries attendues pour un exercice donné (pour générer les lignes de perf)
   const getExpectedSets = (ex) => {
@@ -1505,7 +1506,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
     .filter(l => l && (l.weight || l.reps || (l.sets && l.sets.some(s => s.weight || s.reps)))).slice(0, 5);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
-  useEffect(() => { setSimpleSets(0); setShowSimpleLog(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work"); }, [blockIdx]);
+  useEffect(() => { setSimpleSets(0); setLoggingSet(false); setLoggingCircuitSet(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work"); }, [blockIdx]);
 
   const startTimer = (secs, label, onEnd) => {
     clearInterval(timerRef.current);
@@ -1517,11 +1518,19 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const skipTimer = () => { clearInterval(timerRef.current); setResting(false); };
   const goNextBlock = () => { const next = blockIdx + 1; if (next < blocks.length) { setBlockIdx(next); } else { setDone(true); } };
   const completeSimpleSet = () => {
+    setLoggingSet(true);
+  };
+  const confirmSetLog = () => {
+    setLoggingSet(false);
     const nd = simpleSets + 1; setSimpleSets(nd);
     if (nd < currentBlock.sets) startTimer(currentBlock.rest || 60, "REPOS", () => {});
-    else setShowSimpleLog(true);
+    else goNextBlock();
   };
   const circuitEx = currentBlock?.type === "circuit" ? currentBlock.exercises[circuitExIdx] : null;
+  const confirmCircuitLog = () => {
+    setLoggingCircuitSet(false);
+    advanceCircuit();
+  };
   const advanceCircuit = () => {
     setIntervalPhase("work");
     const nextEx = circuitExIdx + 1;
@@ -1700,23 +1709,15 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       <NavBar />
       <div style={{ padding: 20 }}>
         <TimerBar />
-        {showSimpleLog ? (
+        {loggingSet ? (
           <Card style={{ borderColor: C.green + "44" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ {currentBlock.name} terminé !</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ Série {simpleSets + 1} terminée !</div>
             {currentBlock.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 10 }}>⚖️ {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-              {Array.from({ length: getExpectedSets(currentBlock) }, (_, i) => {
-                const sets = exLogs[currentBlock.id]?.sets || Array.from({ length: getExpectedSets(currentBlock) }, () => ({ weight: "", reps: "" }));
-                return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr 1fr", gap: 8, alignItems: "center" }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textAlign: "center" }}>S{i + 1}</div>
-                    <input type="text" placeholder="ex: 10 kg" value={sets[i]?.weight || ""} onChange={e => setSetField(currentBlock.id, i, "weight", e.target.value, getExpectedSets(currentBlock))} style={{ ...inputSt, fontSize: 13 }} />
-                    <input type="text" placeholder={currentBlock.reps} value={sets[i]?.reps || ""} onChange={e => setSetField(currentBlock.id, i, "reps", e.target.value, getExpectedSets(currentBlock))} style={{ ...inputSt, fontSize: 13 }} />
-                  </div>
-                );
-              })}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+              <input type="text" placeholder="ex: 10 kg" autoFocus value={exLogs[currentBlock.id]?.sets?.[simpleSets]?.weight || ""} onChange={e => setSetField(currentBlock.id, simpleSets, "weight", e.target.value, getExpectedSets(currentBlock))} style={{ ...inputSt, fontSize: 13 }} />
+              <input type="text" placeholder={currentBlock.reps || "reps"} value={exLogs[currentBlock.id]?.sets?.[simpleSets]?.reps || ""} onChange={e => setSetField(currentBlock.id, simpleSets, "reps", e.target.value, getExpectedSets(currentBlock))} style={{ ...inputSt, fontSize: 13 }} />
             </div>
-            <Btn onClick={() => { setShowSimpleLog(false); goNextBlock(); }}>Continuer →</Btn>
+            <Btn onClick={confirmSetLog}>Valider →</Btn>
           </Card>
         ) : (
           <div>
@@ -1802,6 +1803,16 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
                 {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, whiteSpace: "pre-line" }}>💡 {circuitEx.note}</div>}
                 <Btn onClick={startIntervalWork} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Démarrer</Btn>
               </div>
+            ) : loggingCircuitSet ? (
+              <Card style={{ borderColor: C.green + "44" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ {circuitEx.name} — Tour {currentRound} terminé !</div>
+                {circuitEx.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 10 }}>⚖️ {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+                  <input type="text" placeholder="ex: 10 kg" autoFocus value={exLogs[circuitEx.id]?.sets?.[currentRound - 1]?.weight || ""} onChange={e => setSetField(circuitEx.id, currentRound - 1, "weight", e.target.value, currentBlock.rounds)} style={{ ...inputSt, fontSize: 13 }} />
+                  <input type="text" placeholder={circuitEx.reps || "reps"} value={exLogs[circuitEx.id]?.sets?.[currentRound - 1]?.reps || ""} onChange={e => setSetField(circuitEx.id, currentRound - 1, "reps", e.target.value, currentBlock.rounds)} style={{ ...inputSt, fontSize: 13 }} />
+                </div>
+                <Btn onClick={confirmCircuitLog}>Valider →</Btn>
+              </Card>
             ) : (
               <div>
                 {(circuitEx.mode || "reps") === "time" ? (
@@ -1811,9 +1822,9 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
                 )}
                 {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, whiteSpace: "pre-line" }}>💡 {circuitEx.note}</div>}
                 {(circuitEx.mode || "reps") === "time" ? (
-                  <Btn onClick={() => startTimer(circuitEx.duration || 30, "⚡ TRAVAIL", advanceCircuit)} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Lancer le chrono ({circuitEx.duration || 30}s)</Btn>
+                  <Btn onClick={() => startTimer(circuitEx.duration || 30, "⚡ TRAVAIL", () => setLoggingCircuitSet(true))} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Lancer le chrono ({circuitEx.duration || 30}s)</Btn>
                 ) : (
-                  <Btn onClick={advanceCircuit} style={{ fontSize: 17, background: C.purple, color: C.white }}>✅ Exo suivant →</Btn>
+                  <Btn onClick={() => setLoggingCircuitSet(true)} style={{ fontSize: 17, background: C.purple, color: C.white }}>✅ Exo suivant →</Btn>
                 )}
               </div>
             )}
