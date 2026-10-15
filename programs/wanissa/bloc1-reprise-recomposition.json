@@ -1,0 +1,2536 @@
+{
+  "version": 1,
+  "program_name": "Wanissa — Reprise & Recomposition (Bloc 1, S1 à S4)",
+  "client": "Wanissa",
+  "assign": true,
+  "archive_existing_named": false,
+  "catalogue_category_default": "Musculation avec charges",
+  "catalogue": [
+    {
+      "nom": "Step-in rapide",
+      "categorie": "Fonctionnel",
+      "positionnement": "Face à un step bas (15 à 20 cm) ou une marche, pieds légèrement écartés devant l'obstacle, gainage actif, bras prêts à accompagner le rythme.",
+      "execution": "Poser rapidement un pied puis l'autre sur le step en alternance, sans marquer de temps d'arrêt en haut, et redescendre aussitôt — rythme soutenu façon course sur place surélevée. Rester sur l'avant du pied.",
+      "respiration": "Respiration libre et rythmée sur la cadence, sans blocage.",
+      "vigilance": "Le pied se pose entièrement à plat sur le step avant de pousser — pas de demi-pose sur la pointe qui roule la cheville. Regard devant, buste droit."
+    },
+    {
+      "nom": "Marche de l'ours",
+      "categorie": "Fonctionnel",
+      "positionnement": "À quatre appuis, mains sous les épaules, genoux sous les hanches et décollés du sol de quelques centimètres, dos plat, gainage actif.",
+      "execution": "Avancer en déplaçant simultanément la main et le pied opposés (main droite + pied gauche, puis main gauche + pied droit), genoux qui restent bas sans jamais toucher le sol, sur une distance courte ou en va-et-vient selon l'espace disponible.",
+      "respiration": "Respiration continue, ne pas bloquer en apnée malgré le gainage.",
+      "vigilance": "Le bassin ne doit ni monter (fesses en l'air) ni s'affaisser (dos creux) : chercher une ligne plate du bassin aux épaules. Petits pas et rythme contrôlé avant vitesse."
+    },
+    {
+      "nom": "Sauts patineurs",
+      "categorie": "Fonctionnel",
+      "positionnement": "Debout, appui sur une jambe légèrement fléchie, l'autre jambe libre derrière, buste légèrement penché en avant, bras prêts à accompagner l'élan.",
+      "execution": "Sauter latéralement d'un appui à l'autre en un mouvement fluide de patineur, atterrir en douceur genou légèrement fléchi en absorbant l'impact, la jambe libre passant derrière l'appui au sol pour l'équilibre.",
+      "respiration": "Expiration courte à chaque impulsion.",
+      "vigilance": "Réception amortie, genou aligné avec le pied (ne rentre pas vers l'intérieur). Réduire l'amplitude latérale si l'équilibre n'est pas encore sûr — la qualité de réception prime sur la distance du saut."
+    },
+    {
+      "nom": "Soulevé de terre (conventionnel)",
+      "categorie": "Musculation avec charges",
+      "positionnement": "Barre au sol au-dessus du milieu du pied, pieds largeur bassin, mains juste à l'extérieur des jambes, dos neutre, hanches plus hautes que les genoux, épaules au-dessus ou légèrement devant la barre.",
+      "execution": "Pousser le sol avec les jambes en gardant la barre au contact des tibias puis des cuisses, extension simultanée des hanches et des genoux jusqu'à la verticale complète, puis redescendre en charnière de hanche jusqu'au sol en gardant le dos neutre tout du long.",
+      "respiration": "Inspiration et gainage abdominal avant de tirer, expiration une fois passé le point le plus dur (au-dessus des genoux).",
+      "vigilance": "Le dos ne s'arrondit jamais, ni au bas du dos ni au niveau des épaules. La barre reste collée au corps sur tout le trajet — si elle s'en éloigne, la charge est trop lourde pour la technique du jour."
+    },
+    {
+      "nom": "Soulevé de terre roumain (RDL)",
+      "categorie": "Musculation avec charges",
+      "positionnement": "Debout, haltères ou barre devant les cuisses, pieds largeur bassin, genoux à peine fléchis et fixes tout du long.",
+      "execution": "Pousser les hanches vers l'arrière en gardant le dos neutre, laisser descendre la charge le long des jambes jusqu'à l'étirement des ischio-jambiers, puis revenir en extension de hanche en serrant les fessiers en haut.",
+      "respiration": "Inspiration pendant la descente, expiration à la remontée.",
+      "vigilance": "Le mouvement vient de la hanche, pas du dos ni des genoux qui ne se plient pas davantage en descente. S'arrêter dès que le dos commence à s'arrondir — c'est la limite d'amplitude du jour, pas l'objectif à forcer."
+    }
+  ],
+  "workouts": [
+    {
+      "name": "Wanissa · S1 · Séance 1 — Full body, accent bas du corps",
+      "description": "Semaine 1 — reprise. RPE plafonné à 7, charges légères à modérées le temps de retrouver les repères techniques.\n\nEntre CHAQUE exercice de la séance (y compris à l'intérieur des bisets, à la place du repos passif), un exercice de gainage en récupération active de 20 à 30 s — alterner planche, dead bug, bird-dog, hollow hold selon ce qui suit.\n\nStructure : bas du corps d'abord (biset 1 = squat + hip thrust, biset 2 = fentes bulgares + introduction du RDL), puis haut du corps en biset (rowing + développé), puis finisher métabolique.\n\nLe RDL est ajouté à faible volume (2 séries, charge très légère) uniquement pour poser le pattern de charnière de hanche — il montera en charge et en volume dans les prochaines semaines une fois le mouvement maîtrisé.\n\nNutrition : cible ~1750 kcal/j (P 145 / L 60 / G 160). Hydratation 2 à 2,5 L/j. Marche 7 000 à 8 000 pas/j.",
+      "blocks": [
+        {
+          "id": "s1-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "s1-1a",
+              "name": "Vélo ou rameur",
+              "reps": "5 min",
+              "note": "Mise en route cardio et articulaire, allure progressive.",
+              "photo": null
+            },
+            {
+              "id": "s1-1b",
+              "name": "Kas glute bridge",
+              "reps": "15 (poids du corps)",
+              "note": "Réveil des fessiers avant le squat et le hip thrust.",
+              "photo": null
+            },
+            {
+              "id": "s1-1c",
+              "name": "Hip airplane",
+              "reps": "6 / côté",
+              "note": "Contrôle du bassin en appui unipodal, utile avant les fentes bulgares.",
+              "photo": null
+            },
+            {
+              "id": "s1-1d",
+              "name": "Cercles d'épaules + rotation externe élastique",
+              "reps": "10 + 10",
+              "note": "Prépare les épaules avant le rowing et le développé.",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "s1-2",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "s1-2a",
+              "name": "Squat gobelet ou back squat",
+              "reps": "8-10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "3-1-1-0",
+              "note": "Reprise : privilégier le squat gobelet si le pattern barre n'est pas encore sûr à 100 %. Descente contrôlée 3 s, pas de rebond en bas.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "s1-2b",
+              "name": "Hip thrust barre",
+              "reps": "10-12",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "2-0-1-1",
+              "note": "Omoplates sur le banc, pieds à plat. Pause 1 s en haut, bassin qui reste strictement horizontal.",
+              "suggested_weight": "",
+              "weight_type": "barre",
+              "rpe": "7",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "s1-3",
+          "type": "circuit",
+          "rounds": 2,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "s1-3a",
+              "name": "Fentes bulgares",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Pied arrière surélevé sur banc bas, buste légèrement penché en avant pour le biais fessier.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "s1-3b",
+              "name": "Soulevé de terre roumain (RDL)",
+              "reps": "10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "3-1-1-0",
+              "note": "Introduction du mouvement : charge volontairement très légère, on travaille uniquement la charnière de hanche et le dos neutre. Le RDL montera en charge et en volume une fois le pattern maîtrisé (dans 2 à 3 semaines).",
+              "suggested_weight": "léger, ex. 2×8",
+              "weight_type": "haltères",
+              "rpe": "5",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "s1-4",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "s1-4a",
+              "name": "Rowing haltère ou machine",
+              "reps": "10-12",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Tirer le coude vers l'arrière, omoplate qui se rapproche de la colonne, pas d'élan du buste.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "s1-4b",
+              "name": "Développé haltères ou pompes lestées",
+              "reps": "10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Alterner avec des pompes lestées si elle préfère varier d'une semaine sur l'autre.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "s1-5",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 60,
+          "interval_mode": true,
+          "exercises": [
+            {
+              "id": "s1-5a",
+              "name": "Burpees",
+              "reps": "max en 30 s",
+              "mode": "time",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "Version régressée possible : sans le saut final, en gardant le rythme.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "s1-5b",
+              "name": "Mountain climbers",
+              "reps": "max en 30 s",
+              "mode": "time",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "Bassin stable, pas de rebond des hanches vers le haut.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "s1-5c",
+              "name": "Squat jump",
+              "reps": "max en 30 s",
+              "mode": "time",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "Réception amortie genoux fléchis, régresser en squat sans saut si les genoux tirent en fin de séance.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "s1-5d",
+              "name": "Step-in rapide",
+              "reps": "max en 30 s",
+              "mode": "time",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "Remplace la corde à sauter — même logique cardio, moins technique.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S1 · Séance 2 — Haut du corps, HIIT & core",
+      "description": "Haut du corps en séries classiques + circuit métabolique. Le circuit HIIT reste le moment où elle peut se dépasser — toujours placé après le travail de force, jamais avant.\n\nVariantes cette semaine : marche de l'ours à la place du mountain climber (portage du poids de corps, épaules/hanches) et sauts patineurs à la place du squat jump (moins traumatisant pour les genoux en reprise, tout en gardant l'explosivité latérale).\n\nGainage : rappel qu'aucun de ces exercices ne cible la graisse du ventre localement — ils renforcent le muscle qui se dessinera une fois la graisse perdue via le déficit calorique.",
+      "blocks": [
+        {
+          "id": "s2-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "s2-1a",
+              "name": "Jumping jacks légers",
+              "reps": "1 min",
+              "note": "Élévation progressive du rythme cardiaque.",
+              "photo": null
+            },
+            {
+              "id": "s2-1b",
+              "name": "Rotation externe élastique",
+              "reps": "12",
+              "note": "Activation coiffe des rotateurs avant le développé militaire.",
+              "photo": null
+            },
+            {
+              "id": "s2-1c",
+              "name": "Cat-cow",
+              "reps": "8",
+              "note": "Mobilité thoracique avant le tirage et le rowing.",
+              "photo": null
+            },
+            {
+              "id": "s2-1d",
+              "name": "Pompes genoux au sol",
+              "reps": "8",
+              "note": "Activation pectoraux/triceps à faible charge.",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "s2-2",
+          "type": "exercise",
+          "name": "Tirage vertical ou tractions assistées",
+          "sets": 4,
+          "reps": "10",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 90,
+          "tempo": "",
+          "note": "Prise un peu plus large que les épaules, tirer en amenant les coudes vers le bas, pas vers l'arrière.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "7",
+          "technique": ""
+        },
+        {
+          "id": "s2-3",
+          "type": "exercise",
+          "name": "Développé militaire haltères",
+          "sets": 3,
+          "reps": "10",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 90,
+          "tempo": "",
+          "note": "Assise ou debout selon la stabilité du gainage. Ne pas cambrer pour finir la répétition.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "7",
+          "technique": ""
+        },
+        {
+          "id": "s2-4",
+          "type": "exercise",
+          "name": "Rowing unilatéral",
+          "sets": 3,
+          "reps": "10 / bras",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 75,
+          "tempo": "",
+          "note": "Dos plat, tirage guidé par le coude, pas de rotation du buste.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "7",
+          "technique": ""
+        },
+        {
+          "id": "s2-5",
+          "type": "exercise",
+          "name": "Élévations latérales",
+          "sets": 3,
+          "reps": "12-15",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Charge légère, coudes légèrement fléchis, monter jusqu'à l'horizontale sans hausser les épaules.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "7",
+          "technique": ""
+        },
+        {
+          "id": "s2-6",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 60,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "s2-6a",
+              "name": "Planche",
+              "reps": "30-45 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Ligne tête-bassin-talons, ne pas laisser tomber le bassin.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "6",
+              "technique": ""
+            },
+            {
+              "id": "s2-6b",
+              "name": "Relevé de genoux (jambes tendues, contrôlé)",
+              "reps": "12-15",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Descente lente sans creuser le bas du dos ; réduire l'amplitude si le dos décolle du sol.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "6",
+              "technique": ""
+            },
+            {
+              "id": "s2-6c",
+              "name": "Russian twist léger",
+              "reps": "12-15",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Rotation qui part du buste, pieds au sol si l'équilibre n'est pas encore acquis.",
+              "suggested_weight": "léger (medecine ball ou haltère)",
+              "weight_type": "poids du corps",
+              "rpe": "6",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "s2-7",
+          "type": "circuit",
+          "rounds": 5,
+          "rest_between_rounds": 60,
+          "interval_mode": true,
+          "exercises": [
+            {
+              "id": "s2-7a",
+              "name": "Burpees",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "s2-7b",
+              "name": "Jumping jacks",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "s2-7c",
+              "name": "Marche de l'ours",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Remplace le mountain climber cette semaine — mêmes épaules/hanches sollicitées, portage différent.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "s2-7d",
+              "name": "Sauts patineurs",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Remplace le squat jump cette semaine — moins d'impact vertical, explosivité latérale.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S1 · Séance 3 — Bas du corps, volume",
+      "description": "La séance s'ouvre sur le soulevé de terre pendant que le système nerveux est frais, puis presse à cuisses.\n\nFentes marchées conservées malgré la presse : elles apportent un stimulus unilatéral et un travail de gainage du bassin en appui simple que la presse ne fait pas. Pour tenir dans l'heure après le soulevé de terre et la presse, elles sont couplées en biset avec le hip thrust unilatéral (qui vient dans tous les cas juste après la presse) et le volume des deux est réduit à 3 séries.\n\nMollets retirés cette semaine (non prioritaire, libère du temps pour le reste). Back extension ajouté pour l'extension de hanche complémentaire et la santé lombaire.",
+      "blocks": [
+        {
+          "id": "s3-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "s3-1a",
+              "name": "Cat-cow",
+              "reps": "8",
+              "note": "Mobilisation de la colonne avant le soulevé de terre.",
+              "photo": null
+            },
+            {
+              "id": "s3-1b",
+              "name": "Good morning élastique léger",
+              "reps": "12",
+              "note": "Groove de la charnière de hanche, dos neutre, amplitude courte.",
+              "photo": null
+            },
+            {
+              "id": "s3-1c",
+              "name": "Kas glute bridge",
+              "reps": "15",
+              "note": "Activation des fessiers avant la charge.",
+              "photo": null
+            },
+            {
+              "id": "s3-1d",
+              "name": "Soulevé de terre à vide (barre ou bâton)",
+              "reps": "8",
+              "note": "Répétition du pattern technique à vide avant de charger.",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "s3-2",
+          "type": "exercise",
+          "name": "Soulevé de terre (conventionnel)",
+          "sets": 4,
+          "reps": "6",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 150,
+          "tempo": "",
+          "note": "Concentrique franc, contrôler la descente sur 2 à 3 s (ne pas lâcher la barre). Charge conservatrice cette première semaine — priorité à la technique.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "barre",
+          "rpe": "7",
+          "technique": ""
+        },
+        {
+          "id": "s3-3",
+          "type": "exercise",
+          "name": "Presse à cuisses",
+          "sets": 4,
+          "reps": "10-12",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 120,
+          "tempo": "",
+          "note": "Pieds largeur bassin, plutôt hauts sur le plateau pour biaiser fessiers/ischios. Amplitude complète sans décoller le bas du dos du dossier.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "s3-4",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 100,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "s3-4a",
+              "name": "Hip thrust unilatéral",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Bassin strictement horizontal, pas de bascule ni de rotation d'un côté. Vient juste après la presse.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "s3-4b",
+              "name": "Fentes marchées",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Volume réduit à 3 séries et couplé au hip thrust pour tenir dans l'heure après une séance déjà lourde. Grand pas, genou arrière qui frôle le sol, buste droit.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "s3-5",
+          "type": "exercise",
+          "name": "Abduction hanche (machine ou élastique)",
+          "sets": 3,
+          "reps": "15-20",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Buste légèrement penché en avant pour biaiser le haut du grand fessier. Pas d'élan, tension constante.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "7",
+          "technique": ""
+        },
+        {
+          "id": "s3-6",
+          "type": "exercise",
+          "name": "Extension du dos à 45° (biais fessier)",
+          "sets": 3,
+          "reps": "12",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Buste enroulé, remontée par extension des hanches, fessiers qui font le travail — pas d'hyperextension lombaire en haut.",
+          "photo": null,
+          "suggested_weight": "poids du corps ou charge légère contre la poitrine",
+          "weight_type": "poids du corps",
+          "rpe": "7",
+          "technique": ""
+        },
+        {
+          "id": "s3-7",
+          "type": "exercise",
+          "name": "Étirements guidés (ischios, fessiers, quadriceps)",
+          "sets": 1,
+          "reps": "5 min",
+          "mode": "time",
+          "duration": 300,
+          "rest": 0,
+          "tempo": "",
+          "note": "Retour au calme, respiration lente.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "poids du corps",
+          "rpe": "",
+          "technique": ""
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S2 · Séance 1 — Full body, accent bas du corps",
+      "description": "Semaine 2. Charges en légère hausse sur squat, hip thrust et le biset rowing/développé (RPE 7-8). Le RDL sort de sa phase d'initiation stricte : le pattern est acquis, on passe à 3 séries avec une charge un peu plus sérieuse (RPE 6) tout en restant couplé aux fentes bulgares dans le même biset.\n\nMême logique qu'S1 : gainage actif (planche/dead bug/bird-dog/hollow hold, 20-30 s) entre chaque exercice à la place du repos passif.\n\nNutrition : réévaluer autour de J14 seulement si le poids stagne malgré une bonne adhérence — sinon on reste sur ~1750 kcal/j (P 145 / L 60 / G 160).",
+      "blocks": [
+        {
+          "id": "w2s1-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w2s1-1a",
+              "name": "Vélo ou rameur",
+              "reps": "5 min",
+              "note": "Allure progressive.",
+              "photo": null
+            },
+            {
+              "id": "w2s1-1b",
+              "name": "Kas glute bridge",
+              "reps": "15 (poids du corps)",
+              "note": "Réveil des fessiers.",
+              "photo": null
+            },
+            {
+              "id": "w2s1-1c",
+              "name": "Hip airplane",
+              "reps": "6 / côté",
+              "note": "Contrôle du bassin en appui unipodal.",
+              "photo": null
+            },
+            {
+              "id": "w2s1-1d",
+              "name": "Cercles d'épaules + rotation externe élastique",
+              "reps": "10 + 10",
+              "note": "Prépare les épaules.",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w2s1-2",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w2s1-2a",
+              "name": "Squat gobelet ou back squat",
+              "reps": "8-10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "3-1-1-0",
+              "note": "Charge en légère hausse par rapport à S1 si le RPE de la semaine dernière était ≤ 7.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7-8",
+              "technique": ""
+            },
+            {
+              "id": "w2s1-2b",
+              "name": "Hip thrust barre",
+              "reps": "10-12",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "2-0-1-1",
+              "note": "Pause 1 s en haut, bassin horizontal. Charge en légère hausse.",
+              "suggested_weight": "",
+              "weight_type": "barre",
+              "rpe": "7-8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w2s1-3",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w2s1-3a",
+              "name": "Fentes bulgares",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Passe à 3 séries (comme le RDL désormais).",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "w2s1-3b",
+              "name": "Soulevé de terre roumain (RDL)",
+              "reps": "10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "3-1-1-0",
+              "note": "Le pattern est acquis : on passe à 3 séries et une charge un peu plus sérieuse, tout en restant loin de l'échec technique.",
+              "suggested_weight": "modéré, ex. 2×10-12",
+              "weight_type": "haltères",
+              "rpe": "6",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w2s1-4",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w2s1-4a",
+              "name": "Rowing haltère ou machine",
+              "reps": "10-12",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en légère hausse.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7-8",
+              "technique": ""
+            },
+            {
+              "id": "w2s1-4b",
+              "name": "Développé haltères ou pompes lestées",
+              "reps": "10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en légère hausse.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7-8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w2s1-5",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 60,
+          "interval_mode": true,
+          "exercises": [
+            {
+              "id": "w2s1-5a",
+              "name": "Burpees",
+              "reps": "max en 35 s",
+              "mode": "time",
+              "duration": 35,
+              "work_time": 35,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "Temps de travail allongé de 30 à 35 s.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w2s1-5b",
+              "name": "Mountain climbers",
+              "reps": "max en 35 s",
+              "mode": "time",
+              "duration": 35,
+              "work_time": 35,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w2s1-5c",
+              "name": "Squat jump",
+              "reps": "max en 35 s",
+              "mode": "time",
+              "duration": 35,
+              "work_time": 35,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w2s1-5d",
+              "name": "Step-in rapide",
+              "reps": "max en 35 s",
+              "mode": "time",
+              "duration": 35,
+              "work_time": 35,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S2 · Séance 2 — Haut du corps, HIIT & core",
+      "description": "Semaine 2. Charges en légère hausse sur tirage, rowing unilatéral et élévations latérales ; développé militaire passe à 4 séries. Gainage : temps de planche allongé (40-45 s). HIIT identique dans le choix des exercices, même volume (5 tours, 40 s / 20 s).",
+      "blocks": [
+        {
+          "id": "w2s2-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w2s2-1a",
+              "name": "Jumping jacks légers",
+              "reps": "1 min",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w2s2-1b",
+              "name": "Rotation externe élastique",
+              "reps": "12",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w2s2-1c",
+              "name": "Cat-cow",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w2s2-1d",
+              "name": "Pompes genoux au sol",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w2s2-2",
+          "type": "exercise",
+          "name": "Tirage vertical ou tractions assistées",
+          "sets": 4,
+          "reps": "10",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 90,
+          "tempo": "",
+          "note": "Charge en légère hausse si la technique était propre en S1.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "7-8",
+          "technique": ""
+        },
+        {
+          "id": "w2s2-3",
+          "type": "exercise",
+          "name": "Développé militaire haltères",
+          "sets": 4,
+          "reps": "10",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 90,
+          "tempo": "",
+          "note": "Passe à 4 séries.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "7",
+          "technique": ""
+        },
+        {
+          "id": "w2s2-4",
+          "type": "exercise",
+          "name": "Rowing unilatéral",
+          "sets": 3,
+          "reps": "12 / bras",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 75,
+          "tempo": "",
+          "note": "Reps en légère hausse (10 → 12).",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "7-8",
+          "technique": ""
+        },
+        {
+          "id": "w2s2-5",
+          "type": "exercise",
+          "name": "Élévations latérales",
+          "sets": 3,
+          "reps": "12-15",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Charge en légère hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "7-8",
+          "technique": ""
+        },
+        {
+          "id": "w2s2-6",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 60,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w2s2-6a",
+              "name": "Planche",
+              "reps": "40-45 s",
+              "mode": "time",
+              "duration": 45,
+              "work_time": 45,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Temps allongé par rapport à S1.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "6-7",
+              "technique": ""
+            },
+            {
+              "id": "w2s2-6b",
+              "name": "Relevé de genoux (jambes tendues, contrôlé)",
+              "reps": "12-15",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "6-7",
+              "technique": ""
+            },
+            {
+              "id": "w2s2-6c",
+              "name": "Russian twist léger",
+              "reps": "12-15",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "léger (medecine ball ou haltère)",
+              "weight_type": "poids du corps",
+              "rpe": "6-7",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w2s2-7",
+          "type": "circuit",
+          "rounds": 5,
+          "rest_between_rounds": 60,
+          "interval_mode": true,
+          "exercises": [
+            {
+              "id": "w2s2-7a",
+              "name": "Burpees",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w2s2-7b",
+              "name": "Jumping jacks",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "w2s2-7c",
+              "name": "Marche de l'ours",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w2s2-7d",
+              "name": "Sauts patineurs",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S2 · Séance 3 — Bas du corps, volume",
+      "description": "Semaine 2. Charges en légère hausse sur soulevé de terre, presse, biset hip thrust unilatéral/fentes marchées, abduction et back extension. Structure identique à S1.",
+      "blocks": [
+        {
+          "id": "w2s3-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w2s3-1a",
+              "name": "Cat-cow",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w2s3-1b",
+              "name": "Good morning élastique léger",
+              "reps": "12",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w2s3-1c",
+              "name": "Kas glute bridge",
+              "reps": "15",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w2s3-1d",
+              "name": "Soulevé de terre à vide (barre ou bâton)",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w2s3-2",
+          "type": "exercise",
+          "name": "Soulevé de terre (conventionnel)",
+          "sets": 4,
+          "reps": "6",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 150,
+          "tempo": "",
+          "note": "Charge en légère hausse si la technique de S1 était solide (dos neutre sur toute l'amplitude).",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "barre",
+          "rpe": "7-8",
+          "technique": ""
+        },
+        {
+          "id": "w2s3-3",
+          "type": "exercise",
+          "name": "Presse à cuisses",
+          "sets": 4,
+          "reps": "10-12",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 120,
+          "tempo": "",
+          "note": "Charge en légère hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w2s3-4",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 100,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w2s3-4a",
+              "name": "Hip thrust unilatéral",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge légère ajoutée sur la hanche si le bassin reste stable.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7-8",
+              "technique": ""
+            },
+            {
+              "id": "w2s3-4b",
+              "name": "Fentes marchées",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en légère hausse.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7-8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w2s3-5",
+          "type": "exercise",
+          "name": "Abduction hanche (machine ou élastique)",
+          "sets": 3,
+          "reps": "15-20",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Charge en légère hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "7-8",
+          "technique": ""
+        },
+        {
+          "id": "w2s3-6",
+          "type": "exercise",
+          "name": "Extension du dos à 45° (biais fessier)",
+          "sets": 3,
+          "reps": "12",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Ajouter une charge légère contre la poitrine si le poids du corps est devenu confortable.",
+          "photo": null,
+          "suggested_weight": "légère",
+          "weight_type": "poids du corps",
+          "rpe": "7-8",
+          "technique": ""
+        },
+        {
+          "id": "w2s3-7",
+          "type": "exercise",
+          "name": "Étirements guidés (ischios, fessiers, quadriceps)",
+          "sets": 1,
+          "reps": "5 min",
+          "mode": "time",
+          "duration": 300,
+          "rest": 0,
+          "tempo": "",
+          "note": "Retour au calme.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "poids du corps",
+          "rpe": "",
+          "technique": ""
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S3 · Séance 1 — Full body, accent bas du corps",
+      "description": "Semaine 3. Passage en force sur squat et hip thrust (reps en baisse, charge en hausse, RPE 8). Le biset rowing/développé passe à 4 tours. Le finisher passe à 5 tours.\n\nGainage actif toujours entre chaque exercice, à la place du repos passif.",
+      "blocks": [
+        {
+          "id": "w3s1-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w3s1-1a",
+              "name": "Vélo ou rameur",
+              "reps": "5 min",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s1-1b",
+              "name": "Kas glute bridge",
+              "reps": "15 (poids du corps)",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s1-1c",
+              "name": "Hip airplane",
+              "reps": "6 / côté",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s1-1d",
+              "name": "Cercles d'épaules + rotation externe élastique",
+              "reps": "10 + 10",
+              "note": "",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w3s1-2",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w3s1-2a",
+              "name": "Squat gobelet ou back squat",
+              "reps": "8",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "3-1-1-0",
+              "note": "Reps en baisse (10 → 8), charge en hausse : on passe en registre plus lourd.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w3s1-2b",
+              "name": "Hip thrust barre",
+              "reps": "8-10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "2-0-1-1",
+              "note": "Reps en baisse, charge en hausse.",
+              "suggested_weight": "",
+              "weight_type": "barre",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w3s1-3",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w3s1-3a",
+              "name": "Fentes bulgares",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en hausse.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7-8",
+              "technique": ""
+            },
+            {
+              "id": "w3s1-3b",
+              "name": "Soulevé de terre roumain (RDL)",
+              "reps": "8-10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "3-1-1-0",
+              "note": "Devient une vraie série de travail : charge modérée, RPE 7, on n'est plus en phase d'initiation.",
+              "suggested_weight": "modéré",
+              "weight_type": "haltères",
+              "rpe": "7",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w3s1-4",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w3s1-4a",
+              "name": "Rowing haltère ou machine",
+              "reps": "10-12",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Passe à 4 tours.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w3s1-4b",
+              "name": "Développé haltères ou pompes lestées",
+              "reps": "10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Passe à 4 tours.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w3s1-5",
+          "type": "circuit",
+          "rounds": 5,
+          "rest_between_rounds": 60,
+          "interval_mode": true,
+          "exercises": [
+            {
+              "id": "w3s1-5a",
+              "name": "Burpees",
+              "reps": "max en 30 s",
+              "mode": "time",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "Passe à 5 tours.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w3s1-5b",
+              "name": "Mountain climbers",
+              "reps": "max en 30 s",
+              "mode": "time",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w3s1-5c",
+              "name": "Squat jump",
+              "reps": "max en 30 s",
+              "mode": "time",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w3s1-5d",
+              "name": "Step-in rapide",
+              "reps": "max en 30 s",
+              "mode": "time",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S3 · Séance 2 — Haut du corps, HIIT & core",
+      "description": "Semaine 3. Tirage passe en registre plus lourd (8 reps). Rowing unilatéral passe à 4 séries. Gainage : planche 45-60 s. HIIT passe à 6 tours.",
+      "blocks": [
+        {
+          "id": "w3s2-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w3s2-1a",
+              "name": "Jumping jacks légers",
+              "reps": "1 min",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s2-1b",
+              "name": "Rotation externe élastique",
+              "reps": "12",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s2-1c",
+              "name": "Cat-cow",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s2-1d",
+              "name": "Pompes genoux au sol",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w3s2-2",
+          "type": "exercise",
+          "name": "Tirage vertical ou tractions assistées",
+          "sets": 4,
+          "reps": "8",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 90,
+          "tempo": "",
+          "note": "Reps en baisse (10 → 8), charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w3s2-3",
+          "type": "exercise",
+          "name": "Développé militaire haltères",
+          "sets": 4,
+          "reps": "10",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 90,
+          "tempo": "",
+          "note": "Charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w3s2-4",
+          "type": "exercise",
+          "name": "Rowing unilatéral",
+          "sets": 4,
+          "reps": "10 / bras",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 75,
+          "tempo": "",
+          "note": "Passe à 4 séries.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w3s2-5",
+          "type": "exercise",
+          "name": "Élévations latérales",
+          "sets": 3,
+          "reps": "12-15",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w3s2-6",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 60,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w3s2-6a",
+              "name": "Planche",
+              "reps": "45-60 s",
+              "mode": "time",
+              "duration": 55,
+              "work_time": 55,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Temps allongé.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "w3s2-6b",
+              "name": "Relevé de genoux (jambes tendues, contrôlé)",
+              "reps": "15",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Reps en hausse.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "w3s2-6c",
+              "name": "Russian twist léger",
+              "reps": "15",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Reps en hausse.",
+              "suggested_weight": "léger (medecine ball ou haltère)",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w3s2-7",
+          "type": "circuit",
+          "rounds": 6,
+          "rest_between_rounds": 60,
+          "interval_mode": true,
+          "exercises": [
+            {
+              "id": "w3s2-7a",
+              "name": "Burpees",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Passe à 6 tours.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w3s2-7b",
+              "name": "Jumping jacks",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "w3s2-7c",
+              "name": "Marche de l'ours",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w3s2-7d",
+              "name": "Sauts patineurs",
+              "reps": "max en 40 s",
+              "mode": "time",
+              "duration": 40,
+              "work_time": 40,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S3 · Séance 3 — Bas du corps, volume",
+      "description": "Semaine 3. Soulevé de terre passe en registre plus lourd (5 reps, RPE 8). Le biset hip thrust unilatéral/fentes marchées passe à 4 tours — la conditionphysique le permet désormais.",
+      "blocks": [
+        {
+          "id": "w3s3-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w3s3-1a",
+              "name": "Cat-cow",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s3-1b",
+              "name": "Good morning élastique léger",
+              "reps": "12",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s3-1c",
+              "name": "Kas glute bridge",
+              "reps": "15",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w3s3-1d",
+              "name": "Soulevé de terre à vide (barre ou bâton)",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w3s3-2",
+          "type": "exercise",
+          "name": "Soulevé de terre (conventionnel)",
+          "sets": 4,
+          "reps": "5",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 150,
+          "tempo": "",
+          "note": "Reps en baisse (6 → 5), charge en hausse : on entre dans un registre plus proche de la force pure.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "barre",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w3s3-3",
+          "type": "exercise",
+          "name": "Presse à cuisses",
+          "sets": 4,
+          "reps": "10",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 120,
+          "tempo": "",
+          "note": "Reps resserrées (10-12 → 10), charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w3s3-4",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 100,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w3s3-4a",
+              "name": "Hip thrust unilatéral",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Passe à 4 tours.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w3s3-4b",
+              "name": "Fentes marchées",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Passe à 4 tours.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w3s3-5",
+          "type": "exercise",
+          "name": "Abduction hanche (machine ou élastique)",
+          "sets": 3,
+          "reps": "15-20",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w3s3-6",
+          "type": "exercise",
+          "name": "Extension du dos à 45° (biais fessier)",
+          "sets": 3,
+          "reps": "12-15",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Reps en hausse.",
+          "photo": null,
+          "suggested_weight": "légère",
+          "weight_type": "poids du corps",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w3s3-7",
+          "type": "exercise",
+          "name": "Étirements guidés (ischios, fessiers, quadriceps)",
+          "sets": 1,
+          "reps": "5 min",
+          "mode": "time",
+          "duration": 300,
+          "rest": 0,
+          "tempo": "",
+          "note": "Retour au calme.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "poids du corps",
+          "rpe": "",
+          "technique": ""
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S4 · Séance 1 — Full body, accent bas du corps",
+      "description": "Semaine 4 — fin du bloc. Dernière hausse de charge avant réévaluation (mensurations, photos, moyenne de poids sur 7 jours). Le RDL atteint son plein volume (4 tours), au même niveau que les autres mouvements bas du corps. Finisher au format le plus exigeant du bloc.\n\nÀ l'issue de cette semaine : bilan complet avec Wanissa avant de construire le bloc 2 (semaines 5-8).",
+      "blocks": [
+        {
+          "id": "w4s1-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w4s1-1a",
+              "name": "Vélo ou rameur",
+              "reps": "5 min",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s1-1b",
+              "name": "Kas glute bridge",
+              "reps": "15 (poids du corps)",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s1-1c",
+              "name": "Hip airplane",
+              "reps": "6 / côté",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s1-1d",
+              "name": "Cercles d'épaules + rotation externe élastique",
+              "reps": "10 + 10",
+              "note": "",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w4s1-2",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w4s1-2a",
+              "name": "Squat gobelet ou back squat",
+              "reps": "8",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "3-1-1-0",
+              "note": "Charge en hausse si le RPE de S3 était ≤ 8.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w4s1-2b",
+              "name": "Hip thrust barre",
+              "reps": "8-10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "2-0-1-1",
+              "note": "Charge en hausse.",
+              "suggested_weight": "",
+              "weight_type": "barre",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w4s1-3",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w4s1-3a",
+              "name": "Fentes bulgares",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en hausse.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w4s1-3b",
+              "name": "Soulevé de terre roumain (RDL)",
+              "reps": "8",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "3-1-1-0",
+              "note": "Plein volume atteint (4 tours) : le RDL est désormais un mouvement à part entière de la programmation, au même titre que les autres.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "7-8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w4s1-4",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 90,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w4s1-4a",
+              "name": "Rowing haltère ou machine",
+              "reps": "10-12",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en hausse.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w4s1-4b",
+              "name": "Développé haltères ou pompes lestées",
+              "reps": "10",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en hausse.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w4s1-5",
+          "type": "circuit",
+          "rounds": 5,
+          "rest_between_rounds": 60,
+          "interval_mode": true,
+          "exercises": [
+            {
+              "id": "w4s1-5a",
+              "name": "Burpees",
+              "reps": "max en 35 s",
+              "mode": "time",
+              "duration": 35,
+              "work_time": 35,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "Format le plus exigeant du bloc : 5 tours de 35 s.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "9",
+              "technique": ""
+            },
+            {
+              "id": "w4s1-5b",
+              "name": "Mountain climbers",
+              "reps": "max en 35 s",
+              "mode": "time",
+              "duration": 35,
+              "work_time": 35,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "9",
+              "technique": ""
+            },
+            {
+              "id": "w4s1-5c",
+              "name": "Squat jump",
+              "reps": "max en 35 s",
+              "mode": "time",
+              "duration": 35,
+              "work_time": 35,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "9",
+              "technique": ""
+            },
+            {
+              "id": "w4s1-5d",
+              "name": "Step-in rapide",
+              "reps": "max en 35 s",
+              "mode": "time",
+              "duration": 35,
+              "work_time": 35,
+              "rest_time": 15,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "9",
+              "technique": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S4 · Séance 2 — Haut du corps, HIIT & core",
+      "description": "Semaine 4 — fin du bloc. Élévations latérales passent à 4 séries avec un dropset sur la dernière pour clôturer le bloc sur une note d'intensité. HIIT au format le plus exigeant (6 tours, 45 s / 20 s).",
+      "blocks": [
+        {
+          "id": "w4s2-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w4s2-1a",
+              "name": "Jumping jacks légers",
+              "reps": "1 min",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s2-1b",
+              "name": "Rotation externe élastique",
+              "reps": "12",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s2-1c",
+              "name": "Cat-cow",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s2-1d",
+              "name": "Pompes genoux au sol",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w4s2-2",
+          "type": "exercise",
+          "name": "Tirage vertical ou tractions assistées",
+          "sets": 4,
+          "reps": "8",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 90,
+          "tempo": "",
+          "note": "Charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w4s2-3",
+          "type": "exercise",
+          "name": "Développé militaire haltères",
+          "sets": 4,
+          "reps": "8-10",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 90,
+          "tempo": "",
+          "note": "Charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w4s2-4",
+          "type": "exercise",
+          "name": "Rowing unilatéral",
+          "sets": 4,
+          "reps": "10 / bras",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 75,
+          "tempo": "",
+          "note": "Charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w4s2-5",
+          "type": "exercise",
+          "name": "Élévations latérales",
+          "sets": 4,
+          "reps": "12-15",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Passe à 4 séries. Dropset sur la dernière série pour clôturer le bloc.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "haltères",
+          "rpe": "8-9",
+          "technique": "Dropset sur la 4e série : -20 % de charge, enchaîner sans repos jusqu'à l'échec technique."
+        },
+        {
+          "id": "w4s2-6",
+          "type": "circuit",
+          "rounds": 3,
+          "rest_between_rounds": 60,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w4s2-6a",
+              "name": "Planche",
+              "reps": "60 s",
+              "mode": "time",
+              "duration": 60,
+              "work_time": 60,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Objectif du bloc atteint : 60 s tenues.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "w4s2-6b",
+              "name": "Relevé de genoux (jambes tendues, contrôlé)",
+              "reps": "15",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            },
+            {
+              "id": "w4s2-6c",
+              "name": "Russian twist léger",
+              "reps": "15",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "léger (medecine ball ou haltère)",
+              "weight_type": "poids du corps",
+              "rpe": "7",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w4s2-7",
+          "type": "circuit",
+          "rounds": 6,
+          "rest_between_rounds": 60,
+          "interval_mode": true,
+          "exercises": [
+            {
+              "id": "w4s2-7a",
+              "name": "Burpees",
+              "reps": "max en 45 s",
+              "mode": "time",
+              "duration": 45,
+              "work_time": 45,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "Format le plus exigeant du bloc.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "9",
+              "technique": ""
+            },
+            {
+              "id": "w4s2-7b",
+              "name": "Jumping jacks",
+              "reps": "max en 45 s",
+              "mode": "time",
+              "duration": 45,
+              "work_time": 45,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "7-8",
+              "technique": ""
+            },
+            {
+              "id": "w4s2-7c",
+              "name": "Marche de l'ours",
+              "reps": "max en 45 s",
+              "mode": "time",
+              "duration": 45,
+              "work_time": 45,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "9",
+              "technique": ""
+            },
+            {
+              "id": "w4s2-7d",
+              "name": "Sauts patineurs",
+              "reps": "max en 45 s",
+              "mode": "time",
+              "duration": 45,
+              "work_time": 45,
+              "rest_time": 20,
+              "tempo": "",
+              "note": "",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "9",
+              "technique": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wanissa · S4 · Séance 3 — Bas du corps, volume",
+      "description": "Semaine 4 — fin du bloc. Dernière hausse de charge sur soulevé de terre, presse et le biset hip thrust unilatéral/fentes marchées (4 tours désormais installés). Abduction passe à 4 séries.\n\nÀ la fin de cette séance : prise des mensurations (taille, hanches, cuisses) et photo mensuelle avant de construire le bloc 2.",
+      "blocks": [
+        {
+          "id": "w4s3-1",
+          "type": "warmup",
+          "exercises": [
+            {
+              "id": "w4s3-1a",
+              "name": "Cat-cow",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s3-1b",
+              "name": "Good morning élastique léger",
+              "reps": "12",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s3-1c",
+              "name": "Kas glute bridge",
+              "reps": "15",
+              "note": "",
+              "photo": null
+            },
+            {
+              "id": "w4s3-1d",
+              "name": "Soulevé de terre à vide (barre ou bâton)",
+              "reps": "8",
+              "note": "",
+              "photo": null
+            }
+          ]
+        },
+        {
+          "id": "w4s3-2",
+          "type": "exercise",
+          "name": "Soulevé de terre (conventionnel)",
+          "sets": 4,
+          "reps": "5",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 150,
+          "tempo": "",
+          "note": "Charge en hausse par rapport à S3, dernière montée avant le bilan.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "barre",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w4s3-3",
+          "type": "exercise",
+          "name": "Presse à cuisses",
+          "sets": 4,
+          "reps": "10",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 120,
+          "tempo": "",
+          "note": "Charge en hausse.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w4s3-4",
+          "type": "circuit",
+          "rounds": 4,
+          "rest_between_rounds": 100,
+          "interval_mode": false,
+          "exercises": [
+            {
+              "id": "w4s3-4a",
+              "name": "Hip thrust unilatéral",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en hausse.",
+              "suggested_weight": "",
+              "weight_type": "poids du corps",
+              "rpe": "8",
+              "technique": ""
+            },
+            {
+              "id": "w4s3-4b",
+              "name": "Fentes marchées",
+              "reps": "10 / jambe",
+              "mode": "reps",
+              "duration": 30,
+              "work_time": 30,
+              "rest_time": 30,
+              "tempo": "",
+              "note": "Charge en hausse.",
+              "suggested_weight": "",
+              "weight_type": "haltères",
+              "rpe": "8",
+              "technique": ""
+            }
+          ]
+        },
+        {
+          "id": "w4s3-5",
+          "type": "exercise",
+          "name": "Abduction hanche (machine ou élastique)",
+          "sets": 4,
+          "reps": "15-20",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Passe à 4 séries.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "machine",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w4s3-6",
+          "type": "exercise",
+          "name": "Extension du dos à 45° (biais fessier)",
+          "sets": 3,
+          "reps": "15",
+          "mode": "reps",
+          "duration": 30,
+          "rest": 60,
+          "tempo": "",
+          "note": "Reps en hausse.",
+          "photo": null,
+          "suggested_weight": "légère",
+          "weight_type": "poids du corps",
+          "rpe": "8",
+          "technique": ""
+        },
+        {
+          "id": "w4s3-7",
+          "type": "exercise",
+          "name": "Étirements guidés (ischios, fessiers, quadriceps)",
+          "sets": 1,
+          "reps": "5 min",
+          "mode": "time",
+          "duration": 300,
+          "rest": 0,
+          "tempo": "",
+          "note": "Retour au calme.",
+          "photo": null,
+          "suggested_weight": "",
+          "weight_type": "poids du corps",
+          "rpe": "",
+          "technique": ""
+        }
+      ]
+    }
+  ]
+}

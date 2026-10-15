@@ -206,6 +206,31 @@ const Tab = ({ tabs, active, onChange }) => (
   </div>
 );
 
+// Répertoire A-Z : filtre une longue liste (séances, clientes...) par première lettre du nom.
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const AlphaIndex = ({ letters, active, onChange }) => (
+  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
+    <button onClick={() => onChange(null)} style={{
+      padding: "0 12px", height: 28, borderRadius: 100, border: `1.5px solid ${active === null ? C.pink : C.border}`,
+      background: active === null ? C.pink : "transparent", color: active === null ? C.black : C.textMuted,
+      fontWeight: active === null ? 700 : 400, fontSize: 12, cursor: "pointer",
+    }}>Tout</button>
+    {ALPHABET.map(l => {
+      const has = letters.has(l);
+      const isActive = active === l;
+      return (
+        <button key={l} disabled={!has} onClick={() => onChange(l)} style={{
+          width: 28, height: 28, borderRadius: 100, border: `1.5px solid ${isActive ? C.pink : C.border}`,
+          background: isActive ? C.pink : "transparent",
+          color: isActive ? C.black : C.textMuted,
+          fontWeight: isActive ? 700 : 400, fontSize: 12,
+          cursor: has ? "pointer" : "default", opacity: has ? 1 : 0.3,
+        }}>{l}</button>
+      );
+    })}
+  </div>
+);
+
 const QuickAction = ({ title, subtitle, icon, onClick, accent = C.pink }) => (
   <button onClick={onClick} style={{
     background: "#111", border: `1px solid ${accent}22`, borderRadius: 12, padding: "12px 12px",
@@ -3662,6 +3687,7 @@ const CoachApp = ({ user, onLogout }) => {
   const [editingWorkout, setEditingWorkout] = useState(null);
   const [buildingWorkout, setBuildingWorkout] = useState(false);
   const [showArchivedWorkouts, setShowArchivedWorkouts] = useState(false);
+  const [workoutLetterFilter, setWorkoutLetterFilter] = useState(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
@@ -3699,6 +3725,32 @@ const CoachApp = ({ user, onLogout }) => {
   const sortByName = (a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" });
   const activeWorkoutsList = workouts.filter(w => !w.is_archived).sort(sortByName);
   const archivedWorkoutsList = workouts.filter(w => w.is_archived).sort(sortByName);
+  // Répertoire A-Z : les séances sont rangées par cliente assignée (et non par leur nom, les
+  // anciennes séances ne commençant pas toutes par le prénom). Le filtre porte sur l'initiale de la cliente.
+  const GROUP_SHARED = "Plusieurs clientes";
+  const GROUP_NONE = "Non assignées";
+  const clientNameById = Object.fromEntries(clients.map(c => [c.id, c.name]));
+  const firstLetterOf = (name) => (name || "").trim().normalize("NFD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase();
+  const groupKeyOf = (w) => {
+    const names = (assignmentsByWorkout[w.id] || []).map(id => clientNameById[id]).filter(Boolean);
+    if (names.length === 0) return GROUP_NONE;
+    return new Set(names).size === 1 ? names[0] : GROUP_SHARED;
+  };
+  const isClientGroup = (key) => key !== GROUP_SHARED && key !== GROUP_NONE;
+  const groupWorkoutsByClient = (list) => {
+    const byKey = new Map();
+    for (const w of list) {
+      const key = groupKeyOf(w);
+      if (!byKey.has(key)) byKey.set(key, []);
+      byKey.get(key).push(w);
+    }
+    const rank = (key) => (isClientGroup(key) ? 0 : key === GROUP_SHARED ? 1 : 2);
+    return [...byKey.entries()].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b, "fr", { sensitivity: "base" }));
+  };
+  const letterOfWorkout = (w) => { const key = groupKeyOf(w); return isClientGroup(key) ? firstLetterOf(key) : null; };
+  const workoutLetters = new Set([...activeWorkoutsList, ...archivedWorkoutsList].map(letterOfWorkout).filter(Boolean));
+  const filteredActiveWorkouts = workoutLetterFilter ? activeWorkoutsList.filter(w => letterOfWorkout(w) === workoutLetterFilter) : activeWorkoutsList;
+  const filteredArchivedWorkouts = workoutLetterFilter ? archivedWorkoutsList.filter(w => letterOfWorkout(w) === workoutLetterFilter) : archivedWorkoutsList;
   const workoutsById = Object.fromEntries(workouts.map(w => [w.id, w]));
 
   // Chargement des entrées du jour + abonnement temps réel
@@ -3997,31 +4049,17 @@ const CoachApp = ({ user, onLogout }) => {
               </Card>
               {loadingWorkouts ? <Spinner /> : (
                 <>
+                  {activeWorkoutsList.length > 0 && (
+                    <AlphaIndex letters={workoutLetters} active={workoutLetterFilter} onChange={setWorkoutLetterFilter} />
+                  )}
                   {activeWorkoutsList.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance active. Clique sur "+ Nouvelle séance" pour commencer.</p></Card>}
-                  {activeWorkoutsList.map(w => (
-                    <WorkoutCard
-                      key={w.id}
-                      workout={w}
-                      clients={clients.filter(c => !c.is_paused)}
-                      allClients={clients}
-                      assignedIds={assignmentsByWorkout[w.id] || []}
-                      onToggleAssign={toggleAssignment}
-                      onEdit={() => openWorkoutEditor(w)}
-                      onDelete={() => deleteWorkout(w.id)}
-                      onArchive={() => setArchived(w.id, true)}
-                      onUnarchive={() => setArchived(w.id, false)}
-                      onDuplicate={() => handleDuplicateWorkout(w)}
-                    />
-                  ))}
-                  {archivedWorkoutsList.length > 0 && (
-                    <div style={{ marginTop: 20 }}>
-                      <button
-                        onClick={() => setShowArchivedWorkouts(v => !v)}
-                        style={{ background: "none", border: "none", color: C.textMuted, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: showArchivedWorkouts ? 14 : 0, textDecoration: "underline" }}
-                      >
-                        {showArchivedWorkouts ? "▲ Masquer" : "▼ Voir"} les séances archivées ({archivedWorkoutsList.length})
-                      </button>
-                      {showArchivedWorkouts && archivedWorkoutsList.map(w => (
+                  {activeWorkoutsList.length > 0 && filteredActiveWorkouts.length === 0 && (
+                    <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune cliente ne commence par « {workoutLetterFilter} ».</p></Card>
+                  )}
+                  {groupWorkoutsByClient(filteredActiveWorkouts).map(([groupName, items]) => (
+                    <div key={groupName} style={{ marginBottom: 18 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textMuted, margin: "4px 2px 8px" }}>{groupName}</div>
+                      {items.map(w => (
                         <WorkoutCard
                           key={w.id}
                           workout={w}
@@ -4033,7 +4071,37 @@ const CoachApp = ({ user, onLogout }) => {
                           onDelete={() => deleteWorkout(w.id)}
                           onArchive={() => setArchived(w.id, true)}
                           onUnarchive={() => setArchived(w.id, false)}
+                          onDuplicate={() => handleDuplicateWorkout(w)}
                         />
+                      ))}
+                    </div>
+                  ))}
+                  {archivedWorkoutsList.length > 0 && (
+                    <div style={{ marginTop: 20 }}>
+                      <button
+                        onClick={() => setShowArchivedWorkouts(v => !v)}
+                        style={{ background: "none", border: "none", color: C.textMuted, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: showArchivedWorkouts ? 14 : 0, textDecoration: "underline" }}
+                      >
+                        {showArchivedWorkouts ? "▲ Masquer" : "▼ Voir"} les séances archivées ({filteredArchivedWorkouts.length})
+                      </button>
+                      {showArchivedWorkouts && groupWorkoutsByClient(filteredArchivedWorkouts).map(([groupName, items]) => (
+                        <div key={groupName} style={{ marginBottom: 18 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textMuted, margin: "4px 2px 8px" }}>{groupName}</div>
+                          {items.map(w => (
+                            <WorkoutCard
+                              key={w.id}
+                              workout={w}
+                              clients={clients.filter(c => !c.is_paused)}
+                              allClients={clients}
+                              assignedIds={assignmentsByWorkout[w.id] || []}
+                              onToggleAssign={toggleAssignment}
+                              onEdit={() => openWorkoutEditor(w)}
+                              onDelete={() => deleteWorkout(w.id)}
+                              onArchive={() => setArchived(w.id, true)}
+                              onUnarchive={() => setArchived(w.id, false)}
+                            />
+                          ))}
+                        </div>
                       ))}
                     </div>
                   )}
