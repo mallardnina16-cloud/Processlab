@@ -316,6 +316,8 @@ const NUTRITION_GOAL_OPTIONS = [
   { value: "bulk", label: "Prise de masse" },
 ];
 const nutritionGoalLabel = v => NUTRITION_GOAL_OPTIONS.find(o => o.value === v)?.label || "—";
+// Objectif de protéines (g/jour) fixé par la coach dans le profil nutritionnel — null si non défini
+const proteinTarget = profile => profile?.protein_target_g > 0 ? profile.protein_target_g : null;
 const feelings = ["😩", "😔", "😐", "🙂", "🔥"];
 const feelingLabels = ["Très difficile", "Difficile", "Neutre", "Bien", "Excellent"];
 const today = new Date().toISOString().slice(0, 10);
@@ -2044,7 +2046,9 @@ const useClientData = (clientId, { isCoach = false } = {}) => {
       supabase.from("client_workouts").select("workout_id, scheduled_date, workouts(id, name, description, exercises(id, workout_id, name, sets, reps, rest, note, position, suggested_weight, weight_type, tempo))").eq("client_id", clientId),
       supabase.from("progress_photos").select("id, client_id, photo, note, date").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("payments").select("id, client_id, amount, paid_date, next_due_date, note").eq("client_id", clientId).order("paid_date", { ascending: false }),
-      supabase.from("client_profiles").select("client_id, birth_date, sex, height_cm, nutrition_goal, cycle_last_period_start, cycle_avg_length, cycle_avg_period_length").eq("client_id", clientId).maybeSingle(),
+      // "*" plutôt qu'une liste de colonnes : la lecture continue de fonctionner même si une
+      // colonne récente (ex: protein_target_g) n'a pas encore été ajoutée en base.
+      supabase.from("client_profiles").select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("activity_sessions").select("id, client_id, date, activity_name, met_value, duration_min, source, calories").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("meals").select("id, client_id, date, meal_slot, raw_text, photo_url, source, items, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g, confidence").eq("client_id", clientId).order("created_at", { ascending: false }),
       supabase.from("workout_schedule").select("id, client_id, workout_id, date").eq("client_id", clientId).order("date"),
@@ -2214,6 +2218,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
   const sessionsForDate = activitySessions.filter(s => s.date === selectedDate);
   const mealsForDate = meals.filter(m => m.date === selectedDate);
   const dayCalories = mealsForDate.reduce((sum, m) => sum + (m.calories || 0), 0);
+  const dayProtein = Math.round(mealsForDate.reduce((sum, m) => sum + (m.protein_g || 0), 0));
   const dailyEnergy = calcDailyEnergy({ profile, weightKg: latestWeightKg, steps: parseInt(steps) || 0, activitySessions: sessionsForDate });
   const balanceMsg = dailyEnergy && mealsForDate.length > 0 ? energyBalanceMessage(dayCalories - dailyEnergy.tdee, profile?.nutrition_goal) : null;
 
@@ -2511,6 +2516,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
 
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🍽️ Repas du jour</div>
+          {proteinTarget(profile) && <ProteinProgress value={dayProtein} target={proteinTarget(profile)} label="Protéines du jour" />}
           {mealsForDate.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
               {mealsForDate.map(m => (
@@ -2667,6 +2673,24 @@ const PerfCard = ({ log, workout }) => {
   );
 };
 
+// Protéines consommées vs objectif fixé par la coach — constat neutre, jamais de jugement
+const ProteinProgress = ({ value, target, label }) => {
+  const pct = Math.min(100, Math.round((value / target) * 100));
+  const reached = value >= target;
+  return (
+    <div style={{ background: C.green + "10", border: `1px solid ${C.green}33`, borderRadius: 12, padding: "10px 14px", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+        <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>💪 {label.toUpperCase()}</span>
+        <span style={{ fontSize: 14, fontWeight: 900 }}>{value} g <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>/ {target} g</span></span>
+      </div>
+      <div style={{ height: 6, background: "#222", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: C.green, borderRadius: 3 }} />
+      </div>
+      <div style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>{reached ? "Objectif de protéines atteint" : `Encore ${target - value} g pour atteindre l'objectif`}</div>
+    </div>
+  );
+};
+
 const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = [] }) => {
   const sessionsForDate = activitySessions.filter(s => s.date === entry.date);
   const weightForDate = [...weights].reverse().find(w => w.date <= entry.date) || weights[0];
@@ -2730,6 +2754,7 @@ const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = 
             <div key={s.l} style={{ background: "#111", borderRadius: 10, padding: "8px 4px", textAlign: "center" }}><div style={{ fontSize: 15, fontWeight: 900, color: s.c }}>{s.v != null ? `${s.v}${s.u}` : "—"}</div><div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>{s.l}</div></div>
           ))}
         </div>
+        {proteinTarget(profile) && entry.protein_total != null && <div style={{ marginTop: 12 }}><ProteinProgress value={Math.round(entry.protein_total)} target={proteinTarget(profile)} label="Protéines vs objectif" /></div>}
       </div>
     )}
     {entry.meal_note && <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>🍽️ REPAS</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.meal_note}</div></div>}
@@ -2748,7 +2773,7 @@ const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = 
   );
 };
 
-const EntryCard = ({ e, onClick }) => (
+const EntryCard = ({ e, onClick, proteinGoal }) => (
   <Card onClick={onClick} style={{ cursor: onClick ? "pointer" : "default" }}>
     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
       <span style={{ fontWeight: 700 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
@@ -2765,7 +2790,7 @@ const EntryCard = ({ e, onClick }) => (
     </div>
     {e.calories_total != null && <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
       <Badge color={C.yellow}>{e.calories_total} kcal</Badge>
-      {e.protein_total != null && <Badge color={C.green}>💪 {e.protein_total}g</Badge>}
+      {e.protein_total != null && <Badge color={C.green}>💪 {e.protein_total}{proteinGoal ? ` / ${proteinGoal}` : ""}g</Badge>}
       {e.carb_total != null && <Badge color={C.blue}>🌾 {e.carb_total}g</Badge>}
       {e.fat_total != null && <Badge color={C.pink}>🥑 {e.fat_total}g</Badge>}
     </div>}
@@ -3037,6 +3062,7 @@ const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, w
                 <div key={label} style={{ background: "#111", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
                   <div style={{ fontSize: 16, fontWeight: 900, color }}>{val != null ? `${val}${unit}` : "—"}</div>
                   <div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>{label.toUpperCase()}</div>
+                  {label === "Protéines" && proteinTarget(profile) && <div style={{ fontSize: 9, color: C.green, marginTop: 2 }}>objectif {proteinTarget(profile)} g</div>}
                 </div>
               ))}
             </div>
@@ -3212,6 +3238,10 @@ const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile,
               <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>réalisées</div>
             </Card>
           </div>
+
+          {proteinTarget(profile) && summary.avgProtein != null && (
+            <ProteinProgress value={summary.avgProtein} target={proteinTarget(profile)} label="Protéines — moyenne/jour" />
+          )}
 
           {weightTrend != null && (
             <Card>
@@ -4193,11 +4223,12 @@ const CoachApp = ({ user, onLogout }) => {
                           <span>{profile.sex === "F" ? "Femme" : profile.sex === "M" ? "Homme" : "—"}</span>
                           <span><strong>{profile.height_cm || "—"}</strong> cm</span>
                           <span style={{ color: C.pink, fontWeight: 700 }}>{nutritionGoalLabel(profile.nutrition_goal)}</span>
+                          <span style={{ color: C.green }}>💪 <strong>{proteinTarget(profile) ? `${proteinTarget(profile)} g` : "—"}</strong> prot./jour</span>
                         </div>
                       ) : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Profil non renseigné — la balance énergétique ne peut pas être calculée pour cette cliente.</p>}
                     </Card>
                   )}
-                  {loadingData ? <Spinner /> : entries.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune entrée.</p></Card> : entries.map((e, i) => <EntryCard key={i} e={e} onClick={() => setSelectedEntry(e)} />)}
+                  {loadingData ? <Spinner /> : entries.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune entrée.</p></Card> : entries.map((e, i) => <EntryCard key={i} e={e} proteinGoal={proteinTarget(profile)} onClick={() => setSelectedEntry(e)} />)}
                 </div>
               )}
 
@@ -4716,7 +4747,7 @@ const ClientApp = ({ user, onLogout }) => {
         <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
           <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
           <SectionTitle title="Mon historique" subtitle="Retour sur tes jours, tes ressentis et ton évolution" />
-          {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => <div key={i} style={{ marginBottom: 12 }}><EntryCard e={e} onClick={() => setSelectedEntry(e)} /></div>)}
+          {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => <div key={i} style={{ marginBottom: 12 }}><EntryCard e={e} proteinGoal={proteinTarget(profile)} onClick={() => setSelectedEntry(e)} /></div>)}
           <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
         </div>
   );
@@ -4864,7 +4895,10 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
     monthly_amount: client.monthly_amount || "",
     start_date: client.start_date || "", next_payment: client.next_payment || "",
   });
-  const [profileForm, setProfileForm] = useState({ birth_date: "", sex: "", height_cm: "", nutrition_goal: "" });
+  const [profileForm, setProfileForm] = useState({ birth_date: "", sex: "", height_cm: "", nutrition_goal: "", protein_target_g: "" });
+  // false tant que la colonne protein_target_g n'existe pas en base : on ne l'envoie pas
+  // dans l'upsert (sinon tout l'enregistrement du profil échouerait), sauf si une valeur est saisie.
+  const [hasProteinColumn, setHasProteinColumn] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [profileError, setProfileError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -4872,8 +4906,11 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    supabase.from("client_profiles").select("birth_date, sex, height_cm, nutrition_goal").eq("client_id", client.id).maybeSingle().then(({ data }) => {
-      if (data) setProfileForm({ birth_date: data.birth_date || "", sex: data.sex || "", height_cm: data.height_cm || "", nutrition_goal: data.nutrition_goal || "" });
+    supabase.from("client_profiles").select("*").eq("client_id", client.id).maybeSingle().then(({ data }) => {
+      if (data) {
+        setProfileForm({ birth_date: data.birth_date || "", sex: data.sex || "", height_cm: data.height_cm || "", nutrition_goal: data.nutrition_goal || "", protein_target_g: data.protein_target_g || "" });
+        setHasProteinColumn("protein_target_g" in data);
+      }
       setLoadingProfile(false);
     });
   }, [client.id]);
@@ -4883,7 +4920,13 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
     setProfileError("");
     const avatar = form.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
     await onSave(client.id, { name: form.name, avatar, goal: form.goal, sessions_per_week: parseInt(form.sessions_per_week) || 3, monthly_amount: parseFloat(form.monthly_amount) || 0, start_date: form.start_date, next_payment: form.next_payment });
-    if (profileForm.birth_date || profileForm.sex || profileForm.height_cm || profileForm.nutrition_goal) {
+    const proteinValue = profileForm.protein_target_g === "" ? null : Math.round(Number(profileForm.protein_target_g));
+    if (proteinValue != null && !(proteinValue >= 1 && proteinValue <= 500)) {
+      setSaving(false);
+      setProfileError("L'objectif de protéines doit être compris entre 1 et 500 g par jour.");
+      return;
+    }
+    if (profileForm.birth_date || profileForm.sex || profileForm.height_cm || profileForm.nutrition_goal || proteinValue != null || hasProteinColumn) {
       // Passe par le hook (updateProfile) : il fait l'upsert AVEC .select(), rafraîchit
       // l'état `profile` immédiatement (la carte se met à jour sans quitter la fiche) et
       // remonte l'erreur Postgres exacte en cas d'échec (policy RLS, contrainte manquante…).
@@ -4892,6 +4935,7 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
         sex: profileForm.sex || null,
         height_cm: profileForm.height_cm ? parseFloat(profileForm.height_cm) : null,
         nutrition_goal: profileForm.nutrition_goal || null,
+        ...(proteinValue != null || hasProteinColumn ? { protein_target_g: proteinValue } : {}),
       });
       if (!saved) {
         setSaving(false);
@@ -4942,6 +4986,7 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
                   {NUTRITION_GOAL_OPTIONS.map(o => (<button key={o.value} onClick={() => setProfileForm({ ...profileForm, nutrition_goal: o.value })} style={{ padding: 11, borderRadius: 10, border: `2px solid ${profileForm.nutrition_goal === o.value ? C.pink : C.border}`, background: profileForm.nutrition_goal === o.value ? C.pink + "22" : "#111", color: profileForm.nutrition_goal === o.value ? C.pink : C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", textAlign: "left" }}>{o.label}</button>))}
                 </div>
               </div>
+              <Inp label="Objectif protéines (g/jour)" type="number" inputMode="numeric" min="1" max="500" placeholder="ex: 120 — laisser vide si aucun" value={profileForm.protein_target_g} onChange={e => setProfileForm({ ...profileForm, protein_target_g: e.target.value })} />
             </div>
           )}
           {profileError && <div style={{ marginTop: 12, background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 10, padding: 12, fontSize: 12, color: C.red }}>{profileError}</div>}
