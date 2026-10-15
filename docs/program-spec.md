@@ -48,6 +48,11 @@ Toujours possible : `--dry-run` (script) ou *Prévisualiser* (panneau) — **n'�
 }
 ```
 
+Chaque séance importée garde `program_name` dans sa colonne `workouts.program_name` :
+c'est ce qui la range sous son programme dans l'onglet Séances (cliente → programme →
+semaine). La semaine est lue dans le nom de la séance (`S1`, `S2`…), d'où la convention
+`"Prénom · S1 · Séance 1 — ..."`.
+
 Les séances sont créées **dans l'ordre du tableau** (le tri par défaut est
 `created_at`). Elles sont **toujours créées à neuf** ; un nom déjà utilisé n'est
 pas bloquant, il est seulement signalé dans le rapport.

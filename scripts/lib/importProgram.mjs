@@ -144,7 +144,7 @@ export async function importProgram(db, program, opts = {}) {
     }
 
     const [wRow] = await db.insert("workouts",
-      [{ name: w.name, description: w.description || "", blocks }],
+      [{ name: w.name, description: w.description || "", program_name: program.program_name || null, blocks }],
       { returning: true });
     if (!wRow || !wRow.id) throw new Error(`Séance "${w.name}" : insertion sans id retourné.`);
 

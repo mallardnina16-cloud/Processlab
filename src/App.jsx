@@ -231,6 +231,22 @@ const AlphaIndex = ({ letters, active, onChange }) => (
   </div>
 );
 
+// Ligne cliquable façon dossier (clientes, programmes de l'onglet Séances).
+const FolderRow = ({ title, subtitle, onClick, muted = false }) => (
+  <button onClick={onClick} style={{
+    width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+    background: "#111", border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px",
+    marginBottom: 10, cursor: "pointer", textAlign: "left", color: muted ? C.textMuted : C.white,
+  }}>
+    <div>
+      <div style={{ fontWeight: 800, fontSize: 15 }}>{title}</div>
+      {subtitle && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3 }}>{subtitle}</div>}
+    </div>
+    <span style={{ color: C.textMuted, fontSize: 18 }}>›</span>
+  </button>
+);
+const crumbSt = { background: "none", border: "none", color: C.pink, cursor: "pointer", padding: 0, fontSize: 13, fontWeight: 700 };
+
 const QuickAction = ({ title, subtitle, icon, onClick, accent = C.pink }) => (
   <button onClick={onClick} style={{
     background: "#111", border: `1px solid ${accent}22`, borderRadius: 12, padding: "12px 12px",
@@ -1141,8 +1157,9 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
   );
 };
 
-const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
+const WorkoutBuilder = ({ workout, onSave, onCancel, defaultProgram = "", programNames = [] }) => {
   const [name, setName] = useState(workout?.name || "");
+  const [programName, setProgramName] = useState(workout ? (workout.program_name || "") : defaultProgram);
   const [desc, setDesc] = useState(workout?.description || "");
   const initBlocks = () => {
     if (workout?.blocks && workout.blocks.length > 0) return workout.blocks;
@@ -1172,7 +1189,7 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
     if (!name.trim()) return alert("Donne un nom à la séance");
     setSaving(true);
     const allEx = blocks.flatMap(b => b.type === "circuit" ? b.exercises.map(e => ({ ...e, type: "exercise", sets: b.rounds, rest: b.rest_between_rounds })) : [b]);
-    await onSave({ id: workout?.id, name, description: desc, exercises: allEx, blocks });
+    await onSave({ id: workout?.id, name, description: desc, program_name: programName, exercises: allEx, blocks });
     setSaving(false);
   };
 
@@ -1184,7 +1201,9 @@ const WorkoutBuilder = ({ workout, onSave, onCancel }) => {
       </div>
       <Card>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Inp label="Nom de la séance" placeholder="ex: Full Body A..." value={name} onChange={e => setName(e.target.value)} />
+          <Inp label="Nom de la séance" placeholder="ex: Pembe · S1 · Séance 1 — Fessiers" value={name} onChange={e => setName(e.target.value)} />
+          <Inp label="Programme (optionnel)" placeholder="ex: Pembe — Renfo dos & fessiers" value={programName} onChange={e => setProgramName(e.target.value)} list="program-names" />
+          <datalist id="program-names">{programNames.map(p => <option key={p} value={p} />)}</datalist>
           <TA label="Description" placeholder="Objectif, durée..." value={desc} onChange={e => setDesc(e.target.value)} style={{ minHeight: 56 }} />
         </div>
       </Card>
@@ -1937,7 +1956,7 @@ const useWorkouts = () => {
     // quand une séance précise est ouverte, pour ne jamais transférer TOUTES les séances
     // à la fois.
     const [wsResult, exsResult] = await Promise.all([
-      supabase.from("workouts").select("id, name, description, created_at, is_archived").order("created_at"),
+      supabase.from("workouts").select("id, name, description, program_name, created_at, is_archived").order("created_at"),
       supabase.from("exercises").select("id, workout_id, name, sets, reps, rest, note, position, suggested_weight, weight_type, tempo").order("position"),
     ].map(p => settleWithTimeout(p)));
     await fetchAssignments();
@@ -1963,10 +1982,10 @@ const useWorkouts = () => {
   };
   const saveWorkout = async (workout) => {
     if (workout.id && workouts.find(w => w.id === workout.id)) {
-      await supabase.from("workouts").update({ name: workout.name, description: workout.description, blocks: workout.blocks || [] }).eq("id", workout.id);
+      await supabase.from("workouts").update({ name: workout.name, description: workout.description, program_name: (workout.program_name || "").trim() || null, blocks: workout.blocks || [] }).eq("id", workout.id);
       await supabase.from("exercises").delete().eq("workout_id", workout.id);
     } else {
-      const { data } = await supabase.from("workouts").insert([{ name: workout.name, description: workout.description, blocks: workout.blocks || [] }]).select().single();
+      const { data } = await supabase.from("workouts").insert([{ name: workout.name, description: workout.description, program_name: (workout.program_name || "").trim() || null, blocks: workout.blocks || [] }]).select().single();
       workout.id = data.id;
     }
     if (workout.exercises?.length) {
@@ -3676,6 +3695,7 @@ const CoachApp = ({ user, onLogout }) => {
     await saveWorkout({
       name: `${workout.name} (copie)`,
       description: workout.description,
+      program_name: workout.program_name,
       blocks: workout.blocks || [],
       exercises: (workout.exercises || []).map(({ id, workout_id, ...rest }) => rest),
     });
@@ -3688,6 +3708,8 @@ const CoachApp = ({ user, onLogout }) => {
   const [buildingWorkout, setBuildingWorkout] = useState(false);
   const [showArchivedWorkouts, setShowArchivedWorkouts] = useState(false);
   const [workoutLetterFilter, setWorkoutLetterFilter] = useState(null);
+  const [workoutNav, setWorkoutNav] = useState({ client: null, program: null });
+  const [newWorkoutProgram, setNewWorkoutProgram] = useState("");
   const [showAddClient, setShowAddClient] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [newClientForm, setNewClientForm] = useState({ name: "", email: "", password: "", goal: "", start_date: "", next_payment: "", sessions_per_week: "3", monthly_amount: "" });
@@ -3746,20 +3768,44 @@ const CoachApp = ({ user, onLogout }) => {
     return new Set(names).size === 1 ? names[0] : GROUP_SHARED;
   };
   const isClientGroup = (key) => key !== GROUP_SHARED && key !== GROUP_NONE;
-  const groupWorkoutsByClient = (list) => {
+  // Navigation de l'onglet Séances : lettre → cliente → programme → séances regroupées par semaine.
+  const PROGRAM_NONE = "Séances hors programme";
+  const WEEK_NONE = "Autres séances";
+  const naturalCmp = (a, b) => a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" });
+  const programKeyOf = (w) => (w.program_name || "").trim() || PROGRAM_NONE;
+  const weekOf = (w) => { const m = (w.name || "").match(/(?:^|[\s·])S(\d+)(?=\s|·|$)/); return m ? Number(m[1]) : null; };
+  const allWorkoutsSorted = [...workouts].sort((a, b) => naturalCmp(a.name || "", b.name || ""));
+  const groupBy = (list, keyFn) => {
     const byKey = new Map();
-    for (const w of list) {
-      const key = groupKeyOf(w);
-      if (!byKey.has(key)) byKey.set(key, []);
-      byKey.get(key).push(w);
-    }
-    const rank = (key) => (isClientGroup(key) ? 0 : key === GROUP_SHARED ? 1 : 2);
-    return [...byKey.entries()].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b, "fr", { sensitivity: "base" }));
+    for (const w of list) { const k = keyFn(w); if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(w); }
+    return byKey;
   };
-  const letterOfWorkout = (w) => { const key = groupKeyOf(w); return isClientGroup(key) ? firstLetterOf(key) : null; };
-  const workoutLetters = new Set([...activeWorkoutsList, ...archivedWorkoutsList].map(letterOfWorkout).filter(Boolean));
-  const filteredActiveWorkouts = workoutLetterFilter ? activeWorkoutsList.filter(w => letterOfWorkout(w) === workoutLetterFilter) : activeWorkoutsList;
-  const filteredArchivedWorkouts = workoutLetterFilter ? archivedWorkoutsList.filter(w => letterOfWorkout(w) === workoutLetterFilter) : archivedWorkoutsList;
+  const clientGroups = [...groupBy(allWorkoutsSorted, groupKeyOf).entries()].sort(([a], [b]) => {
+    const rank = (key) => (isClientGroup(key) ? 0 : key === GROUP_SHARED ? 1 : 2);
+    return rank(a) - rank(b) || naturalCmp(a, b);
+  });
+  const workoutLetters = new Set(clientGroups.map(([key]) => (isClientGroup(key) ? firstLetterOf(key) : null)).filter(Boolean));
+  const visibleClientGroups = workoutLetterFilter ? clientGroups.filter(([key]) => isClientGroup(key) && firstLetterOf(key) === workoutLetterFilter) : clientGroups;
+  // Programmes d'une cliente, dans l'ordre où ils ont été créés (programme 1, programme 2…), "hors programme" en dernier.
+  const programsOf = (items) => [...groupBy(items, programKeyOf).entries()].sort(([a, wa], [b, wb]) => {
+    if (a === PROGRAM_NONE || b === PROGRAM_NONE) return a === PROGRAM_NONE ? 1 : -1;
+    const first = (ws) => ws.reduce((m, w) => (w.created_at < m ? w.created_at : m), ws[0].created_at || "");
+    return first(wa).localeCompare(first(wb));
+  });
+  const weeksOf = (items) => [...groupBy(items, w => weekOf(w) ?? WEEK_NONE).entries()].sort(([a], [b]) => {
+    if (a === WEEK_NONE || b === WEEK_NONE) return a === WEEK_NONE ? 1 : -1;
+    return a - b;
+  });
+  const navClientItems = workoutNav.client ? (clientGroups.find(([key]) => key === workoutNav.client) || [null, []])[1] : [];
+  const navProgramItems = workoutNav.program ? navClientItems.filter(w => programKeyOf(w) === workoutNav.program) : [];
+  const navClient = workoutNav.client && isClientGroup(workoutNav.client) ? clients.find(c => c.name === workoutNav.client) : null;
+  const isAssignedTo = (w, clientId) => (assignmentsByWorkout[w.id] || []).includes(clientId);
+  // Assigne (ou retire) toute une semaine d'un coup à la cliente ouverte.
+  const setWeekAssigned = async (items, assign) => {
+    if (!navClient) return;
+    for (const w of items) if (isAssignedTo(w, navClient.id) !== assign) await toggleAssignment(w.id, navClient.id);
+  };
+  const programNames = [...new Set(workouts.map(w => (w.program_name || "").trim()).filter(Boolean))].sort(naturalCmp);
   const workoutsById = Object.fromEntries(workouts.map(w => [w.id, w]));
 
   // Chargement des entrées du jour + abonnement temps réel
@@ -3867,7 +3913,7 @@ const CoachApp = ({ user, onLogout }) => {
 
   if (buildingWorkout || editingWorkout) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
-      <WorkoutBuilder workout={editingWorkout} onSave={async w => { await saveWorkout(w); setEditingWorkout(null); setBuildingWorkout(false); }} onCancel={() => { setEditingWorkout(null); setBuildingWorkout(false); }} />
+      <WorkoutBuilder workout={editingWorkout} defaultProgram={newWorkoutProgram} programNames={programNames} onSave={async w => { await saveWorkout(w); setEditingWorkout(null); setBuildingWorkout(false); setNewWorkoutProgram(""); }} onCancel={() => { setEditingWorkout(null); setBuildingWorkout(false); setNewWorkoutProgram(""); }} />
     </div>
   );
 
@@ -4058,61 +4104,106 @@ const CoachApp = ({ user, onLogout }) => {
               </Card>
               {loadingWorkouts ? <Spinner /> : (
                 <>
-                  {activeWorkoutsList.length > 0 && (
-                    <AlphaIndex letters={workoutLetters} active={workoutLetterFilter} onChange={setWorkoutLetterFilter} />
-                  )}
-                  {activeWorkoutsList.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance active. Clique sur "+ Nouvelle séance" pour commencer.</p></Card>}
-                  {activeWorkoutsList.length > 0 && filteredActiveWorkouts.length === 0 && (
-                    <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune cliente ne commence par « {workoutLetterFilter} ».</p></Card>
-                  )}
-                  {groupWorkoutsByClient(filteredActiveWorkouts).map(([groupName, items]) => (
-                    <div key={groupName} style={{ marginBottom: 18 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textMuted, margin: "4px 2px 8px" }}>{groupName}</div>
-                      {items.map(w => (
-                        <WorkoutCard
-                          key={w.id}
-                          workout={w}
-                          clients={clients.filter(c => !c.is_paused)}
-                          allClients={clients}
-                          assignedIds={assignmentsByWorkout[w.id] || []}
-                          onToggleAssign={toggleAssignment}
-                          onEdit={() => openWorkoutEditor(w)}
-                          onDelete={() => deleteWorkout(w.id)}
-                          onArchive={() => setArchived(w.id, true)}
-                          onUnarchive={() => setArchived(w.id, false)}
-                          onDuplicate={() => handleDuplicateWorkout(w)}
-                        />
-                      ))}
+                  {workouts.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune séance. Clique sur "+ Nouvelle séance" pour commencer.</p></Card>}
+
+                  {/* Fil d'Ariane */}
+                  {workoutNav.client && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 13, marginBottom: 16 }}>
+                      <button onClick={() => setWorkoutNav({ client: null, program: null })} style={crumbSt}>← Toutes les clientes</button>
+                      <span style={{ color: C.textMuted }}>/</span>
+                      {workoutNav.program ? (
+                        <>
+                          <button onClick={() => setWorkoutNav({ client: workoutNav.client, program: null })} style={crumbSt}>{workoutNav.client}</button>
+                          <span style={{ color: C.textMuted }}>/</span>
+                          <span style={{ fontWeight: 800 }}>{workoutNav.program}</span>
+                        </>
+                      ) : <span style={{ fontWeight: 800 }}>{workoutNav.client}</span>}
                     </div>
-                  ))}
-                  {archivedWorkoutsList.length > 0 && (
-                    <div style={{ marginTop: 20 }}>
-                      <button
-                        onClick={() => setShowArchivedWorkouts(v => !v)}
-                        style={{ background: "none", border: "none", color: C.textMuted, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: showArchivedWorkouts ? 14 : 0, textDecoration: "underline" }}
-                      >
-                        {showArchivedWorkouts ? "▲ Masquer" : "▼ Voir"} les séances archivées ({filteredArchivedWorkouts.length})
-                      </button>
-                      {showArchivedWorkouts && groupWorkoutsByClient(filteredArchivedWorkouts).map(([groupName, items]) => (
-                        <div key={groupName} style={{ marginBottom: 18 }}>
-                          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textMuted, margin: "4px 2px 8px" }}>{groupName}</div>
-                          {items.map(w => (
-                            <WorkoutCard
-                              key={w.id}
-                              workout={w}
-                              clients={clients.filter(c => !c.is_paused)}
-                              allClients={clients}
-                              assignedIds={assignmentsByWorkout[w.id] || []}
-                              onToggleAssign={toggleAssignment}
-                              onEdit={() => openWorkoutEditor(w)}
-                              onDelete={() => deleteWorkout(w.id)}
-                              onArchive={() => setArchived(w.id, true)}
-                              onUnarchive={() => setArchived(w.id, false)}
-                            />
-                          ))}
-                        </div>
-                      ))}
-                    </div>
+                  )}
+
+                  {/* Niveau 1 : clientes */}
+                  {!workoutNav.client && workouts.length > 0 && (
+                    <>
+                      <AlphaIndex letters={workoutLetters} active={workoutLetterFilter} onChange={setWorkoutLetterFilter} />
+                      {visibleClientGroups.length === 0 && (
+                        <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune cliente ne commence par « {workoutLetterFilter} ».</p></Card>
+                      )}
+                      {visibleClientGroups.map(([key, items]) => {
+                        const nbPrograms = programsOf(items).filter(([p]) => p !== PROGRAM_NONE).length;
+                        return (
+                          <FolderRow key={key} onClick={() => setWorkoutNav({ client: key, program: null })}
+                            title={key} muted={!isClientGroup(key)}
+                            subtitle={`${nbPrograms} programme${nbPrograms > 1 ? "s" : ""} · ${items.length} séance${items.length > 1 ? "s" : ""}`} />
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {/* Niveau 2 : programmes de la cliente */}
+                  {workoutNav.client && !workoutNav.program && (
+                    navClientItems.length === 0
+                      ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Plus aucune séance ici.</p></Card>
+                      : programsOf(navClientItems).map(([prog, items], i) => {
+                          const nbAssigned = navClient ? items.filter(w => isAssignedTo(w, navClient.id)).length : 0;
+                          const nbWeeks = weeksOf(items).filter(([wk]) => wk !== WEEK_NONE).length;
+                          return (
+                            <FolderRow key={prog} onClick={() => setWorkoutNav({ client: workoutNav.client, program: prog })}
+                              title={prog === PROGRAM_NONE ? prog : `Programme ${i + 1} — ${prog}`} muted={prog === PROGRAM_NONE}
+                              subtitle={[nbWeeks > 0 && `${nbWeeks} semaine${nbWeeks > 1 ? "s" : ""}`, `${items.length} séance${items.length > 1 ? "s" : ""}`, navClient && `${nbAssigned} assignée${nbAssigned > 1 ? "s" : ""}`].filter(Boolean).join(" · ")} />
+                          );
+                        })
+                  )}
+
+                  {/* Niveau 3 : séances du programme, par semaine */}
+                  {workoutNav.client && workoutNav.program && (
+                    <>
+                      {workoutNav.program !== PROGRAM_NONE && (
+                        <Btn small variant="secondary" onClick={() => { setNewWorkoutProgram(workoutNav.program); setBuildingWorkout(true); }} style={{ width: "auto", marginBottom: 16 }}>+ Séance dans ce programme</Btn>
+                      )}
+                      {navProgramItems.length === 0 && <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Plus aucune séance dans ce programme.</p></Card>}
+                      {weeksOf(navProgramItems).map(([wk, items]) => {
+                        const active = items.filter(w => !w.is_archived);
+                        const archived = items.filter(w => w.is_archived);
+                        const allAssigned = navClient && active.length > 0 && active.every(w => isAssignedTo(w, navClient.id));
+                        return (
+                          <div key={wk} style={{ marginBottom: 22 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, margin: "4px 2px 10px" }}>
+                              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textMuted }}>
+                                {wk === WEEK_NONE ? wk : `Semaine ${wk}`}
+                              </div>
+                              {navClient && active.length > 0 && (
+                                <Btn small variant={allAssigned ? "secondary" : undefined} onClick={() => setWeekAssigned(active, !allAssigned)} style={{ width: "auto" }}>
+                                  {allAssigned ? `Retirer la semaine` : `Assigner à ${navClient.name}`}
+                                </Btn>
+                              )}
+                            </div>
+                            {[...active, ...(showArchivedWorkouts ? archived : [])].map(w => (
+                              <WorkoutCard
+                                key={w.id}
+                                workout={w}
+                                clients={clients.filter(c => !c.is_paused)}
+                                allClients={clients}
+                                assignedIds={assignmentsByWorkout[w.id] || []}
+                                onToggleAssign={toggleAssignment}
+                                onEdit={() => openWorkoutEditor(w)}
+                                onDelete={() => deleteWorkout(w.id)}
+                                onArchive={() => setArchived(w.id, true)}
+                                onUnarchive={() => setArchived(w.id, false)}
+                                onDuplicate={() => handleDuplicateWorkout(w)}
+                              />
+                            ))}
+                          </div>
+                        );
+                      })}
+                      {navProgramItems.some(w => w.is_archived) && (
+                        <button
+                          onClick={() => setShowArchivedWorkouts(v => !v)}
+                          style={{ background: "none", border: "none", color: C.textMuted, fontSize: 13, cursor: "pointer", padding: 0, textDecoration: "underline" }}
+                        >
+                          {showArchivedWorkouts ? "▲ Masquer" : "▼ Voir"} les séances archivées ({navProgramItems.filter(w => w.is_archived).length})
+                        </button>
+                      )}
+                    </>
                   )}
                 </>
               )}
