@@ -2735,8 +2735,11 @@ const ProteinProgress = ({ value, target, label }) => {
   );
 };
 
-const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = [] }) => {
+const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = [], meals = [] }) => {
+  const [zoomPhoto, setZoomPhoto] = useState(null);
   const sessionsForDate = activitySessions.filter(s => s.date === entry.date);
+  const slotOrder = (slot) => { const i = MEAL_SLOT_OPTIONS.findIndex(o => o.value === slot); return i < 0 ? 99 : i; };
+  const mealsForDate = meals.filter(m => m.date === entry.date).sort((a, b) => slotOrder(a.meal_slot) - slotOrder(b.meal_slot));
   const weightForDate = [...weights].reverse().find(w => w.date <= entry.date) || weights[0];
   const dailyEnergy = calcDailyEnergy({ profile, weightKg: weightForDate?.value, steps: entry.steps, activitySessions: sessionsForDate });
   const balanceMsg = dailyEnergy && entry.calories_total != null ? energyBalanceMessage(entry.calories_total - dailyEnergy.tdee, profile?.nutrition_goal) : null;
@@ -2801,7 +2804,42 @@ const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = 
         {proteinTarget(profile) && entry.protein_total != null && <div style={{ marginTop: 12 }}><ProteinProgress value={Math.round(entry.protein_total)} target={proteinTarget(profile)} label="Protéines vs objectif" /></div>}
       </div>
     )}
-    {entry.meal_note && <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>🍽️ REPAS</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.meal_note}</div></div>}
+    {mealsForDate.length > 0 ? (
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>🍽️ REPAS ({mealsForDate.length})</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {mealsForDate.map(m => (
+            <div key={m.id} style={{ background: "#111", borderRadius: 10, padding: "12px 14px" }}>
+              <div style={{ fontSize: 12, color: C.pink, fontWeight: 700, marginBottom: 8 }}>{MEAL_SLOT_OPTIONS.find(o => o.value === m.meal_slot)?.label || m.meal_slot}</div>
+              {m.photo_url && <img src={m.photo_url} alt="" onClick={() => setZoomPhoto(m.photo_url)} style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8, marginBottom: 8, cursor: "zoom-in" }} />}
+              {m.raw_text && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}>{m.raw_text}</div>}
+              {m.items && m.items.length > 0 && (
+                <div style={{ background: "#181818", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 4 }}>🔍 REPÉRÉ PAR L'IA</div>
+                  {m.items.map((it, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12, padding: "3px 0", borderBottom: i < m.items.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                      <span style={{ color: C.white }}>{it.name} <span style={{ color: C.textMuted }}>· {it.quantity}</span></span>
+                      <span style={{ color: C.textMuted, flexShrink: 0 }}>{Math.round(it.calories)} kcal</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {m.calories != null && <Badge color={C.yellow}>{Math.round(m.calories)} kcal</Badge>}
+                {m.protein_g != null && <Badge color={C.green}>💪 {Math.round(m.protein_g)}g</Badge>}
+                {m.carb_g != null && <Badge color={C.blue}>🍞 {Math.round(m.carb_g)}g</Badge>}
+                {m.fat_g != null && <Badge color={C.pink}>🥑 {Math.round(m.fat_g)}g</Badge>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : entry.meal_note && <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>🍽️ REPAS</div><div style={{ fontSize: 14, lineHeight: 1.6 }}>{entry.meal_note}</div></div>}
+    {zoomPhoto && (
+      <div onClick={() => setZoomPhoto(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, cursor: "zoom-out" }}>
+        <img src={zoomPhoto} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 10 }} />
+      </div>
+    )}
     {entry.photos && entry.photos.length > 0 && (
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 12 }}>
         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📷 PHOTOS REPAS ({entry.photos.length})</div>
@@ -3919,7 +3957,7 @@ const CoachApp = ({ user, onLogout }) => {
     setMsgText(""); alert("✅ Message envoyé !");
   };
 
-  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} />;
+  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} meals={meals} />;
 
   if (buildingWorkout || editingWorkout) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
@@ -4671,7 +4709,7 @@ const ClientApp = ({ user, onLogout }) => {
     setOnboardingDone(true);
   };
 
-  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} />;
+  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} meals={meals} />;
   if (previewWorkout) return <WorkoutPreview workout={previewWorkout} onBack={() => setPreviewWorkout(null)} onStart={() => { setActiveWorkout(previewWorkout); setPreviewWorkout(null); }} />;
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => { setActiveWorkout(null); supabase.from("session_logs").select("*").eq("client_id", clientId).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || [])); }} clientId={clientId} sessionLogs={sessionLogs} />;
 
