@@ -3762,10 +3762,17 @@ const CoachApp = ({ user, onLogout }) => {
     const c = clients.find(c => { const n = normName(c.name); return n === prefix || n.startsWith(prefix + " "); });
     return c ? c.name : null;
   };
+  const pausedClientIds = new Set(clients.filter(c => c.is_paused).map(c => c.id));
   const groupKeyOf = (w) => {
-    const names = (assignmentsByWorkout[w.id] || []).map(id => clientNameById[id]).filter(Boolean);
-    if (names.length === 0) return clientFromWorkoutName(w.name) || GROUP_NONE;
-    return new Set(names).size === 1 ? names[0] : GROUP_SHARED;
+    const ids = assignmentsByWorkout[w.id] || [];
+    // Une cliente en pause ne compte pas : la séance reste sous la cliente active qui la partage.
+    const activeNames = [...new Set(ids.filter(id => !pausedClientIds.has(id)).map(id => clientNameById[id]).filter(Boolean))];
+    if (activeNames.length === 1) return activeNames[0];
+    if (activeNames.length > 1) return GROUP_SHARED;
+    const pausedNames = [...new Set(ids.map(id => clientNameById[id]).filter(Boolean))];
+    if (pausedNames.length === 1) return pausedNames[0];
+    if (pausedNames.length > 1) return GROUP_SHARED;
+    return clientFromWorkoutName(w.name) || GROUP_NONE;
   };
   const isClientGroup = (key) => key !== GROUP_SHARED && key !== GROUP_NONE;
   // Navigation de l'onglet Séances : lettre → cliente → programme → séances regroupées par semaine.
@@ -3784,8 +3791,11 @@ const CoachApp = ({ user, onLogout }) => {
     const rank = (key) => (isClientGroup(key) ? 0 : key === GROUP_SHARED ? 1 : 2);
     return rank(a) - rank(b) || naturalCmp(a, b);
   });
-  const workoutLetters = new Set(clientGroups.map(([key]) => (isClientGroup(key) ? firstLetterOf(key) : null)).filter(Boolean));
-  const visibleClientGroups = workoutLetterFilter ? clientGroups.filter(([key]) => isClientGroup(key) && firstLetterOf(key) === workoutLetterFilter) : clientGroups;
+  // Les clientes en pause sont masquées ; elles réapparaissent dès la fin de leur pause.
+  const pausedClientNames = new Set(clients.filter(c => c.is_paused).map(c => c.name));
+  const listedClientGroups = clientGroups.filter(([key]) => !pausedClientNames.has(key));
+  const workoutLetters = new Set(listedClientGroups.map(([key]) => (isClientGroup(key) ? firstLetterOf(key) : null)).filter(Boolean));
+  const visibleClientGroups = workoutLetterFilter ? listedClientGroups.filter(([key]) => isClientGroup(key) && firstLetterOf(key) === workoutLetterFilter) : listedClientGroups;
   // Programmes d'une cliente, dans l'ordre où ils ont été créés (programme 1, programme 2…), "hors programme" en dernier.
   const programsOf = (items) => [...groupBy(items, programKeyOf).entries()].sort(([a, wa], [b, wb]) => {
     if (a === PROGRAM_NONE || b === PROGRAM_NONE) return a === PROGRAM_NONE ? 1 : -1;
