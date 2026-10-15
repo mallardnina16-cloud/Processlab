@@ -3731,9 +3731,18 @@ const CoachApp = ({ user, onLogout }) => {
   const GROUP_NONE = "Non assignées";
   const clientNameById = Object.fromEntries(clients.map(c => [c.id, c.name]));
   const firstLetterOf = (name) => (name || "").trim().normalize("NFD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase();
+  // Séance non assignée (ex. semaines suivantes pas encore débloquées) : on la range quand même
+  // sous la cliente dont le prénom ouvre son nom ("Pembe · S2 · ...").
+  const normName = (s) => (s || "").trim().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const clientFromWorkoutName = (name) => {
+    const prefix = normName((name || "").split(" · ")[0]);
+    if (!prefix) return null;
+    const c = clients.find(c => { const n = normName(c.name); return n === prefix || n.startsWith(prefix + " "); });
+    return c ? c.name : null;
+  };
   const groupKeyOf = (w) => {
     const names = (assignmentsByWorkout[w.id] || []).map(id => clientNameById[id]).filter(Boolean);
-    if (names.length === 0) return GROUP_NONE;
+    if (names.length === 0) return clientFromWorkoutName(w.name) || GROUP_NONE;
     return new Set(names).size === 1 ? names[0] : GROUP_SHARED;
   };
   const isClientGroup = (key) => key !== GROUP_SHARED && key !== GROUP_NONE;
