@@ -354,16 +354,37 @@ const MEAL_SLOT_OPTIONS = [
 const SEX_OPTIONS = [{ value: "F", label: "Femme" }, { value: "M", label: "Homme" }];
 const NUTRITION_GOAL_OPTIONS = [
   { value: "cut", label: "Perte de poids" },
+  { value: "recomp", label: "Recomposition corporelle" },
   { value: "maintain", label: "Maintien" },
   { value: "bulk", label: "Prise de masse" },
 ];
 const nutritionGoalLabel = v => NUTRITION_GOAL_OPTIONS.find(o => o.value === v)?.label || "—";
-// Objectif de protéines (g/jour) fixé par la coach dans le profil nutritionnel — null si non défini
 // Une ligne entries peut exister sans que la cliente ait rempli son journal : le trigger
 // meals_sync_entries la crée dès qu'un repas est noté (journal_filled = false). Seul le
 // journal général compte comme « rempli ». Colonne absente (ancienne base) = rempli.
 const isJournalFilled = (e) => !!e && e.journal_filled !== false;
+// Objectif de protéines (g/jour) fixé par la coach dans le profil nutritionnel — null si non défini
 const proteinTarget = profile => profile?.protein_target_g > 0 ? profile.protein_target_g : null;
+// Objectif calorique fixé par la coach pour un jour d'entraînement ou un jour off. Un seul des
+// deux renseigné = valable tous les jours. null si aucun objectif.
+const kcalTarget = (profile, isTraining) => {
+  const training = profile?.kcal_target_training > 0 ? profile.kcal_target_training : null;
+  const rest = profile?.kcal_target_rest > 0 ? profile.kcal_target_rest : null;
+  return isTraining ? (training ?? rest) : (rest ?? training);
+};
+// Plancher de lipides (g/jour) fixé par la coach — null si non défini
+const fatFloor = profile => profile?.fat_min_g > 0 ? profile.fat_min_g : null;
+// Jour d'entraînement : séance planifiée, réalisée dans l'appli ou cochée « faite » dans le journal
+const isTrainingDate = (date, { schedule = [], sessionLogs = [], entries = [] } = {}) =>
+  schedule.some(s => s.date === date) || sessionLogs.some(l => l.date === date) || entries.some(e => e.date === date && e.session_status === "done");
+// Repas estimés par l'IA, pas, formules : 10 à 20 % de marge, on n'affiche pas au kcal près
+const round50 = n => Math.round(n / 50) * 50;
+// Moyenne des pesées entre deux dates incluses (null si aucune) : une pesée isolée varie
+// d'un à deux kilos selon l'eau, le cycle ou le transit, la moyenne se lit mieux.
+const avgWeightBetween = (weights = [], from, to) => {
+  const ws = weights.filter(w => w.date >= from && w.date <= to);
+  return ws.length ? ws.reduce((sum, w) => sum + Number(w.value), 0) / ws.length : null;
+};
 const feelings = ["😩", "😔", "😐", "🙂", "🔥"];
 const feelingLabels = ["Très difficile", "Difficile", "Neutre", "Bien", "Excellent"];
 const today = new Date().toISOString().slice(0, 10);
@@ -452,15 +473,12 @@ const calcBMR = ({ sex, weightKg, heightCm, age }) => {
 // ~0.0005 kcal/kg par pas — approximation NEAT standard, indépendante de l'intensité de marche
 const stepsToCalories = (steps, weightKg) => (steps && weightKg) ? Math.round(steps * weightKg * 0.0005) : 0;
 
-const activityCalories = (metValue, weightKg, durationMin) => (metValue && weightKg && durationMin) ? Math.round(metValue * weightKg * (durationMin / 60)) : 0;
+// MET net (MET - 1) : le métabolisme de base de la durée de la séance est déjà compté dans le BMR
+const activityCalories = (metValue, weightKg, durationMin) => (metValue && weightKg && durationMin) ? Math.round(Math.max(0, metValue - 1) * weightKg * (durationMin / 60)) : 0;
 
-// Calories d'activité du jour : la montre (si renseignée) remplace l'estimation MET plutôt que de s'y additionner,
-// pour ne pas compter deux fois la même dépense.
-const daySportCalories = (sessions = []) => {
-  const watch = sessions.find(s => s.source === "watch");
-  if (watch) return watch.calories || 0;
-  return sessions.reduce((sum, s) => sum + (s.calories || 0), 0);
-};
+// Calories d'activité du jour : chaque séance est saisie une seule fois, soit avec la montre,
+// soit estimée (MET) — on les additionne toutes.
+const daySportCalories = (sessions = []) => sessions.reduce((sum, s) => sum + (s.calories || 0), 0);
 
 const calcDailyEnergy = ({ profile, weightKg, steps, activitySessions = [] }) => {
   const age = calcAge(profile?.birth_date);
@@ -471,16 +489,21 @@ const calcDailyEnergy = ({ profile, weightKg, steps, activitySessions = [] }) =>
   return { bmr, neat, sport, tdee: bmr + neat + sport };
 };
 
-// Message neutre selon l'objectif — jamais de jugement, juste un constat factuel
+// Constat neutre selon l'objectif, affiché côté coach uniquement. La dépense est une estimation
+// prudente (sans digestion ni petits mouvements du quotidien) : arrondi à 50 kcal.
+const BALANCE_RANGES = { cut: [-800, -150], recomp: [-350, 100], maintain: [-150, 150], bulk: [100, 600] };
 const energyBalanceMessage = (balance, goal) => {
   if (balance == null) return null;
-  const abs = Math.abs(Math.round(balance));
-  const matches =
-    goal === "cut" ? balance <= -150 :
-    goal === "bulk" ? balance >= 100 && balance <= 600 :
-    Math.abs(balance) <= 150; // maintain
-  const text = abs <= 50 ? "Balance proche de l'équilibre" : balance < 0 ? `Déficit de ${abs} kcal` : `Surplus de ${abs} kcal`;
-  return { text: matches ? `${text} — cohérent avec l'objectif` : text, color: matches ? C.green : C.textMuted };
+  const b = round50(balance);
+  const abs = Math.abs(b);
+  const range = BALANCE_RANGES[goal];
+  const matches = !!range && b >= range[0] && b <= range[1];
+  const tooLow = goal === "cut" && b < BALANCE_RANGES.cut[0];
+  const text = abs === 0 ? "Proche de l'équilibre" : b < 0 ? `Déficit ≈ ${abs} kcal` : `Surplus ≈ ${abs} kcal`;
+  return {
+    text: matches ? `${text} — cohérent avec l'objectif` : tooLow ? `${text} — déficit important` : text,
+    color: matches ? C.green : tooLow ? C.orange : C.textMuted,
+  };
 };
 
 // Les 7 dates (lundi → dimanche, "YYYY-MM-DD") de la semaine ISO contenant `date`
@@ -492,7 +515,7 @@ const isoWeekDates = (date) => {
 // Bilan hebdomadaire d'une cliente — agrège meals/entries/activity_sessions sur les 7 dates
 // données. Les moyennes nutrition se basent sur les jours où au moins un repas a été loggé
 // (pas sur les 7 jours) pour ne pas fausser la moyenne avec des jours à zéro par absence de saisie.
-const calcWeeklySummary = ({ entries = [], meals = [], activitySessions = [], weights = [], profile, weekDates }) => {
+const calcWeeklySummary = ({ entries = [], meals = [], activitySessions = [], weights = [], profile, weekDates, trainingCtx }) => {
   const weekEntries = entries.filter(e => weekDates.includes(e.date));
   const weekMeals = meals.filter(m => weekDates.includes(m.date));
   const weekActivity = activitySessions.filter(a => weekDates.includes(a.date));
@@ -505,13 +528,18 @@ const calcWeeklySummary = ({ entries = [], meals = [], activitySessions = [], we
   weekDates.forEach(d => {
     const entry = weekEntries.find(e => e.date === d);
     const dayMeals = weekMeals.filter(m => m.date === d);
-    if (!entry || dayMeals.length === 0) return;
+    // Journée « repas seulement » : pas et activité inconnus, la dépense serait fausse
+    if (!isJournalFilled(entry) || dayMeals.length === 0) return;
     const weightForDate = [...weights].reverse().find(w => w.date <= d) || weights[0];
     const energy = calcDailyEnergy({ profile, weightKg: weightForDate?.value, steps: entry.steps, activitySessions: weekActivity.filter(a => a.date === d) });
     if (!energy) return;
     balanceSum += dayMeals.reduce((s, m) => s + (m.calories || 0), 0) - energy.tdee;
     balanceDays++;
   });
+
+  // Objectif calorique moyen sur les jours où des repas ont été notés (jours d'entraînement / off)
+  const dayTargets = mealDays.map(d => kcalTarget(profile, isTrainingDate(d, { ...trainingCtx, entries })));
+  const avgKcalTarget = dayTargets.length && dayTargets.every(t => t) ? Math.round(dayTargets.reduce((a, t) => a + t, 0) / dayTargets.length) : null;
 
   const stepsEntries = weekEntries.filter(e => e.steps);
   const avgSteps = stepsEntries.length ? Math.round(stepsEntries.reduce((s, e) => s + e.steps, 0) / stepsEntries.length) : null;
@@ -523,7 +551,8 @@ const calcWeeklySummary = ({ entries = [], meals = [], activitySessions = [], we
     avgCalories: avgOverMealDays("calories"), avgProtein: avgOverMealDays("protein_g"),
     avgCarb: avgOverMealDays("carb_g"), avgFat: avgOverMealDays("fat_g"),
     avgFiber: avgOverMealDays("fiber_g"), avgSugar: avgOverMealDays("sugar_g"),
-    balanceTotal: balanceDays ? Math.round(balanceSum) : null,
+    avgKcalTarget,
+    balanceTotal: balanceDays ? round50(balanceSum) : null,
     balanceAvg: balanceDays ? Math.round(balanceSum / balanceDays) : null,
     avgSteps,
     sessionsCount: weekActivity.length,
@@ -2257,7 +2286,7 @@ const useClientData = (clientId, { isCoach = false } = {}) => {
 
   return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus, upsertWeeklyCheckin };
 };
-const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal }) => {
+const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal, getKcalTarget = () => null }) => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
@@ -2284,8 +2313,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
   const mealsForDate = meals.filter(m => m.date === selectedDate);
   const dayCalories = mealsForDate.reduce((sum, m) => sum + (m.calories || 0), 0);
   const dayProtein = Math.round(mealsForDate.reduce((sum, m) => sum + (m.protein_g || 0), 0));
-  const dailyEnergy = calcDailyEnergy({ profile, weightKg: latestWeightKg, steps: parseInt(steps) || 0, activitySessions: sessionsForDate });
-  const balanceMsg = dailyEnergy && mealsForDate.length > 0 ? energyBalanceMessage(dayCalories - dailyEnergy.tdee, profile?.nutrition_goal) : null;
+  const dayTarget = getKcalTarget(selectedDate);
 
 
   const handleAddActivity = async () => {
@@ -2380,7 +2408,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
     setSaving(false); onBack();
   };
 
-  if (mealsDate) return <MealLogForm meals={meals} profile={profile} clientId={clientId} initialDate={mealsDate} onAddMeal={onAddMeal} onUpdateMeal={onUpdateMeal} onDeleteMeal={onDeleteMeal} onBack={() => { setMealsDate(null); window.scrollTo(0, 0); }} backLabel="← Retour au journal" />;
+  if (mealsDate) return <MealLogForm meals={meals} profile={profile} clientId={clientId} getKcalTarget={getKcalTarget} initialDate={mealsDate} onAddMeal={onAddMeal} onUpdateMeal={onUpdateMeal} onDeleteMeal={onDeleteMeal} onBack={() => { setMealsDate(null); window.scrollTo(0, 0); }} backLabel="← Retour au journal" />;
 
   return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
@@ -2465,14 +2493,6 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
               </div>
             </div>
           )}
-          {dailyEnergy && (
-            <div style={{ marginTop: 14, background: C.pink + "10", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14 }}>
-              <div style={{ fontSize: 11, color: C.pink, fontWeight: 700, marginBottom: 8 }}>⚡ DÉPENSE ESTIMÉE DU JOUR</div>
-              <div style={{ fontSize: 22, fontWeight: 900 }}>{dailyEnergy.tdee.toLocaleString()} kcal</div>
-              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>Métabolisme {dailyEnergy.bmr} · Pas {dailyEnergy.neat} · Activité {dailyEnergy.sport}</div>
-              {balanceMsg && <div style={{ fontSize: 13, fontWeight: 700, color: balanceMsg.color, marginTop: 8 }}>{balanceMsg.text}</div>}
-            </div>
-          )}
         </div>
 
         <div>
@@ -2494,6 +2514,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
 
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
           <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🍽️ Repas du jour</div>
+          {dayTarget && <CalorieProgress value={dayCalories} target={dayTarget.target} training={dayTarget.training} label="Calories du jour" />}
           {proteinTarget(profile) && <ProteinProgress value={dayProtein} target={proteinTarget(profile)} label="Protéines du jour" />}
           {mealsForDate.length > 0 ? (
             <div style={{ background: "#111", borderRadius: 12, padding: 14 }}>
@@ -2556,7 +2577,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
 // Chaque repas est enregistré tout de suite dans la table meals ; le trigger SQL
 // meals_sync_entries en recopie les totaux dans la ligne entries du jour, donc le
 // journal général (et la fiche cliente côté coach) reste synchronisé sans action de plus.
-const MealLogForm = ({ meals = [], profile, clientId, initialDate = today, onAddMeal, onUpdateMeal, onDeleteMeal, onBack, backLabel = "← Retour" }) => {
+const MealLogForm = ({ meals = [], profile, clientId, getKcalTarget = () => null, initialDate = today, onAddMeal, onUpdateMeal, onDeleteMeal, onBack, backLabel = "← Retour" }) => {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [editingMealId, setEditingMealId] = useState(null);
@@ -2571,6 +2592,8 @@ const MealLogForm = ({ meals = [], profile, clientId, initialDate = today, onAdd
   const mealsForDate = meals.filter(m => m.date === selectedDate);
   const dayTotal = key => Math.round(mealsForDate.reduce((sum, m) => sum + (m[key] || 0), 0));
   const target = proteinTarget(profile);
+  const dayTarget = getKcalTarget(selectedDate);
+  const fatMin = fatFloor(profile);
 
   const resetMealForm = () => { setShowAddMeal(false); setEditingMealId(null); setMealText(""); setMealSlot(MEAL_SLOT_OPTIONS[0].value); setMealError(""); setMealPhotoUrl(null); setMealPhotoBase64(null); };
   const startEditMeal = (m) => { setEditingMealId(m.id); setMealSlot(m.meal_slot); setMealText(m.raw_text || ""); setMealPhotoUrl(m.photo_url || null); setMealPhotoBase64(null); setShowAddMeal(true); setMealError(""); };
@@ -2697,11 +2720,13 @@ const MealLogForm = ({ meals = [], profile, clientId, initialDate = today, onAdd
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <Badge color={C.yellow}>{dayTotal("calories")} kcal</Badge>
             <Badge color={C.green}>💪 {dayTotal("protein_g")}g</Badge>
-            <Badge color={C.blue}>🌾 {dayTotal("carb_g")}g</Badge>
-            <Badge color={C.pink}>🥑 {dayTotal("fat_g")}g</Badge>
+            <Badge color={C.blue}>🌾 Glucides {dayTotal("carb_g")}g dont sucres {dayTotal("sugar_g")}g</Badge>
+            <Badge color={C.pink}>🥑 {dayTotal("fat_g")}g{fatMin ? ` (min ${fatMin} g)` : ""}</Badge>
+            <Badge color={C.purple}>🌱 Fibres {dayTotal("fiber_g")}g</Badge>
           </div>
         </div>
       )}
+      {dayTarget && <CalorieProgress value={dayTotal("calories")} target={dayTarget.target} training={dayTarget.training} label="Calories du jour" />}
       <div style={{ marginBottom: 30 }}>
           {target && <ProteinProgress value={dayProtein} target={target} label="Protéines du jour" />}
           {mealsForDate.length > 0 && (
@@ -2731,7 +2756,7 @@ const MealLogForm = ({ meals = [], profile, clientId, initialDate = today, onAdd
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <Badge color={C.yellow}>{Math.round(m.calories)} kcal</Badge>
                     <Badge color={C.green}>💪 {Math.round(m.protein_g)}g</Badge>
-                    <Badge color={C.blue}>🌾 {Math.round(m.carb_g)}g</Badge>
+                    <Badge color={C.blue}>🌾 {Math.round(m.carb_g)}g{m.sugar_g != null ? ` dont sucres ${Math.round(m.sugar_g)}g` : ""}</Badge>
                     <Badge color={C.pink}>🥑 {Math.round(m.fat_g)}g</Badge>
                     {m.confidence < 0.6 && <Badge color={C.orange}>≈ estimation</Badge>}
                   </div>
@@ -2826,6 +2851,29 @@ const PerfCard = ({ log, workout }) => {
   );
 };
 
+// Calories consommées vs objectif fixé par la coach — constat neutre, jamais de jugement.
+// training : true/false pour préciser le type de jour, null pour une moyenne.
+const CalorieProgress = ({ value, target, label, training = null }) => {
+  const v = Math.round(value);
+  const pct = Math.min(100, Math.round((v / target) * 100));
+  const left = target - v;
+  return (
+    <div style={{ background: C.yellow + "10", border: `1px solid ${C.yellow}33`, borderRadius: 12, padding: "10px 14px", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+        <span style={{ fontSize: 11, color: C.yellow, fontWeight: 700 }}>🔥 {label.toUpperCase()}</span>
+        <span style={{ fontSize: 14, fontWeight: 900 }}>{v.toLocaleString()} <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>/ {target.toLocaleString()} kcal</span></span>
+      </div>
+      <div style={{ height: 6, background: "#222", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", background: C.yellow, borderRadius: 3 }} />
+      </div>
+      <div style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>
+        {training === true ? "Jour d'entraînement · " : training === false ? "Jour off · " : ""}
+        {left >= 0 ? `Il reste ${left.toLocaleString()} kcal` : `${(-left).toLocaleString()} kcal au-dessus de l'objectif`}
+      </div>
+    </div>
+  );
+};
+
 // Protéines consommées vs objectif fixé par la coach — constat neutre, jamais de jugement
 const ProteinProgress = ({ value, target, label }) => {
   const pct = Math.min(100, Math.round((value / target) * 100));
@@ -2844,14 +2892,14 @@ const ProteinProgress = ({ value, target, label }) => {
   );
 };
 
-const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = [], meals = [] }) => {
+const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = [], meals = [], showBalance = false }) => {
   const [zoomPhoto, setZoomPhoto] = useState(null);
   const sessionsForDate = activitySessions.filter(s => s.date === entry.date);
   const slotOrder = (slot) => { const i = MEAL_SLOT_OPTIONS.findIndex(o => o.value === slot); return i < 0 ? 99 : i; };
   const mealsForDate = meals.filter(m => m.date === entry.date).sort((a, b) => slotOrder(a.meal_slot) - slotOrder(b.meal_slot));
   const weightForDate = [...weights].reverse().find(w => w.date <= entry.date) || weights[0];
   const dailyEnergy = calcDailyEnergy({ profile, weightKg: weightForDate?.value, steps: entry.steps, activitySessions: sessionsForDate });
-  const balanceMsg = dailyEnergy && entry.calories_total != null ? energyBalanceMessage(entry.calories_total - dailyEnergy.tdee, profile?.nutrition_goal) : null;
+  const balanceMsg = dailyEnergy && entry.calories_total != null && isJournalFilled(entry) ? energyBalanceMessage(entry.calories_total - dailyEnergy.tdee, profile?.nutrition_goal) : null;
   const hasWeightThisWeek = weights.some(w => Math.abs((new Date(w.date) - new Date(entry.date)) / 86400000) <= 7);
   const reliability = calcReliability({
     hasEntry: true,
@@ -2868,13 +2916,13 @@ const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = 
       <span style={{ fontSize: 36 }}>{feelings[(entry.feeling || 3) - 1]}</span>
     </div>
     <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 20, fontWeight: 600 }}>{feelingLabels[(entry.feeling || 3) - 1]}</div>
-    {profile && (
+    {profile && showBalance && (
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.pink + "10", border: `1px solid ${C.pink}33`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 11, color: C.pink, fontWeight: 700, marginBottom: 4 }}>⚡ BALANCE ÉNERGÉTIQUE</div>
           {dailyEnergy ? (
             <>
-              <div style={{ fontSize: 13, color: C.textMuted }}>Dépense estimée : <strong style={{ color: C.white }}>{dailyEnergy.tdee.toLocaleString()} kcal</strong></div>
+              <div style={{ fontSize: 13, color: C.textMuted }}>Dépense estimée : <strong style={{ color: C.white }}>≈ {round50(dailyEnergy.tdee).toLocaleString()} kcal</strong></div>
               {balanceMsg ? <div style={{ fontSize: 14, fontWeight: 700, color: balanceMsg.color, marginTop: 4 }}>{balanceMsg.text}</div> : <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Calories du jour non renseignées</div>}
             </>
           ) : <div style={{ fontSize: 12, color: C.textMuted }}>Poids manquant pour estimer la dépense</div>}
@@ -3211,14 +3259,16 @@ const FourWeekComparison = ({ entries, meals, activitySessions, weights, profile
   );
 };
 
-const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, weeklyCheckins = [], weeklyFocus = [], onSaveFocus, clientName }) => {
+const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, weeklyCheckins = [], weeklyFocus = [], onSaveFocus, clientName, schedule = [], sessionLogs = [] }) => {
   const [offset, setOffset] = useState(0);
   const monday = startOfWeek(new Date());
   monday.setDate(monday.getDate() + offset * 7);
   const weekDates = isoWeekDates(monday);
-  const summary = calcWeeklySummary({ entries, meals, activitySessions, weights, profile, weekDates });
+  const summary = calcWeeklySummary({ entries, meals, activitySessions, weights, profile, weekDates, trainingCtx: { schedule, sessionLogs } });
   const balanceMsg = summary.balanceAvg != null ? energyBalanceMessage(summary.balanceAvg, profile?.nutrition_goal) : null;
   const cyclePhase = calcCyclePhase(profile, weekDates[6]);
+  const weekAvgWeight = avgWeightBetween(weights, weekDates[0], weekDates[6]);
+  const prevAvgWeight = avgWeightBetween(weights, addDays(weekDates[0], -7), addDays(weekDates[0], -1));
 
   return (
     <div>
@@ -3255,9 +3305,17 @@ const WeeklyBilanView = ({ entries, meals, activitySessions, weights, profile, w
                   <div style={{ fontSize: 16, fontWeight: 900, color }}>{val != null ? `${val}${unit}` : "—"}</div>
                   <div style={{ fontSize: 9, color: C.textMuted, marginTop: 2 }}>{label.toUpperCase()}</div>
                   {label === "Protéines" && proteinTarget(profile) && <div style={{ fontSize: 9, color: C.green, marginTop: 2 }}>objectif {proteinTarget(profile)} g</div>}
+                  {label === "Calories" && summary.avgKcalTarget && <div style={{ fontSize: 9, color: C.yellow, marginTop: 2 }}>objectif ≈ {summary.avgKcalTarget}</div>}
+                  {label === "Lipides" && fatFloor(profile) && <div style={{ fontSize: 9, color: C.pink, marginTop: 2 }}>min {fatFloor(profile)} g</div>}
                 </div>
               ))}
             </div>
+          </Card>
+          <Card>
+            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>⚖️ POIDS — MOYENNE DE LA SEMAINE</div>
+            {weekAvgWeight != null ? (
+              <div style={{ fontSize: 22, fontWeight: 900 }}>{weekAvgWeight.toFixed(1)} kg {prevAvgWeight != null && <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 400 }}>({weekAvgWeight - prevAvgWeight > 0 ? "+" : ""}{(weekAvgWeight - prevAvgWeight).toFixed(1)} kg vs semaine précédente)</span>}</div>
+            ) : <div style={{ fontSize: 13, color: C.textMuted }}>Aucune pesée cette semaine.</div>}
           </Card>
           <Card>
             <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>🏃 ACTIVITÉ</div>
@@ -3376,21 +3434,21 @@ const calcWeeklyAchievements = (summary) => {
   return items;
 };
 
-const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile, weeklyFocus = [], weeklyCheckins = [], onSaveCheckin, onBack }) => {
+const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile, weeklyFocus = [], weeklyCheckins = [], onSaveCheckin, onBack, schedule = [], sessionLogs = [] }) => {
   const [offset, setOffset] = useState(-1); // par défaut : la semaine qui vient de se terminer
   const monday = startOfWeek(new Date());
   monday.setDate(monday.getDate() + offset * 7);
   const weekDates = isoWeekDates(monday);
-  const summary = calcWeeklySummary({ entries, meals, activitySessions, weights, profile, weekDates });
-  const balanceMsg = summary.balanceAvg != null ? energyBalanceMessage(summary.balanceAvg, profile?.nutrition_goal) : null;
+  const summary = calcWeeklySummary({ entries, meals, activitySessions, weights, profile, weekDates, trainingCtx: { schedule, sessionLogs } });
   const achievements = calcWeeklyAchievements(summary);
 
   const currentWeekStart = dayKey(startOfWeek(new Date()));
   const focus = weeklyFocus.find(w => w.week_start === currentWeekStart);
 
-  const weightsInWeek = weights.filter(w => weekDates.includes(w.date));
-  const weightBefore = [...weights].reverse().find(w => w.date < weekDates[0]);
-  const weightTrend = weightsInWeek.length > 0 && weightBefore ? (weightsInWeek[weightsInWeek.length - 1].value - weightBefore.value) : null;
+  // Moyenne des pesées de la semaine comparée à celle de la semaine précédente
+  const weekAvgWeight = avgWeightBetween(weights, weekDates[0], weekDates[6]);
+  const prevAvgWeight = avgWeightBetween(weights, addDays(weekDates[0], -7), addDays(weekDates[0], -1));
+  const weightTrend = weekAvgWeight != null && prevAvgWeight != null ? weekAvgWeight - prevAvgWeight : null;
   const cyclePhase = calcCyclePhase(profile, weekDates[6]);
 
   return (
@@ -3410,9 +3468,9 @@ const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile,
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <Card style={{ padding: 14 }}>
-              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>⚖️ BALANCE</div>
-              <div style={{ fontSize: 18, fontWeight: 900 }}>{summary.balanceTotal != null ? `${summary.balanceTotal > 0 ? "+" : ""}${summary.balanceTotal} kcal` : "—"}</div>
-              {balanceMsg && <div style={{ fontSize: 11, color: balanceMsg.color, fontWeight: 700, marginTop: 2 }}>{balanceMsg.text}</div>}
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🔥 CALORIES/JOUR</div>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>{summary.avgCalories != null ? `${summary.avgCalories.toLocaleString()} kcal` : "—"}</div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{summary.avgKcalTarget ? `objectif ≈ ${summary.avgKcalTarget.toLocaleString()} kcal` : "en moyenne"}</div>
             </Card>
             <Card style={{ padding: 14 }}>
               <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>🥗 ALIMENTATION</div>
@@ -3438,7 +3496,7 @@ const ClientWeeklyBilan = ({ entries, meals, activitySessions, weights, profile,
           {weightTrend != null && (
             <Card>
               <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 8 }}>MON ÉVOLUTION</div>
-              <div style={{ fontSize: 20, fontWeight: 900 }}>{weightTrend > 0 ? "+" : ""}{weightTrend.toFixed(1)} kg <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>cette semaine</span></div>
+              <div style={{ fontSize: 20, fontWeight: 900 }}>{weightTrend > 0 ? "+" : ""}{weightTrend.toFixed(1)} kg <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 400 }}>moyenne de la semaine vs semaine précédente</span></div>
               <div style={{ fontSize: 11, color: C.textMuted, marginTop: 8, lineHeight: 1.5 }}>Le poids peut varier naturellement selon ton cycle, ton hydratation, ton alimentation et ton transit — c'est la tendance sur plusieurs semaines qui compte, pas une seule pesée.</div>
             </Card>
           )}
@@ -4079,7 +4137,7 @@ const CoachApp = ({ user, onLogout }) => {
     setMsgText(""); alert("✅ Message envoyé !");
   };
 
-  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} meals={meals} />;
+  if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} meals={meals} showBalance />;
 
   if (buildingWorkout || editingWorkout) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: "'Helvetica Neue', Arial, sans-serif", padding: 20 }}>
@@ -4562,6 +4620,8 @@ const CoachApp = ({ user, onLogout }) => {
                           <span><strong>{profile.height_cm || "—"}</strong> cm</span>
                           <span style={{ color: C.pink, fontWeight: 700 }}>{nutritionGoalLabel(profile.nutrition_goal)}</span>
                           <span style={{ color: C.green }}>💪 <strong>{proteinTarget(profile) ? `${proteinTarget(profile)} g` : "—"}</strong> prot./jour</span>
+                          {(profile.kcal_target_training || profile.kcal_target_rest) && <span style={{ color: C.yellow }}>🔥 <strong>{profile.kcal_target_training || "—"}</strong> entraînement · <strong>{profile.kcal_target_rest || "—"}</strong> off</span>}
+                          {fatFloor(profile) && <span style={{ color: C.pink }}>🥑 min <strong>{fatFloor(profile)} g</strong></span>}
                         </div>
                       ) : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Profil non renseigné — la balance énergétique ne peut pas être calculée pour cette cliente.</p>}
                     </Card>
@@ -4575,7 +4635,7 @@ const CoachApp = ({ user, onLogout }) => {
                   <div>
                     <WeeklyFocusEditor weeklyFocus={weeklyFocus} onSave={upsertWeeklyFocus} />
                     <FourWeekComparison entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyCheckins={weeklyCheckins} />
-                    <WeeklyBilanView entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyCheckins={weeklyCheckins} weeklyFocus={weeklyFocus} onSaveFocus={upsertWeeklyFocus} clientName={client?.name} />
+                    <WeeklyBilanView schedule={schedule} sessionLogs={sessionLogs} entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyCheckins={weeklyCheckins} weeklyFocus={weeklyFocus} onSaveFocus={upsertWeeklyFocus} clientName={client?.name} />
                   </div>
                 )
               )}
@@ -4816,9 +4876,15 @@ const ClientApp = ({ user, onLogout }) => {
   })();
   const lastWeight = weights[weights.length - 1];
   const startWeight = weights[0];
-  const todayActivitySessions = activitySessions.filter(s => s.date === today);
-  const todayEnergy = todayEntry ? calcDailyEnergy({ profile, weightKg: lastWeight?.value, steps: todayEntry.steps, activitySessions: todayActivitySessions }) : null;
-  const todayBalanceMsg = todayEnergy && todayEntry?.calories_total != null ? energyBalanceMessage(todayEntry.calories_total - todayEnergy.tdee, profile?.nutrition_goal) : null;
+  // Objectif calorique du jour fixé par la coach (jour d'entraînement ou jour off) — null si aucun
+  const getKcalTarget = (date) => {
+    const training = isTrainingDate(date, { schedule, sessionLogs, entries });
+    const target = kcalTarget(profile, training);
+    return target ? { target, training } : null;
+  };
+  const todayKcalTarget = getKcalTarget(today);
+  const todayCalories = meals.filter(m => m.date === today).reduce((sum, m) => sum + (m.calories || 0), 0);
+  const weekAvgWeight = avgWeightBetween(weights, addDays(today, -6), today);
 
   const handleSaveJournal = async (payload) => {
     const existingEntry = entries.find(e => e.date === payload.date);
@@ -4859,12 +4925,12 @@ const ClientApp = ({ user, onLogout }) => {
 
   if (screen === "journal") {
     if (!clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
-    return <JournalForm entries={entries} onSave={handleSaveJournal} onBack={() => setScreen("home")} onViewHistory={() => setScreen("history")} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} meals={meals} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} />;
+    return <JournalForm entries={entries} getKcalTarget={getKcalTarget} onSave={handleSaveJournal} onBack={() => setScreen("home")} onViewHistory={() => setScreen("history")} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} meals={meals} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} />;
   }
 
   if (screen === "repas") {
     if (!clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
-    return <MealLogForm meals={meals} profile={profile} clientId={clientId} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} onBack={() => setScreen("home")} />;
+    return <MealLogForm meals={meals} profile={profile} clientId={clientId} getKcalTarget={getKcalTarget} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} onBack={() => setScreen("home")} />;
   }
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
@@ -5069,7 +5135,7 @@ const ClientApp = ({ user, onLogout }) => {
   );
 
   if (screen === "bilan") return (
-    <ClientWeeklyBilan entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyFocus={weeklyFocus} weeklyCheckins={weeklyCheckins} onSaveCheckin={upsertWeeklyCheckin} onBack={() => setScreen("home")} />
+    <ClientWeeklyBilan schedule={schedule} sessionLogs={sessionLogs} entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyFocus={weeklyFocus} weeklyCheckins={weeklyCheckins} onSaveCheckin={upsertWeeklyCheckin} onBack={() => setScreen("home")} />
   );
 
   if (screen === "body") return (
@@ -5079,7 +5145,7 @@ const ClientApp = ({ user, onLogout }) => {
           <Tab tabs={[["weight", "⚖️ Poids"], ["measures", "📏 Mensurations"], ["photos", "📸 Photos"], ["cycle", "🌙 Cycle"]]} active={bodyTab} onChange={setBodyTab} />
           {bodyTab === "weight" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {weights.length > 1 && <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>{[{ l: "DÉPART", v: `${startWeight.value} kg`, c: C.white }, { l: "ACTUEL", v: `${lastWeight.value} kg`, c: C.pink }, { l: "PERDU", v: `-${(startWeight.value - lastWeight.value).toFixed(1)} kg`, c: C.green }].map(s => <Card key={s.l} style={{ padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></Card>)}</div>}
+              {weights.length > 1 && <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>{[{ l: "DÉPART", v: `${startWeight.value} kg`, c: C.white }, { l: "MOY. 7 JOURS", v: weekAvgWeight != null ? `${weekAvgWeight.toFixed(1)} kg` : `${lastWeight.value} kg`, c: C.pink }, { l: "ÉVOLUTION", v: `${(weekAvgWeight ?? lastWeight.value) - startWeight.value > 0 ? "+" : ""}${((weekAvgWeight ?? lastWeight.value) - startWeight.value).toFixed(1)} kg`, c: C.green }].map(s => <Card key={s.l} style={{ padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></Card>)}</div>}
               <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UN PESAGE</div><div style={{ display: "flex", gap: 10 }}><input type="number" step="0.1" placeholder="ex: 63.2 kg" value={newWeight} onChange={e => setNewWeight(e.target.value)} style={{ ...inputSt, flex: 1 }} /><button onClick={handleAddWeight} style={{ background: C.pink, border: "none", borderRadius: 10, padding: "11px 18px", fontWeight: 800, color: C.black, cursor: "pointer" }}>+</button></div></Card>
               {weights.length > 0 && <Card>{[...weights].reverse().map((w, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{formatDate(w.date)}</span><span style={{ fontWeight: 700 }}>{w.value} kg</span></div>)}</Card>}
             </div>
@@ -5209,17 +5275,9 @@ const ClientApp = ({ user, onLogout }) => {
           <span style={{ color: C.cherryLight, fontWeight: 700 }}>→</span>
         </Card>
 
-        {todayEnergy && (
-          <Card style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>⚡ BALANCE ÉNERGÉTIQUE DU JOUR</div>
-            <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 2 }}>{todayEnergy.tdee.toLocaleString()} kcal</div>
-            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>Dépense estimée · métabolisme {todayEnergy.bmr} + pas {todayEnergy.neat} + activité {todayEnergy.sport}</div>
-            {todayBalanceMsg ? <div style={{ fontSize: 14, fontWeight: 700, color: todayBalanceMsg.color }}>{todayBalanceMsg.text}</div> : <div style={{ fontSize: 12, color: C.textMuted }}>Note tes repas du jour pour voir ta balance</div>}
-          </Card>
-        )}
-        {!todayEnergy && profile === null && !loading && (
-          <div style={{ background: C.blue + "10", border: `1px solid ${C.blue}33`, borderRadius: 14, padding: 16, marginBottom: 14, fontSize: 12, color: C.textMuted }}>
-            ⚡ Ton coach n'a pas encore complété ton profil nutritionnel (âge, taille, objectif) — la balance énergétique s'affichera dès que ce sera fait.
+        {todayKcalTarget && !clientInfo.contract_ended && (
+          <div onClick={() => setScreen("repas")} style={{ cursor: "pointer", marginBottom: 2 }}>
+            <CalorieProgress value={todayCalories} target={todayKcalTarget.target} training={todayKcalTarget.training} label="Calories du jour" />
           </div>
         )}
 
@@ -5279,7 +5337,7 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
     monthly_amount: client.monthly_amount || "",
     start_date: client.start_date || "", next_payment: client.next_payment || "",
   });
-  const [profileForm, setProfileForm] = useState({ birth_date: "", sex: "", height_cm: "", nutrition_goal: "", protein_target_g: "" });
+  const [profileForm, setProfileForm] = useState({ birth_date: "", sex: "", height_cm: "", nutrition_goal: "", protein_target_g: "", kcal_target_training: "", kcal_target_rest: "", fat_min_g: "" });
   // false tant que la colonne protein_target_g n'existe pas en base : on ne l'envoie pas
   // dans l'upsert (sinon tout l'enregistrement du profil échouerait), sauf si une valeur est saisie.
   const [hasProteinColumn, setHasProteinColumn] = useState(false);
@@ -5292,7 +5350,7 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
   useEffect(() => {
     supabase.from("client_profiles").select("*").eq("client_id", client.id).maybeSingle().then(({ data }) => {
       if (data) {
-        setProfileForm({ birth_date: data.birth_date || "", sex: data.sex || "", height_cm: data.height_cm || "", nutrition_goal: data.nutrition_goal || "", protein_target_g: data.protein_target_g || "" });
+        setProfileForm({ birth_date: data.birth_date || "", sex: data.sex || "", height_cm: data.height_cm || "", nutrition_goal: data.nutrition_goal || "", protein_target_g: data.protein_target_g || "", kcal_target_training: data.kcal_target_training || "", kcal_target_rest: data.kcal_target_rest || "", fat_min_g: data.fat_min_g || "" });
         setHasProteinColumn("protein_target_g" in data);
       }
       setLoadingProfile(false);
@@ -5310,7 +5368,21 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
       setProfileError("L'objectif de protéines doit être compris entre 1 et 500 g par jour.");
       return;
     }
-    if (profileForm.birth_date || profileForm.sex || profileForm.height_cm || profileForm.nutrition_goal || proteinValue != null || hasProteinColumn) {
+    const toInt = v => v === "" || v == null ? null : Math.round(Number(v));
+    const kcalTraining = toInt(profileForm.kcal_target_training);
+    const kcalRest = toInt(profileForm.kcal_target_rest);
+    const fatMin = toInt(profileForm.fat_min_g);
+    if ([kcalTraining, kcalRest].some(v => v != null && !(v >= 800 && v <= 6000))) {
+      setSaving(false);
+      setProfileError("Les objectifs caloriques doivent être compris entre 800 et 6000 kcal par jour.");
+      return;
+    }
+    if (fatMin != null && !(fatMin >= 1 && fatMin <= 300)) {
+      setSaving(false);
+      setProfileError("Le minimum de lipides doit être compris entre 1 et 300 g par jour.");
+      return;
+    }
+    if (profileForm.birth_date || profileForm.sex || profileForm.height_cm || profileForm.nutrition_goal || proteinValue != null || hasProteinColumn || kcalTraining != null || kcalRest != null || fatMin != null) {
       // Passe par le hook (updateProfile) : il fait l'upsert AVEC .select(), rafraîchit
       // l'état `profile` immédiatement (la carte se met à jour sans quitter la fiche) et
       // remonte l'erreur Postgres exacte en cas d'échec (policy RLS, contrainte manquante…).
@@ -5320,6 +5392,7 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
         height_cm: profileForm.height_cm ? parseFloat(profileForm.height_cm) : null,
         nutrition_goal: profileForm.nutrition_goal || null,
         ...(proteinValue != null || hasProteinColumn ? { protein_target_g: proteinValue } : {}),
+        kcal_target_training: kcalTraining, kcal_target_rest: kcalRest, fat_min_g: fatMin,
       });
       if (!saved) {
         setSaving(false);
@@ -5370,7 +5443,13 @@ const EditClientModal = ({ client, onSave, onUpdateProfile, onDelete, onClose })
                   {NUTRITION_GOAL_OPTIONS.map(o => (<button key={o.value} onClick={() => setProfileForm({ ...profileForm, nutrition_goal: o.value })} style={{ padding: 11, borderRadius: 10, border: `2px solid ${profileForm.nutrition_goal === o.value ? C.pink : C.border}`, background: profileForm.nutrition_goal === o.value ? C.pink + "22" : "#111", color: profileForm.nutrition_goal === o.value ? C.pink : C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", textAlign: "left" }}>{o.label}</button>))}
                 </div>
               </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <Inp label="Kcal jour d'entraînement" type="number" inputMode="numeric" placeholder="ex: 1950" value={profileForm.kcal_target_training} onChange={e => setProfileForm({ ...profileForm, kcal_target_training: e.target.value })} />
+                <Inp label="Kcal jour off" type="number" inputMode="numeric" placeholder="ex: 1600" value={profileForm.kcal_target_rest} onChange={e => setProfileForm({ ...profileForm, kcal_target_rest: e.target.value })} />
+              </div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: -6 }}>Un seul renseigné = valable tous les jours. Laisser vide si aucun objectif.</div>
               <Inp label="Objectif protéines (g/jour)" type="number" inputMode="numeric" min="1" max="500" placeholder="ex: 120 — laisser vide si aucun" value={profileForm.protein_target_g} onChange={e => setProfileForm({ ...profileForm, protein_target_g: e.target.value })} />
+              <Inp label="Minimum de lipides (g/jour)" type="number" inputMode="numeric" min="1" max="300" placeholder="ex: 50 — laisser vide si aucun" value={profileForm.fat_min_g} onChange={e => setProfileForm({ ...profileForm, fat_min_g: e.target.value })} />
             </div>
           )}
           {profileError && <div style={{ marginTop: 12, background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 10, padding: 12, fontSize: 12, color: C.red }}>{profileError}</div>}
