@@ -78,7 +78,7 @@ const calcWeeklySummary = ({ entries = [], meals = [], activitySessions = [], we
   const avgSteps = stepsEntries.length ? Math.round(stepsEntries.reduce((s, e) => s + e.steps, 0) / stepsEntries.length) : null;
 
   return {
-    daysCompleted: weekDates.filter(d => weekEntries.some(e => e.date === d)).length,
+    daysCompleted: weekDates.filter(d => weekEntries.some(e => e.date === d && e.journal_filled !== false)).length,
     totalDays: weekDates.length,
     avgCalories: avgOverMealDays("calories"), avgProtein: avgOverMealDays("protein_g"),
     balanceTotal: balanceDays ? Math.round(balanceSum) : null,
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
     const rows = [];
     for (const c of clients) {
       const [entriesRes, mealsRes, activityRes, weightsRes, profileRes] = await Promise.all([
-        supabase.from("entries").select("date, steps").eq("client_id", c.id).gte("date", weekDates[0]).lte("date", weekDates[6]),
+        supabase.from("entries").select("date, steps, journal_filled").eq("client_id", c.id).gte("date", weekDates[0]).lte("date", weekDates[6]),
         supabase.from("meals").select("date, calories, protein_g, carb_g, fat_g, fiber_g, sugar_g").eq("client_id", c.id).gte("date", weekDates[0]).lte("date", weekDates[6]),
         supabase.from("activity_sessions").select("date, duration_min, calories, source").eq("client_id", c.id).gte("date", weekDates[0]).lte("date", weekDates[6]),
         supabase.from("weights").select("date, value").eq("client_id", c.id).order("date"),

@@ -32,9 +32,10 @@ export default async function handler(req, res) {
     if (clientsErr) throw clientsErr;
     if (!clients?.length) { res.status(200).json({ sent: false, reason: "no active clients" }); return; }
 
-    const { data: entries, error: entriesErr } = await supabase.from("entries").select("client_id").eq("date", yesterdayKey);
+    const { data: entries, error: entriesErr } = await supabase.from("entries").select("client_id, journal_filled").eq("date", yesterdayKey);
     if (entriesErr) throw entriesErr;
-    const filledIds = new Set((entries || []).map(e => e.client_id));
+    // Une ligne créée seulement par la saisie d'un repas (journal_filled = false) ne compte pas.
+    const filledIds = new Set((entries || []).filter(e => e.journal_filled !== false).map(e => e.client_id));
     const missing = clients.filter(c => !filledIds.has(c.id));
 
     if (missing.length === 0) { res.status(200).json({ sent: false, reason: "all filled" }); return; }

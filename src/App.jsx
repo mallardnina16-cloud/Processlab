@@ -359,6 +359,10 @@ const NUTRITION_GOAL_OPTIONS = [
 ];
 const nutritionGoalLabel = v => NUTRITION_GOAL_OPTIONS.find(o => o.value === v)?.label || "—";
 // Objectif de protéines (g/jour) fixé par la coach dans le profil nutritionnel — null si non défini
+// Une ligne entries peut exister sans que la cliente ait rempli son journal : le trigger
+// meals_sync_entries la crée dès qu'un repas est noté (journal_filled = false). Seul le
+// journal général compte comme « rempli ». Colonne absente (ancienne base) = rempli.
+const isJournalFilled = (e) => !!e && e.journal_filled !== false;
 const proteinTarget = profile => profile?.protein_target_g > 0 ? profile.protein_target_g : null;
 const feelings = ["😩", "😔", "😐", "🙂", "🔥"];
 const feelingLabels = ["Très difficile", "Difficile", "Neutre", "Bien", "Excellent"];
@@ -513,7 +517,7 @@ const calcWeeklySummary = ({ entries = [], meals = [], activitySessions = [], we
   const avgSteps = stepsEntries.length ? Math.round(stepsEntries.reduce((s, e) => s + e.steps, 0) / stepsEntries.length) : null;
 
   return {
-    daysCompleted: weekDates.filter(d => weekEntries.some(e => e.date === d)).length,
+    daysCompleted: weekDates.filter(d => weekEntries.some(e => e.date === d && isJournalFilled(e))).length,
     totalDays: weekDates.length,
     mealDaysCount: mealDays.length,
     avgCalories: avgOverMealDays("calories"), avgProtein: avgOverMealDays("protein_g"),
@@ -2157,6 +2161,7 @@ const useClientData = (clientId, { isCoach = false } = {}) => {
   const updateEntry = async (id, patch) => {
     const { data } = await supabase.from("entries").update(patch).eq("id", id).select().single();
     if (data) setEntries(e => e.map(x => x.id === id ? data : x));
+    if (data && patch.journal_filled && data.date === today) await supabase.from("clients").update({ today_done: true }).eq("id", clientId);
     return data;
   };
   const addWeight = async (value) => { const { data } = await supabase.from("weights").insert([{ client_id: clientId, value, date: today }]).select().single(); if (data) setWeights(w => [...w, data]); };
@@ -2301,7 +2306,9 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
   const existing = entries.find(e => e.date === selectedDate) || null;
 
   useEffect(() => {
-    if (existing) {
+    // Ligne créée par un repas seulement : ses valeurs par défaut (😐, 0 pas...) ne viennent
+    // pas de la cliente, on part d'un formulaire vierge.
+    if (isJournalFilled(existing)) {
       setFeeling(existing.feeling || null); setSteps(existing.steps?.toString() || "");
       setPhotos(existing.photos || []);
       setSessionStatus(existing.session_status || null); setSessionNote(existing.session_note || "");
@@ -2364,6 +2371,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
       session_status: sessionStatus || "rest", session_note: sessionNote,
       hydration: parseFloat(hydration) || 0, sleep_hours: parseFloat(sleepHours) || 0,
       nap: nap || false, had_difficulty: hadDifficulty || false, difficulty_note: difficultyNote,
+      journal_filled: true,
     };
     if (!existing) {
       payload.meal_note = ""; payload.calories_total = null; payload.protein_total = null; payload.carb_total = null; payload.fat_total = null;
@@ -2388,7 +2396,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
             const d = new Date(); d.setDate(d.getDate() - i);
             const dateStr = d.toISOString().slice(0, 10);
             const label = i === 0 ? "Aujourd'hui" : i === 1 ? "Hier" : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
-            const hasEntry = entries.find(e => e.date === dateStr);
+            const hasEntry = entries.some(e => e.date === dateStr && isJournalFilled(e));
             return (
               <button key={dateStr} onClick={() => setSelectedDate(dateStr)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${selectedDate === dateStr ? C.pink : C.border}`, background: selectedDate === dateStr ? C.pink + "22" : "#111", color: selectedDate === dateStr ? C.pink : C.textMuted, fontWeight: selectedDate === dateStr ? 700 : 400, fontSize: 13, cursor: "pointer", position: "relative" }}>
                 {label}
@@ -2399,7 +2407,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
         </div>
         <div style={{ marginTop: 8, fontSize: 12, color: C.textMuted }}>
           {new Date(selectedDate).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-          {existing && <span style={{ color: C.green, marginLeft: 8, fontWeight: 700 }}>· Déjà rempli ✅</span>}
+          {isJournalFilled(existing) && <span style={{ color: C.green, marginLeft: 8, fontWeight: 700 }}>· Déjà rempli ✅</span>}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -2536,7 +2544,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
           {hadDifficulty && (<TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />)}
         </div>
         <Btn onClick={handleSave} disabled={saving} style={{ marginBottom: 30 }}>
-          {saving ? "Enregistrement..." : existing ? "💾 Mettre à jour" : "💾 Enregistrer mon journal"}
+          {saving ? "Enregistrement..." : isJournalFilled(existing) ? "💾 Mettre à jour" : "💾 Enregistrer mon journal"}
         </Btn>
       </div>
     </div>
@@ -2961,6 +2969,7 @@ const EntryCard = ({ e, onClick, proteinGoal }) => (
     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
       <span style={{ fontWeight: 700 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {!isJournalFilled(e) && <Badge color={C.orange}>🍽️ Repas seulement</Badge>}
         {onClick && <span style={{ fontSize: 11, color: C.textMuted }}>Voir →</span>}
         <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
       </div>
@@ -3873,12 +3882,13 @@ const CoachApp = ({ user, onLogout }) => {
   const [resettingId, setResettingId] = useState(null);
 
   const [todayEntries, setTodayEntries] = useState([]);
+  const doneTodayRef = useRef(new Set());
   const [notifGranted, setNotifGranted] = useState(typeof Notification !== "undefined" && Notification.permission === "granted");
 
   const client = clients.find(c => c.id === selected);
   const { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading: loadingData, addEntry, updateEntry, toggleWorkout, updateScheduledDate, addPayment, updateProfile, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus } = useClientData(selected, { isCoach: true });
   // Vérifie si une cliente a rempli son journal AUJOURD'HUI (recharge chaque fois que todayEntries change)
-  const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId);
+  const isDoneToday = (clientId) => todayEntries.some(e => e.client_id === clientId && isJournalFilled(e));
   // Exclure les clientes en pause et les contrats terminés des alertes paiement/journal
   const paymentAlerts = clients.filter(c => { const d = daysUntil(c.next_payment); return d >= 0 && d <= 5 && !c.is_paused && !c.contract_ended; });
   const pendingJournalClients = clients.filter(c => !c.is_paused && !c.contract_ended && !isDoneToday(c.id));
@@ -3959,19 +3969,30 @@ const CoachApp = ({ user, onLogout }) => {
 
   // Chargement des entrées du jour + abonnement temps réel
   useEffect(() => {
-    supabase.from("entries").select("client_id, date").eq("date", today).then(({ data }) => setTodayEntries(data || []));
-    const channel = supabase.channel("coach_entries_today")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "entries" }, (payload) => {
-        if (payload.new.date !== today) return;
-        setTodayEntries(prev => prev.some(e => e.client_id === payload.new.client_id) ? prev : [...prev, payload.new]);
-        // Notification navigateur coach
-        const newClient = clients.find(c => c.id === payload.new.client_id);
-        if (newClient) {
-          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-            new Notification(BRAND_NAME + " 📋", { body: `${newClient.name} vient de remplir son journal !`, icon: "/logo.png" });
-          }
+    supabase.from("entries").select("client_id, date, journal_filled").eq("date", today).then(({ data }) => {
+      const rows = data || [];
+      doneTodayRef.current = new Set(rows.filter(isJournalFilled).map(e => e.client_id));
+      setTodayEntries(rows);
+    });
+    // Une ligne du jour peut être créée par un repas (non remplie) puis complétée par le
+    // journal (update) : on écoute les deux, et on ne notifie qu'au passage à « rempli ».
+    const onEntryChange = (payload) => {
+      const row = payload.new;
+      if (!row || row.date !== today) return;
+      setTodayEntries(prev => [...prev.filter(e => e.client_id !== row.client_id), row]);
+      if (!isJournalFilled(row) || doneTodayRef.current.has(row.client_id)) return;
+      doneTodayRef.current.add(row.client_id);
+      // Notification navigateur coach
+      const newClient = clients.find(c => c.id === row.client_id);
+      if (newClient) {
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          new Notification(BRAND_NAME + " 📋", { body: `${newClient.name} vient de remplir son journal !`, icon: "/logo.png" });
         }
-      })
+      }
+    };
+    const channel = supabase.channel("coach_entries_today")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "entries" }, onEntryChange)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "entries" }, onEntryChange)
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [clients]);
@@ -4767,11 +4788,12 @@ const ClientApp = ({ user, onLogout }) => {
   const workoutsById = Object.fromEntries(myWorkouts.map(w => [w.id, w]));
 
   const todayEntry = entries.find(e => e.date === today);
+  const todayJournalDone = isJournalFilled(todayEntry);
   const todaySchedule = schedule.filter(s => s.date === today);
   const todayWorkout = myWorkouts.find(w => w.id === todaySchedule[0]?.workout_id) || myWorkouts.find(w => w.scheduledDate === today);
   const coachMsg = entries.find(e => e.coach_message)?.coach_message;
   const pendingClientTasks = [];
-  if (!todayEntry && !clientInfo?.contract_ended) pendingClientTasks.push({ title: "Compléter ton journal", subtitle: "Un petit check-in vaut souvent mieux que rien", icon: "📝", onClick: () => setScreen("journal"), accent: C.orange });
+  if (!todayJournalDone && !clientInfo?.contract_ended) pendingClientTasks.push({ title: "Compléter ton journal", subtitle: "Un petit check-in vaut souvent mieux que rien", icon: "📝", onClick: () => setScreen("journal"), accent: C.orange });
   if (!clientInfo?.contract_ended && !meals.some(m => m.date === today)) pendingClientTasks.push({ title: "Noter tes repas", subtitle: "Ajoute-les au fil de la journée", icon: "🍽️", onClick: () => setScreen("repas"), accent: C.green });
   if (todayWorkout) pendingClientTasks.push({ title: "Ta séance du jour", subtitle: "Prêt à démarrer ?", icon: "💪", onClick: () => openWorkoutPreview(todayWorkout), accent: C.pink });
   if (!clientInfo?.contract_accepted) pendingClientTasks.push({ title: "Valider ton contrat", subtitle: "Relis les règles et engage-toi", icon: "📄", onClick: () => setScreen("contrat"), accent: C.blue });
@@ -5131,7 +5153,7 @@ const ClientApp = ({ user, onLogout }) => {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
-            {clientInfo.contract_ended ? <Badge color={C.textMuted}>🏁 Contrat terminé</Badge> : todayEntry ? <Badge color={C.green}>✅ Journal OK</Badge> : (
+            {clientInfo.contract_ended ? <Badge color={C.textMuted}>🏁 Contrat terminé</Badge> : todayJournalDone ? <Badge color={C.green}>✅ Journal OK</Badge> : (
               <button onClick={() => setScreen("journal")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
                 <Badge color={C.orange}>📝 À compléter</Badge>
               </button>
