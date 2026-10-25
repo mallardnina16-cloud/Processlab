@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { importProgram } from "../scripts/lib/importProgram.mjs";
 import { makeSupabaseDb } from "../scripts/lib/db-supabase.mjs";
 import { C, F, BRAND_NAME } from "./theme.js";
-import { usePrefersReducedMotion, Logo, Card, Btn, inputSt, Inp, TA, Avatar, Badge, SectionTitle, PremiumHero, Tab, ALPHABET, AlphaIndex, Spinner } from "./ui.jsx";
+import { usePrefersReducedMotion, Logo, Card, Btn, inputSt, Inp, TA, Avatar, Badge, SectionTitle, PremiumHero, Tab, ALPHABET, AlphaIndex, Spinner, Icon, useIsWide, UnderlineTabs, Segmented, Eyebrow, DayPicker, NumField } from "./ui.jsx";
 
 const SUPABASE_URL = "https://wetjzebxuyefzvulujxl.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndldGp6ZWJ4dXllZnp2dWx1anhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTUxMDcsImV4cCI6MjA5MTA3MTEwN30.8DvkApXsMT7hGahVQD5kpAJdD92Tzyo7qC0nwmnGEaU";
@@ -111,33 +111,24 @@ const QuickAction = ({ title, subtitle, icon, onClick, accent = C.pink }) => (
   </button>
 );
 
+// Mise en page commune des écrans de l'espace cliente (calibrés téléphone)
+const SCREEN = { minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: "20px 16px 110px", maxWidth: 560, margin: "0 auto" };
+const H1 = { fontFamily: F.serif, fontWeight: 400, fontSize: 32, letterSpacing: "-0.6px", color: C.heading, margin: "8px 0 16px" };
+const CLIENT_TABS = [["home", "home", "Aujourd'hui"], ["repas", "fork", "Repas"], ["perfs", "dumbbell", "Séances"], ["body", "chart", "Progrès"], ["contrat", "user", "Moi"]];
+// Écrans secondaires rattachés à un onglet (pour garder l'onglet allumé)
+const CLIENT_TAB_OF = { history: "body", bilan: "body", journal: "home" };
 const ClientBottomNav = ({ currentScreen, onNavigate }) => {
-  const items = [
-    { key: "home", label: "Accueil", icon: "🏠" },
-    { key: "journal", label: "Journal", icon: "📝" },
-    { key: "repas", label: "Repas", icon: "🍽️" },
-    { key: "perfs", label: "Séances", icon: "💪" },
-    { key: "body", label: "Suivi", icon: "📏" },
-    { key: "contrat", label: "Contrat", icon: "📄" },
-  ];
+  const active = CLIENT_TAB_OF[currentScreen] || currentScreen;
   return (
-    <div style={{ position: "sticky", bottom: 0, marginTop: 18, borderTop: `1px solid ${C.border}`, background: C.black, padding: "10px 12px 14px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${items.length}, 1fr)`, gap: 6 }}>
-        {items.map(item => {
-          const active = currentScreen === item.key;
-          return (
-            <button key={item.key} onClick={() => onNavigate(item.key)} style={{
-              background: active ? C.pink + "22" : C.field, border: `1px solid ${active ? C.pink : C.border}`,
-              borderRadius: 12, padding: "8px 4px", color: active ? C.white : C.textMuted,
-              fontWeight: 700, fontSize: 11, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-            }}>
-              <span style={{ fontSize: 15 }}>{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+    <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, background: C.card, borderTop: `1px solid ${C.border}`, padding: "8px 4px calc(10px + env(safe-area-inset-bottom, 0px))" }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${CLIENT_TABS.length}, 1fr)`, maxWidth: 560, margin: "0 auto" }}>
+        {CLIENT_TABS.map(([key, icon, label]) => (
+          <button key={key} onClick={() => { onNavigate(key); window.scrollTo(0, 0); }} style={{ background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "4px 0", color: active === key ? C.cherry : C.textMuted, fontWeight: active === key ? 650 : 500, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+            <Icon name={icon} size={23} />{label}
+          </button>
+        ))}
       </div>
-    </div>
+    </nav>
   );
 };
 
@@ -2229,7 +2220,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
     const payload = {
       date: selectedDate, steps: parseInt(steps) || 0, feeling: feeling || 3, photos,
       session_status: sessionStatus || "rest", session_note: sessionNote,
-      hydration: parseFloat(hydration) || 0, sleep_hours: parseFloat(sleepHours) || 0,
+      hydration: parseFloat(String(hydration).replace(",", ".")) || 0, sleep_hours: parseFloat(String(sleepHours).replace(",", ".")) || 0,
       nap: nap || false, had_difficulty: hadDifficulty || false, difficulty_note: difficultyNote,
       journal_filled: true,
     };
@@ -2242,163 +2233,125 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
 
   if (mealsDate) return <MealLogForm meals={meals} profile={profile} clientId={clientId} getKcalTarget={getKcalTarget} initialDate={mealsDate} onAddMeal={onAddMeal} onUpdateMeal={onUpdateMeal} onDeleteMeal={onDeleteMeal} onBack={() => { setMealsDate(null); window.scrollTo(0, 0); }} backLabel="← Retour au journal" />;
 
+  const lbl = { fontSize: 13, color: C.textMuted, fontWeight: 600, marginBottom: 8 };
+  const sectionTitle = { fontSize: 17, fontWeight: 650, color: C.heading, margin: "0 0 14px" };
+  const chip = (on, color = C.cherry) => ({ flex: 1, minHeight: 44, borderRadius: 12, border: `1px solid ${on ? color : C.border}`, background: on ? color + "18" : C.card, color: on ? color : C.textMuted, fontWeight: on ? 650 : 500, fontSize: 14, cursor: "pointer", fontFamily: "inherit" });
   return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, padding: 0 }}>← Retour</button>
-        {onViewHistory && <button onClick={onViewHistory} style={{ background: "none", border: "none", color: C.cherryLight, cursor: "pointer", fontSize: 13, fontWeight: 700, padding: 0 }}>📋 Historique →</button>}
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: "16px 16px 120px", maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, padding: "8px 0", display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}><Icon name="back" size={18} /> Retour</button>
+        {onViewHistory && <button onClick={onViewHistory} style={{ background: "none", border: "none", color: C.cherry, cursor: "pointer", fontSize: 14, fontWeight: 650, padding: "8px 0", fontFamily: "inherit" }}>Historique</button>}
       </div>
-      <h2 style={{ fontSize: 22, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, margin: "0 0 14px" }}>Mon journal 📋</h2>
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>📅 Pour quel jour ?</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {Array.from({ length: 4 }, (_, i) => {
-            const d = new Date(); d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().slice(0, 10);
-            const label = i === 0 ? "Aujourd'hui" : i === 1 ? "Hier" : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
-            const hasEntry = entries.some(e => e.date === dateStr && isJournalFilled(e));
-            return (
-              <button key={dateStr} onClick={() => setSelectedDate(dateStr)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${selectedDate === dateStr ? C.pink : C.border}`, background: selectedDate === dateStr ? C.pink + "22" : C.field, color: selectedDate === dateStr ? C.pink : C.textMuted, fontWeight: selectedDate === dateStr ? 700 : 400, fontSize: 13, cursor: "pointer", position: "relative" }}>
-                {label}
-                {hasEntry && <span style={{ position: "absolute", top: -4, right: -4, width: 8, height: 8, borderRadius: "50%", background: C.green, border: `2px solid ${C.black}` }} />}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ marginTop: 8, fontSize: 12, color: C.textMuted }}>
-          {new Date(selectedDate).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-          {isJournalFilled(existing) && <span style={{ color: C.green, marginLeft: 8, fontWeight: 700 }}>· Déjà rempli ✅</span>}
-        </div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-        <div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Comment tu te sens ?</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {feelings.map((f, i) => (<button key={i} onClick={() => setFeeling(i + 1)} style={{ flex: 1, padding: "12px 0", background: feeling === i + 1 ? C.pink + "22" : C.field, border: `2px solid ${feeling === i + 1 ? C.pink : C.border}`, borderRadius: 12, fontSize: 22, cursor: "pointer" }}>{f}</button>))}
-          </div>
-          {feeling && <div style={{ textAlign: "center", fontSize: 12, color: C.textMuted, marginTop: 6 }}>{feelingLabels[feeling - 1]}</div>}
-        </div>
-        <Inp label="Nombre de pas" type="number" inputMode="numeric" placeholder="ex: 9500" value={steps} onChange={e => setSteps(e.target.value)} />
+      <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 32, letterSpacing: "-0.6px", color: C.heading, margin: "0 0 14px" }}>Mon journal</h1>
+      <DayPicker value={selectedDate} onChange={setSelectedDate} maxBack={3} done={d => entries.some(e => e.date === d && isJournalFilled(e))} />
 
-        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🏃 Activité sportive (hors musculation planifiée)</div>
-          {sessionsForDate.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-              {sessionsForDate.map(s => (
-                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.field, borderRadius: 10, padding: "10px 14px" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{s.activity_name}</div>
-                    <div style={{ fontSize: 11, color: C.textMuted }}>{s.duration_min ? `${s.duration_min} min · ` : ""}{s.calories} kcal{s.source === "watch" ? " · montre" : ""}</div>
-                  </div>
-                  <button onClick={() => onDeleteActivitySession(s.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 28, height: 28, color: C.red, cursor: "pointer" }}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-          {!showAddActivity ? (
-            <button onClick={() => setShowAddActivity(true)} style={{ width: "100%", padding: 13, borderRadius: 12, border: `1px dashed ${C.pink}55`, background: C.field, color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Ajouter une séance</button>
-          ) : (
-            <div style={{ background: C.field, borderRadius: 12, padding: 14 }}>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                {[["met", "Sans montre"], ["watch", "Avec montre"]].map(([v, label]) => (
-                  <button key={v} onClick={() => setActivityMode(v)} style={{ flex: 1, padding: 9, borderRadius: 8, border: `2px solid ${activityMode === v ? C.pink : C.border}`, background: activityMode === v ? C.pink + "22" : "transparent", color: activityMode === v ? C.pink : C.textMuted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{label}</button>
-                ))}
-              </div>
-              {activityMode === "met" ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <select value={activityTypeId} onChange={e => setActivityTypeId(e.target.value)} style={inputSt}>
-                    <option value="">Type de séance...</option>
-                    {activityTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-                  <Inp label="Durée (minutes)" type="number" inputMode="numeric" placeholder="ex: 45" value={activityDuration} onChange={e => setActivityDuration(e.target.value)} />
-                  {!latestWeightKg && <div style={{ fontSize: 12, color: C.orange }}>⚠️ Renseigne d'abord ton poids dans "Mon suivi corps" pour estimer les calories.</div>}
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <Inp label="Calories actives (montre)" type="number" inputMode="numeric" placeholder="ex: 320" value={watchCalories} onChange={e => setWatchCalories(e.target.value)} />
-                  <Inp label="Durée (minutes, optionnel)" type="number" inputMode="numeric" placeholder="ex: 45" value={activityDuration} onChange={e => setActivityDuration(e.target.value)} />
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                <Btn variant="secondary" onClick={() => setShowAddActivity(false)} style={{ flex: 1 }}>Annuler</Btn>
-                <Btn onClick={handleAddActivity} disabled={savingActivity} style={{ flex: 2 }}>{savingActivity ? "..." : "Ajouter"}</Btn>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <Card>
+          <h2 style={sectionTitle}>Comment s'est passée ta journée ?</h2>
+          <div style={lbl}>Ressenti{feeling ? <span style={{ color: C.white }}> · {feelingLabels[feeling - 1]}</span> : null}</div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+            {feelings.map((f, i) => (<button key={i} onClick={() => setFeeling(i + 1)} aria-label={feelingLabels[i]} style={{ flex: 1, height: 50, borderRadius: 12, border: `1px solid ${feeling === i + 1 ? C.cherry : C.border}`, background: feeling === i + 1 ? C.pink + "1c" : C.card, fontSize: 24, cursor: "pointer" }}>{f}</button>))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
+            <NumField label="Pas" value={steps} onChange={e => setSteps(e.target.value.replace(/[^0-9]/g, ""))} placeholder="9 500" />
+            <NumField label="Sommeil" unit="h" decimal value={sleepHours} onChange={e => setSleepHours(e.target.value)} placeholder="7,5" />
+            <NumField label="Eau (hors thé, café)" unit="L" decimal value={hydration} onChange={e => setHydration(e.target.value)} placeholder="1,5" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>Sieste</span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => setNap(true)} style={chip(nap === true)}>Oui</button>
+                <button onClick={() => setNap(false)} style={chip(nap === false)}>Non</button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+          <div style={lbl}>Séance du jour</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {[["done", "Faite", C.green], ["rest", "Repos", C.blue], ["missed", "Pas faite", C.red]].map(([v, label, color]) => (
+              <button key={v} onClick={() => setSessionStatus(v)} style={chip(sessionStatus === v, color)}>{label}</button>
+            ))}
+          </div>
+          {sessionStatus === "done" && <div style={{ marginTop: 12 }}><TA placeholder="Un retour sur ta séance ? (facultatif)" value={sessionNote} onChange={e => setSessionNote(e.target.value)} style={{ minHeight: 64 }} /></div>}
+          <button onClick={() => setHadDifficulty(!hadDifficulty)} style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18, background: "none", border: "none", padding: "6px 0", cursor: "pointer", fontFamily: "inherit", fontSize: 15, color: C.white, textAlign: "left" }}>
+            <span style={{ width: 24, height: 24, borderRadius: 7, border: `1.5px solid ${hadDifficulty ? C.orange : C.muted}`, background: hadDifficulty ? C.orange : C.card, color: C.brandCream, display: "grid", placeItems: "center", fontSize: 14, flexShrink: 0 }}>{hadDifficulty ? "✓" : ""}</span>
+            J'ai rencontré une difficulté
+          </button>
+          {hadDifficulty && <div style={{ marginTop: 8 }}><TA placeholder="Raconte, ta coach la lira : j'ai craqué le soir, fatigue…" value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} style={{ minHeight: 72 }} /></div>}
+        </Card>
 
-        <div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>💧 Hydratation (hors thé & café)</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {["0.5", "1", "1.5", "2", "2.5", "3+"].map(v => { const val = v === "3+" ? "3" : v; return <button key={v} onClick={() => setHydration(val)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${hydration === val ? C.blue : C.border}`, background: hydration === val ? C.blue + "22" : C.field, color: hydration === val ? C.blue : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v} L</button>; })}
+        <Card>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+            <h2 style={{ ...sectionTitle, margin: 0 }}>Mon alimentation</h2>
+            <span style={{ fontSize: 14, color: C.textMuted, fontVariantNumeric: "tabular-nums" }}>{mealsForDate.length} repas</span>
           </div>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>😴 Heures de sommeil</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            {["5", "6", "7", "8", "9", "10+"].map(v => { const val = v === "10+" ? "10" : v; return <button key={v} onClick={() => setSleepHours(val)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${sleepHours === val ? C.purple : C.border}`, background: sleepHours === val ? C.purple + "22" : C.field, color: sleepHours === val ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{v}h</button>; })}
-          </div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Sieste ?</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            {[true, false].map(val => (<button key={String(val)} onClick={() => setNap(val)} style={{ flex: 1, padding: 12, borderRadius: 12, border: `2px solid ${nap === val ? C.purple : C.border}`, background: nap === val ? C.purple + "22" : C.field, color: nap === val ? C.purple : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "😴 Oui" : "❌ Non"}</button>))}
-          </div>
-        </div>
-
-        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>🍽️ Repas du jour</div>
           {dayTarget && <CalorieProgress value={dayCalories} target={dayTarget.target} training={dayTarget.training} label="Calories du jour" />}
           {proteinTarget(profile) && <ProteinProgress value={dayProtein} target={proteinTarget(profile)} label="Protéines du jour" />}
-          {mealsForDate.length > 0 ? (
-            <div style={{ background: C.field, borderRadius: 12, padding: 14 }}>
-              {mealsForDate.map((m, i) => (
-                <div key={m.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "6px 0", borderBottom: i < mealsForDate.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                  <span style={{ minWidth: 0 }}><span style={{ color: C.pink, fontWeight: 700 }}>{MEAL_SLOT_OPTIONS.find(o => o.value === m.meal_slot)?.label || m.meal_slot}</span>{m.raw_text && <span style={{ color: C.textMuted }}> · {m.raw_text}</span>}</span>
-                  <span style={{ color: C.textMuted, flexShrink: 0 }}>{Math.round(m.calories)} kcal</span>
+          {!dayTarget && mealsForDate.length > 0 && <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 12 }}>{Math.round(dayCalories)} kcal · {dayProtein} g de protéines</div>}
+          {mealsForDate.length === 0 && <p style={{ fontSize: 14, color: C.textMuted, margin: "0 0 12px" }}>Aucun repas noté pour ce jour.</p>}
+          <Btn variant="secondary" onClick={() => setMealsDate(selectedDate)} style={{ width: "100%" }}>{mealsForDate.length > 0 ? "Voir et modifier mes repas" : "Noter mes repas"}</Btn>
+        </Card>
+
+        <Card>
+          <h2 style={sectionTitle}>Activités en plus <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 500 }}>(hors séance du programme)</span></h2>
+          {sessionsForDate.map(s => (
+            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 0", borderTop: `1px solid ${C.border}` }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>{s.activity_name}</div>
+                <div style={{ fontSize: 13, color: C.textMuted }}>{s.duration_min ? `${s.duration_min} min · ` : ""}{s.calories} kcal{s.source === "watch" ? " · montre" : ""}</div>
+              </div>
+              <button onClick={() => onDeleteActivitySession(s.id)} aria-label="Supprimer" style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, width: 40, height: 40, color: C.textMuted, cursor: "pointer", flexShrink: 0 }}>✕</button>
+            </div>
+          ))}
+          {!showAddActivity ? (
+            <Btn variant="secondary" onClick={() => setShowAddActivity(true)} style={{ marginTop: sessionsForDate.length ? 8 : 0, width: "100%" }}>+ Ajouter une activité</Btn>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: sessionsForDate.length ? 8 : 0 }}>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[["met", "Sans montre"], ["watch", "Avec montre"]].map(([v, label]) => (<button key={v} onClick={() => setActivityMode(v)} style={chip(activityMode === v)}>{label}</button>))}
+              </div>
+              {activityMode === "met" ? (<>
+                <select value={activityTypeId} onChange={e => setActivityTypeId(e.target.value)} style={inputSt}>
+                  <option value="">Type d'activité…</option>
+                  {activityTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+                <NumField label="Durée" unit="min" value={activityDuration} onChange={e => setActivityDuration(e.target.value)} placeholder="45" />
+                {!latestWeightKg && <div style={{ fontSize: 13, color: C.orange }}>Note d'abord ton poids dans Progrès pour estimer les calories.</div>}
+              </>) : (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <NumField label="Calories actives" unit="kcal" value={watchCalories} onChange={e => setWatchCalories(e.target.value)} placeholder="320" />
+                  <NumField label="Durée" unit="min" value={activityDuration} onChange={e => setActivityDuration(e.target.value)} placeholder="45" />
                 </div>
-              ))}
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-                <Badge color={C.yellow}>{Math.round(dayCalories)} kcal</Badge>
-                <Badge color={C.green}>💪 {dayProtein}g</Badge>
+              )}
+              <div style={{ display: "flex", gap: 10 }}>
+                <Btn variant="secondary" onClick={() => setShowAddActivity(false)} style={{ flex: 1 }}>Annuler</Btn>
+                <Btn onClick={handleAddActivity} disabled={savingActivity} style={{ flex: 2 }}>{savingActivity ? "…" : "Ajouter"}</Btn>
               </div>
             </div>
-          ) : (
-            <div style={{ fontSize: 13, color: C.textMuted }}>Aucun repas noté pour ce jour.</div>
           )}
-          <button onClick={() => setMealsDate(selectedDate)} style={{ width: "100%", marginTop: 12, padding: 13, borderRadius: 12, border: `1px dashed ${C.pink}55`, background: C.field, color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{mealsForDate.length > 0 ? "✏️ Modifier mes repas →" : "+ Noter mes repas →"}</button>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: C.field, border: `1px dashed ${C.pink}55`, borderRadius: 10, cursor: "pointer", marginTop: 14 }}>
-            <span style={{ fontSize: 20 }}>📷</span>
-            <div><div style={{ fontSize: 13, color: C.white, fontWeight: 600 }}>Photos supplémentaires (optionnel)</div><div style={{ fontSize: 11, color: C.textMuted }}>Non analysées — pour une photo de repas analysée, passe par tes repas ci-dessus</div></div>
+        </Card>
+
+        <Card style={{ padding: 14 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, background: C.field, display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>📷</span>
+            <span style={{ flex: 1, fontSize: 15 }}>Ajouter des photos <span style={{ display: "block", fontSize: 13, color: C.textMuted }}>Facultatif · pour ta coach</span></span>
             <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handlePhoto} />
           </label>
           {photos.length > 0 && (
-            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               {photos.map((p, i) => (
                 <div key={i} style={{ position: "relative" }}>
-                  <img src={p} alt="" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 10 }} />
-                  <button onClick={() => setPhotos(photos.filter((_, j) => j !== i))} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, color: "white", fontSize: 10, cursor: "pointer" }}>✕</button>
+                  <img src={p} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10 }} />
+                  <button onClick={() => setPhotos(photos.filter((_, j) => j !== i))} aria-label="Retirer la photo" style={{ position: "absolute", top: -6, right: -6, background: C.white, border: "none", borderRadius: "50%", width: 22, height: 22, color: C.brandCream, fontSize: 11, cursor: "pointer" }}>✕</button>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
+      </div>
 
-        <div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>Séance du jour</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {SESSION_OPTIONS.map(opt => (<button key={opt.value} onClick={() => setSessionStatus(opt.value)} style={{ padding: 13, borderRadius: 12, border: `2px solid ${sessionStatus === opt.value ? opt.color : C.border}`, background: sessionStatus === opt.value ? opt.color + "22" : C.field, color: sessionStatus === opt.value ? opt.color : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer", textAlign: "left" }}>{opt.label}</button>))}
-          </div>
-          {sessionStatus === "done" && (<div style={{ marginTop: 12 }}><TA label="Note (optionnel)" placeholder="Comment ça s'est passé ?" value={sessionNote} onChange={e => setSessionNote(e.target.value)} /></div>)}
+      <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", background: C.black + "f2", borderTop: `1px solid ${C.border}`, zIndex: 40 }}>
+        <div style={{ maxWidth: 528, margin: "0 auto" }}>
+          <Btn onClick={handleSave} disabled={saving} style={{ width: "100%" }}>{saving ? "Enregistrement…" : isJournalFilled(existing) ? "Mettre à jour mon journal" : "Enregistrer mon journal"}</Btn>
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>⚠️ As-tu rencontré une difficulté ?</div>
-          <div style={{ display: "flex", gap: 10, marginBottom: hadDifficulty ? 12 : 0 }}>
-            {[true, false].map(val => (<button key={String(val)} onClick={() => setHadDifficulty(val)} style={{ flex: 1, padding: 13, borderRadius: 12, border: `2px solid ${hadDifficulty === val ? (val ? C.orange : C.green) : C.border}`, background: hadDifficulty === val ? (val ? C.orange + "22" : C.green + "22") : C.field, color: hadDifficulty === val ? (val ? C.orange : C.green) : C.textMuted, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>{val ? "⚠️ Oui" : "✅ Non"}</button>))}
-          </div>
-          {hadDifficulty && (<TA label="Décris la difficulté" placeholder="Ex: j'ai craqué le soir..." value={difficultyNote} onChange={e => setDifficultyNote(e.target.value)} />)}
-        </div>
-        <Btn onClick={handleSave} disabled={saving} style={{ marginBottom: 30 }}>
-          {saving ? "Enregistrement..." : isJournalFilled(existing) ? "💾 Mettre à jour" : "💾 Enregistrer mon journal"}
-        </Btn>
       </div>
     </div>
   );
@@ -2409,7 +2362,7 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
 // Chaque repas est enregistré tout de suite dans la table meals ; le trigger SQL
 // meals_sync_entries en recopie les totaux dans la ligne entries du jour, donc le
 // journal général (et la fiche cliente côté coach) reste synchronisé sans action de plus.
-const MealLogForm = ({ meals = [], profile, clientId, getKcalTarget = () => null, initialDate = today, onAddMeal, onUpdateMeal, onDeleteMeal, onBack, backLabel = "← Retour" }) => {
+const MealLogForm = ({ meals = [], profile, clientId, getKcalTarget = () => null, initialDate = today, onAddMeal, onUpdateMeal, onDeleteMeal, onBack, backLabel = "Retour", bottomNav = null }) => {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [editingMealId, setEditingMealId] = useState(null);
@@ -2420,6 +2373,9 @@ const MealLogForm = ({ meals = [], profile, clientId, getKcalTarget = () => null
   const [uploadingMealPhoto, setUploadingMealPhoto] = useState(false);
   const [analyzingMeal, setAnalyzingMeal] = useState(false);
   const [mealError, setMealError] = useState("");
+  // Résultat de l'analyse IA, montré à la cliente avant l'enregistrement
+  const [pending, setPending] = useState(null);
+  const [savingMeal, setSavingMeal] = useState(false);
 
   const mealsForDate = meals.filter(m => m.date === selectedDate);
   const dayTotal = key => Math.round(mealsForDate.reduce((sum, m) => sum + (m[key] || 0), 0));
@@ -2427,8 +2383,10 @@ const MealLogForm = ({ meals = [], profile, clientId, getKcalTarget = () => null
   const dayTarget = getKcalTarget(selectedDate);
   const fatMin = fatFloor(profile);
 
-  const resetMealForm = () => { setShowAddMeal(false); setEditingMealId(null); setMealText(""); setMealSlot(MEAL_SLOT_OPTIONS[0].value); setMealError(""); setMealPhotoUrl(null); setMealPhotoBase64(null); };
-  const startEditMeal = (m) => { setEditingMealId(m.id); setMealSlot(m.meal_slot); setMealText(m.raw_text || ""); setMealPhotoUrl(m.photo_url || null); setMealPhotoBase64(null); setShowAddMeal(true); setMealError(""); };
+  const resetMealForm = () => { setShowAddMeal(false); setEditingMealId(null); setMealText(""); setMealSlot(MEAL_SLOT_OPTIONS[0].value); setMealError(""); setMealPhotoUrl(null); setMealPhotoBase64(null); setPending(null); };
+  const startAddMeal = (slot) => { resetMealForm(); setMealSlot(slot); setShowAddMeal(true); };
+  // Un repas déjà noté s'ouvre avec son détail (aliments repérés par l'IA) : modifiable ou supprimable
+  const startEditMeal = (m) => { setEditingMealId(m.id); setMealSlot(m.meal_slot); setMealText(m.raw_text || ""); setMealPhotoUrl(m.photo_url || null); setMealPhotoBase64(null); setShowAddMeal(true); setMealError(""); setPending({ ...m, saved: true }); };
 
   // reject() est essentiel ici : sans elle, la moindre erreur (format image non décodable,
   // échec du storage...) laisse la promesse en attente pour toujours, avec le bouton
@@ -2507,125 +2465,134 @@ const MealLogForm = ({ meals = [], profile, clientId, getKcalTarget = () => null
     const photoBase64 = mealPhotoBase64 || (mealPhotoUrl ? await fetchAsBase64(mealPhotoUrl) : null);
     const { data, error } = await analyzeMeal({ text: mealText.trim(), photoBase64 });
     if (error) { setMealError(error); setAnalyzingMeal(false); return; }
-    const payload = {
+    setPending({
       date: selectedDate, meal_slot: mealSlot, raw_text: mealText.trim(), source: mealPhotoUrl ? "photo" : "text",
       photo_url: mealPhotoUrl || null,
       items: data.items || [], calories: data.calories || 0, protein_g: data.protein_g || 0,
       carb_g: data.carb_g || 0, fat_g: data.fat_g || 0, fiber_g: data.fiber_g || 0, sugar_g: data.sugar_g || 0,
       confidence: data.confidence ?? 0,
-    };
+    });
+    setAnalyzingMeal(false);
+  };
+  const handleSaveMeal = async () => {
+    if (!pending) return;
+    setSavingMeal(true);
+    const { saved, id, client_id, created_at, updated_at, ...payload } = pending;
     if (editingMealId) await onUpdateMeal(editingMealId, payload);
     else await onAddMeal(payload);
-    setAnalyzingMeal(false); resetMealForm();
+    setSavingMeal(false); resetMealForm();
   };
 
   useEffect(() => { resetMealForm(); }, [selectedDate]);
 
+  const SLOTS = ["petit-déjeuner", "déjeuner", "collation", "dîner"];
+  const slotLabel = v => (MEAL_SLOT_OPTIONS.find(o => o.value === v)?.label || v).replace(/^\S+\s/, "");
+  const num = { fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", textAlign: "right" };
+  const macroRow = (label, value, goal, unit, pct, sub) => (<>
+    <span style={{ fontSize: sub ? 14 : 15, color: sub ? C.textMuted : C.white, paddingLeft: sub ? 12 : 0 }}>{label}</span>
+    <span style={{ height: 5, borderRadius: 3, background: pct != null ? C.track : "transparent", overflow: "hidden" }}>{pct != null && <i style={{ display: "block", height: "100%", width: `${Math.min(100, pct)}%`, background: C.green }} />}</span>
+    <span style={{ ...num, fontSize: sub ? 14 : 15, color: C.textMuted }}><b style={{ color: sub ? C.textMuted : C.white, fontWeight: sub ? 600 : 650 }}>{value}</b>{goal ? ` / ${goal}` : ""} {unit}</span>
+  </>);
   return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, padding: 0, marginBottom: 18 }}>{backLabel}</button>
-      <h2 style={{ fontSize: 22, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, margin: "0 0 6px" }}>Mon journal alimentaire 🍽️</h2>
-      <p style={{ color: C.textMuted, fontSize: 13, margin: "0 0 18px" }}>Chaque repas est enregistré dès que tu l'ajoutes et apparaît automatiquement dans ton journal du jour.</p>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>📅 Pour quel jour ?</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {Array.from({ length: 4 }, (_, i) => {
-            const d = new Date(); d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().slice(0, 10);
-            const label = i === 0 ? "Aujourd'hui" : i === 1 ? "Hier" : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" });
-            const hasMeals = meals.some(m => m.date === dateStr);
-            return (
-              <button key={dateStr} onClick={() => setSelectedDate(dateStr)} style={{ padding: "10px 16px", borderRadius: 12, border: `2px solid ${selectedDate === dateStr ? C.pink : C.border}`, background: selectedDate === dateStr ? C.pink + "22" : C.field, color: selectedDate === dateStr ? C.pink : C.textMuted, fontWeight: selectedDate === dateStr ? 700 : 400, fontSize: 13, cursor: "pointer", position: "relative" }}>
-                {label}
-                {hasMeals && <span style={{ position: "absolute", top: -4, right: -4, width: 8, height: 8, borderRadius: "50%", background: C.green, border: `2px solid ${C.black}` }} />}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ marginTop: 8, fontSize: 12, color: C.textMuted }}>
-          {new Date(selectedDate).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-        </div>
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: "16px 16px 120px", maxWidth: 560, margin: "0 auto" }}>
+      {!bottomNav && <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, padding: "8px 0", marginBottom: 4, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}><Icon name="back" size={18} /> {backLabel}</button>}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, margin: "4px 0 14px" }}>
+        <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 32, letterSpacing: "-0.6px", color: C.heading, margin: 0 }}>Mes repas</h1>
+        {dayTarget && <Badge color={dayTarget.training ? C.pink : C.textMuted}>{dayTarget.training ? "Jour d'entraînement" : "Jour off"}</Badge>}
       </div>
-      {mealsForDate.length > 0 && (
-        <div style={{ background: C.field, borderRadius: 12, padding: 14, marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>Total du jour</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <Badge color={C.yellow}>{dayTotal("calories")} kcal</Badge>
-            <Badge color={C.green}>💪 {dayTotal("protein_g")}g</Badge>
-            <Badge color={C.blue}>🌾 Glucides {dayTotal("carb_g")}g dont sucres {dayTotal("sugar_g")}g</Badge>
-            <Badge color={C.pink}>🥑 {dayTotal("fat_g")}g{fatMin ? ` (min ${fatMin} g)` : ""}</Badge>
-            <Badge color={C.purple}>🌱 Fibres {dayTotal("fiber_g")}g</Badge>
+      <DayPicker value={selectedDate} onChange={setSelectedDate} maxBack={3} />
+
+      <Card style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <Eyebrow>Calories</Eyebrow>
+          <span style={{ ...num, color: C.textMuted, fontSize: 15 }}><b style={{ color: C.white, fontSize: 22, fontWeight: 650 }}>{dayTotal("calories").toLocaleString()}</b>{dayTarget ? ` / ${dayTarget.target.toLocaleString()}` : ""} kcal</span>
+        </div>
+        {dayTarget && (<>
+          <div style={{ height: 6, borderRadius: 3, background: C.track, overflow: "hidden", margin: "10px 0 6px" }}><i style={{ display: "block", height: "100%", width: `${Math.min(100, dayTotal("calories") / dayTarget.target * 100)}%`, background: C.cherry }} /></div>
+          <div style={{ fontSize: 13, color: C.textMuted }}>{dayTarget.target - dayTotal("calories") >= 0 ? `Il reste ${(dayTarget.target - dayTotal("calories")).toLocaleString()} kcal` : `${(dayTotal("calories") - dayTarget.target).toLocaleString()} kcal au-dessus de l'objectif`}</div>
+        </>)}
+        <div style={{ display: "grid", gridTemplateColumns: "92px 1fr 112px", columnGap: 12, rowGap: 10, alignItems: "center", marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+          {macroRow("Protéines", dayTotal("protein_g"), target, "g", target ? dayTotal("protein_g") / target * 100 : null)}
+          {macroRow("Lipides", dayTotal("fat_g"), fatMin, fatMin ? "g min." : "g", fatMin ? dayTotal("fat_g") / fatMin * 100 : null)}
+          {macroRow("Glucides", dayTotal("carb_g"), null, "g", null)}
+          {macroRow("dont sucres", dayTotal("sugar_g"), null, "g", null, true)}
+          {macroRow("Fibres", dayTotal("fiber_g"), null, "g", null)}
+        </div>
+      </Card>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {SLOTS.map(slot => {
+          const items = mealsForDate.filter(m => m.meal_slot === slot);
+          const kcal = Math.round(items.reduce((sum, m) => sum + (m.calories || 0), 0));
+          return (
+            <div key={slot} style={{ background: items.length ? C.card : "transparent", border: `1px ${items.length ? "solid" : "dashed"} ${items.length ? C.border : C.muted + "88"}`, borderRadius: 16, padding: "12px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 30 }}>
+                <span style={{ fontWeight: 650, fontSize: 16, color: C.heading }}>{slotLabel(slot)}</span>
+                {items.length ? <span style={{ ...num, fontWeight: 650 }}>{kcal} kcal</span> : <button onClick={() => startAddMeal(slot)} style={{ background: "none", border: "none", color: C.cherry, fontWeight: 650, fontSize: 15, cursor: "pointer", padding: "6px 0", fontFamily: "inherit" }}>+ Ajouter</button>}
+              </div>
+              {items.map(m => (
+                <button key={m.id} onClick={() => startEditMeal(m)} style={{ width: "100%", display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0 2px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 15, color: C.textMuted, textAlign: "left" }}>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.photo_url && !m.raw_text ? "📷 Photo" : m.raw_text || "Repas"}</span>
+                  <span style={{ ...num, minWidth: 48 }}>{Math.round(m.calories)}</span>
+                </button>
+              ))}
+              {items.length > 0 && <button onClick={() => startAddMeal(slot)} style={{ background: "none", border: "none", color: C.cherry, fontWeight: 600, fontSize: 14, cursor: "pointer", padding: "8px 0 0", fontFamily: "inherit" }}>+ Ajouter</button>}
+            </div>
+          );
+        })}
+      </div>
+
+      {showAddMeal && (
+        <div onClick={() => !analyzingMeal && !savingMeal && resetMealForm()} style={{ position: "fixed", inset: 0, background: C.overlay, zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: C.card, width: "100%", maxWidth: 560, maxHeight: "92vh", overflowY: "auto", borderRadius: "22px 22px 0 0", padding: "10px 18px calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ width: 40, height: 5, borderRadius: 3, background: C.border, alignSelf: "center" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 26, color: C.heading, margin: 0 }}>{slotLabel(mealSlot)}</h2>
+              <button onClick={resetMealForm} aria-label="Fermer" style={{ background: "none", border: "none", fontSize: 20, color: C.textMuted, cursor: "pointer", width: 40, height: 40 }}>✕</button>
+            </div>
+            <Segmented options={SLOTS.map(v => [v, slotLabel(v).replace("Petit-déjeuner", "Petit-déj.")])} active={mealSlot} onChange={v => { setMealSlot(v); if (pending) setPending({ ...pending, meal_slot: v, saved: false }); }} />
+            <TA placeholder="Ce que tu as mangé, avec les quantités si tu les connais. Ex : saumon 150 g, patate douce, salade avec 1 c. à s. d'huile d'olive" value={mealText} onChange={e => { setMealText(e.target.value); if (pending) setPending(null); }} style={{ minHeight: 84, marginTop: -6 }} />
+            {mealPhotoUrl ? (
+              <div style={{ position: "relative", alignSelf: "flex-start" }}>
+                <img src={mealPhotoUrl} alt="" style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 12 }} />
+                <button onClick={() => { setMealPhotoUrl(null); setMealPhotoBase64(null); setPending(null); }} aria-label="Retirer la photo" style={{ position: "absolute", top: -8, right: -8, background: C.white, border: "none", borderRadius: "50%", width: 24, height: 24, color: C.brandCream, fontSize: 11, cursor: "pointer" }}>✕</button>
+              </div>
+            ) : (
+              <label style={{ border: `1px dashed ${C.muted}`, borderRadius: 12, padding: 12, textAlign: "center", fontSize: 15, color: C.cherry, fontWeight: 600, cursor: uploadingMealPhoto ? "wait" : "pointer" }}>
+                {uploadingMealPhoto ? "Envoi de la photo…" : "📷 Ajouter une photo"}
+                <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploadingMealPhoto} onChange={e => { setPending(null); handleMealPhoto(e); }} />
+              </label>
+            )}
+            {mealError && <div style={{ fontSize: 14, color: C.red }}>{mealError}</div>}
+            {pending && (
+              <div style={{ background: C.field, borderRadius: 14, padding: "12px 14px" }}>
+                <Eyebrow style={{ marginBottom: 8 }}>{pending.saved ? "Détail du repas" : "Estimé par l'IA · vérifie avant d'enregistrer"}</Eyebrow>
+                {(pending.items || []).map((it, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 15, padding: "4px 0" }}>
+                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.name}{it.quantity ? <span style={{ color: C.textMuted }}> · {it.quantity}</span> : null}</span>
+                    <span style={{ ...num, color: C.textMuted }}>{Math.round(it.calories)}</span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 650, fontSize: 15, borderTop: `1px solid ${C.border}`, marginTop: 6, paddingTop: 8 }}>
+                  <span>Total</span><span style={num}>{Math.round(pending.calories)} kcal</span>
+                </div>
+                <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Protéines {Math.round(pending.protein_g)} g · glucides {Math.round(pending.carb_g)} g dont sucres {Math.round(pending.sugar_g || 0)} g · lipides {Math.round(pending.fat_g)} g{pending.confidence < 0.6 ? " · estimation approximative" : ""}</div>
+              </div>
+            )}
+            {!pending ? (
+              <Btn onClick={handleSubmitMeal} disabled={analyzingMeal || uploadingMealPhoto || (!mealText.trim() && !mealPhotoUrl)}>{analyzingMeal ? "Analyse en cours…" : "Analyser"}</Btn>
+            ) : pending.saved ? (
+              <div style={{ display: "flex", gap: 10 }}>
+                <Btn variant="danger" onClick={async () => { await onDeleteMeal(editingMealId); resetMealForm(); }} style={{ flex: 1 }}>Supprimer</Btn>
+                <Btn variant="secondary" onClick={() => setPending(null)} style={{ flex: 1 }}>Modifier</Btn>
+              </div>
+            ) : (
+              <Btn onClick={handleSaveMeal} disabled={savingMeal}>{savingMeal ? "Enregistrement…" : `Enregistrer ${mealSlot === "dîner" ? "le dîner" : mealSlot === "collation" ? "la collation" : mealSlot === "déjeuner" ? "le déjeuner" : "le petit-déjeuner"}`}</Btn>
+            )}
           </div>
         </div>
       )}
-      {dayTarget && <CalorieProgress value={dayTotal("calories")} target={dayTarget.target} training={dayTarget.training} label="Calories du jour" />}
-      <div style={{ marginBottom: 30 }}>
-          {target && <ProteinProgress value={dayProtein} target={target} label="Protéines du jour" />}
-          {mealsForDate.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-              {mealsForDate.map(m => (
-                <div key={m.id} style={{ background: C.field, borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 6 }}>
-                    <div style={{ fontSize: 12, color: C.pink, fontWeight: 700 }}>{MEAL_SLOT_OPTIONS.find(o => o.value === m.meal_slot)?.label || m.meal_slot}</div>
-                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                      <button onClick={() => startEditMeal(m)} style={{ background: C.track, border: "none", borderRadius: 6, padding: "4px 9px", color: C.textMuted, fontSize: 11, cursor: "pointer" }}>✏️ Modifier</button>
-                      <button onClick={() => onDeleteMeal(m.id)} style={{ background: C.red + "22", border: "none", borderRadius: 6, width: 26, height: 26, color: C.red, cursor: "pointer" }}>✕</button>
-                    </div>
-                  </div>
-                  {m.photo_url && <img src={m.photo_url} alt="" style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, marginBottom: 8 }} />}
-                  {m.raw_text && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}>{m.raw_text}</div>}
-                  {m.items && m.items.length > 0 && (
-                    <div style={{ background: C.field2, borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 4 }}>🔍 REPÉRÉ PAR L'IA</div>
-                      {m.items.map((it, i) => (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12, padding: "3px 0", borderBottom: i < m.items.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                          <span style={{ color: C.white }}>{it.name} <span style={{ color: C.textMuted }}>· {it.quantity}</span></span>
-                          <span style={{ color: C.textMuted, flexShrink: 0 }}>{Math.round(it.calories)} kcal</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <Badge color={C.yellow}>{Math.round(m.calories)} kcal</Badge>
-                    <Badge color={C.green}>💪 {Math.round(m.protein_g)}g</Badge>
-                    <Badge color={C.blue}>🌾 {Math.round(m.carb_g)}g{m.sugar_g != null ? ` dont sucres ${Math.round(m.sugar_g)}g` : ""}</Badge>
-                    <Badge color={C.pink}>🥑 {Math.round(m.fat_g)}g</Badge>
-                    {m.confidence < 0.6 && <Badge color={C.orange}>≈ estimation</Badge>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {!showAddMeal ? (
-            <button onClick={() => setShowAddMeal(true)} style={{ width: "100%", padding: 13, borderRadius: 12, border: `1px dashed ${C.pink}55`, background: C.field, color: C.pink, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Ajouter un repas</button>
-          ) : (
-            <div style={{ background: C.field, borderRadius: 12, padding: 14 }}>
-              <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-                {MEAL_SLOT_OPTIONS.map(o => (
-                  <button key={o.value} onClick={() => setMealSlot(o.value)} style={{ padding: "7px 12px", borderRadius: 8, border: `2px solid ${mealSlot === o.value ? C.pink : C.border}`, background: mealSlot === o.value ? C.pink + "22" : "transparent", color: mealSlot === o.value ? C.pink : C.textMuted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{o.label}</button>
-                ))}
-              </div>
-              <TA placeholder="Décris ce que tu as mangé, le plus précisément possible si tu as pesé, sinon une estimation suffit (facultatif si tu ajoutes une photo)..." value={mealText} onChange={e => setMealText(e.target.value)} style={{ marginBottom: 12 }} />
-              {mealPhotoUrl ? (
-                <div style={{ position: "relative", marginBottom: 12, display: "inline-block" }}>
-                  <img src={mealPhotoUrl} alt="" style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 10 }} />
-                  <button onClick={() => { setMealPhotoUrl(null); setMealPhotoBase64(null); }} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 20, height: 20, color: "white", fontSize: 11, cursor: "pointer" }}>✕</button>
-                </div>
-              ) : (
-                <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: C.field2, border: `1px dashed ${C.border}`, borderRadius: 10, cursor: uploadingMealPhoto ? "wait" : "pointer", marginBottom: 12 }}>
-                  <span style={{ fontSize: 18 }}>📷</span>
-                  <span style={{ fontSize: 13, color: C.textMuted }}>{uploadingMealPhoto ? "Envoi de la photo..." : "Ajouter une photo (au lieu du texte ou en plus)"}</span>
-                  <input type="file" accept="image/*" style={{ display: "none" }} disabled={uploadingMealPhoto} onChange={handleMealPhoto} />
-                </label>
-              )}
-              {mealError && <div style={{ fontSize: 12, color: C.red, marginBottom: 10 }}>{mealError}</div>}
-              <div style={{ display: "flex", gap: 10 }}>
-                <Btn variant="secondary" onClick={resetMealForm} style={{ flex: 1 }} disabled={analyzingMeal}>Annuler</Btn>
-                <Btn onClick={handleSubmitMeal} disabled={analyzingMeal || uploadingMealPhoto || (!mealText.trim() && !mealPhotoUrl)} style={{ flex: 2 }}>{analyzingMeal ? "Analyse en cours..." : editingMealId ? "Ré-analyser" : "Analyser"}</Btn>
-              </div>
-            </div>
-          )}
-      </div>
+      {bottomNav}
     </div>
   );
 };
@@ -2844,34 +2811,45 @@ const EntryDetail = ({ entry, onBack, profile, weights = [], activitySessions = 
   );
 };
 
-const EntryCard = ({ e, onClick, proteinGoal }) => (
-  <Card onClick={onClick} style={{ cursor: onClick ? "pointer" : "default" }}>
-    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-      <span style={{ fontWeight: 700 }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</span>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {!isJournalFilled(e) && <Badge color={C.orange}>🍽️ Repas seulement</Badge>}
-        {onClick && <span style={{ fontSize: 11, color: C.textMuted }}>Voir →</span>}
-        <span style={{ fontSize: 22 }}>{feelings[(e.feeling || 3) - 1]}</span>
+// Une journée du journal en une carte compacte : ressenti, chiffres clés sur une ligne,
+// alimentation, puis seulement ce qui mérite l'attention (difficulté, photos, message).
+const EntryCard = ({ e, onClick, proteinGoal }) => {
+  const filled = isJournalFilled(e);
+  const facts = filled ? [
+    `${(e.steps || 0).toLocaleString()} pas`,
+    sessionLabel(e.session_status).replace(/^\S+\s/, ""),
+    e.sleep_hours ? `${String(e.sleep_hours).replace(".", ",")} h de sommeil${e.nap ? " + sieste" : ""}` : null,
+    e.hydration ? `${String(e.hydration).replace(".", ",")} L d'eau` : null,
+  ].filter(Boolean) : [];
+  return (
+    <Card onClick={onClick} style={{ padding: "14px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 26, width: 32, textAlign: "center", flexShrink: 0 }}>{filled ? feelings[(e.feeling || 3) - 1] : "🍽️"}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 650, fontSize: 15, textTransform: "capitalize" }}>{new Date(e.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</div>
+          <div style={{ fontSize: 13.5, color: C.textMuted }}>{filled ? `${feelingLabels[(e.feeling || 3) - 1]} · ${facts.join(" · ")}` : "Repas notés, journal non rempli"}</div>
+        </div>
+        {onClick && <Icon name="chevron" size={18} color={C.muted} />}
       </div>
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: e.photos?.length > 0 || e.meal_note || e.had_difficulty || e.coach_message || e.calories_total ? 12 : 0 }}>
-      <div style={{ background: C.field, borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>PAS</div><div style={{ fontSize: 18, fontWeight: 900, color: C.pink }}>{(e.steps || 0).toLocaleString()}</div></div>
-      <div style={{ background: C.field, borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SÉANCE</div><div style={{ fontWeight: 700, fontSize: 13, color: sessionColor(e.session_status) }}>{sessionLabel(e.session_status)}</div></div>
-      <div style={{ background: C.field, borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>HYDRATATION</div><div style={{ fontSize: 18, fontWeight: 900, color: C.blue }}>{e.hydration || "—"} L</div></div>
-      <div style={{ background: C.field, borderRadius: 10, padding: 10 }}><div style={{ fontSize: 10, color: C.textMuted, marginBottom: 2 }}>SOMMEIL</div><div style={{ fontSize: 15, fontWeight: 700 }}>{e.sleep_hours || "—"}h {e.nap ? "· 😴" : ""}</div></div>
-    </div>
-    {e.calories_total != null && <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-      <Badge color={C.yellow}>{e.calories_total} kcal</Badge>
-      {e.protein_total != null && <Badge color={C.green}>💪 {e.protein_total}{proteinGoal ? ` / ${proteinGoal}` : ""}g</Badge>}
-      {e.carb_total != null && <Badge color={C.blue}>🌾 {e.carb_total}g</Badge>}
-      {e.fat_total != null && <Badge color={C.pink}>🥑 {e.fat_total}g</Badge>}
-    </div>}
-    {e.photos && e.photos.length > 0 && <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>{e.photos.slice(0, 3).map((p, i) => <img key={i} src={p} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8 }} />)}{e.photos.length > 3 && <div style={{ width: 60, height: 60, borderRadius: 8, background: C.field, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.textMuted }}>+{e.photos.length - 3}</div>}</div>}
-    {e.meal_note && <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}><span style={{ color: C.white, fontWeight: 700 }}>Repas : </span>{e.meal_note.length > 80 ? e.meal_note.slice(0, 80) + "..." : e.meal_note}</div>}
-    {e.had_difficulty && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: 10, marginBottom: 8 }}><div style={{ fontSize: 11, color: C.orange, fontWeight: 700, marginBottom: 4 }}>⚠️ DIFFICULTÉ</div><div style={{ fontSize: 13 }}>{e.difficulty_note}</div></div>}
-    {e.coach_message && <div style={{ background: C.pink + "15", borderRadius: 10, padding: 10, fontSize: 13, color: C.pink }}>💬 {e.coach_message}</div>}
-  </Card>
-);
+      {e.calories_total != null && (
+        <div style={{ fontSize: 13.5, color: C.textMuted, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`, fontVariantNumeric: "tabular-nums" }}>
+          <b style={{ color: C.white, fontWeight: 650 }}>{Math.round(e.calories_total)} kcal</b>
+          {e.protein_total != null && ` · protéines ${Math.round(e.protein_total)}${proteinGoal ? ` / ${proteinGoal}` : ""} g`}
+          {e.carb_total != null && ` · glucides ${Math.round(e.carb_total)} g`}
+          {e.fat_total != null && ` · lipides ${Math.round(e.fat_total)} g`}
+        </div>
+      )}
+      {e.had_difficulty && (
+        <div style={{ background: C.orange + "12", borderRadius: 10, padding: "9px 12px", marginTop: 10, fontSize: 14 }}>
+          <b style={{ color: C.orange, fontWeight: 650 }}>Difficulté · </b>{e.difficulty_note || "signalée sans détail"}
+        </div>
+      )}
+      {e.session_note && <div style={{ fontSize: 14, color: C.textMuted, marginTop: 8 }}>Séance : {e.session_note}</div>}
+      {e.photos && e.photos.length > 0 && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>{e.photos.slice(0, 4).map((p, i) => <img key={i} src={p} alt="" style={{ width: 54, height: 54, objectFit: "cover", borderRadius: 8 }} />)}{e.photos.length > 4 && <span style={{ fontSize: 13, color: C.textMuted, alignSelf: "center" }}>+{e.photos.length - 4}</span>}</div>}
+      {e.coach_message && <div style={{ background: C.pink + "12", borderRadius: 10, padding: "9px 12px", marginTop: 10, fontSize: 14, color: C.pink }}>Message de Nina · {e.coach_message}</div>}
+    </Card>
+  );
+};
 
 const PaymentHistory = ({ payments }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -3761,6 +3739,12 @@ const CoachApp = ({ user, onLogout }) => {
   const [addingPayment, setAddingPayment] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+  // Journaux des 7 derniers jours de toutes les clientes : alimente « À ton attention »
+  const [recentEntries, setRecentEntries] = useState([]);
+  const isWide = useIsWide();
 
   // ── ADMIN ────────────────────────────────────────────────────────────────
   const [adminUsers, setAdminUsers] = useState([]);
@@ -3864,6 +3848,8 @@ const CoachApp = ({ user, onLogout }) => {
       doneTodayRef.current = new Set(rows.filter(isJournalFilled).map(e => e.client_id));
       setTodayEntries(rows);
     });
+    supabase.from("entries").select("client_id, date, feeling, had_difficulty, difficulty_note, journal_filled").gte("date", addDays(today, -6)).order("date", { ascending: false })
+      .then(({ data }) => setRecentEntries(data || []));
     // Une ligne du jour peut être créée par un repas (non remplie) puis complétée par le
     // journal (update) : on écoute les deux, et on ne notifie qu'au passage à « rempli ».
     const onEntryChange = (payload) => {
@@ -3901,7 +3887,7 @@ const CoachApp = ({ user, onLogout }) => {
 
   // ── ADMIN : chargement des comptes Supabase Auth via l'Edge Function sécurisée ──
   useEffect(() => {
-    if (mainTab === "admin" && !selected) {
+    if (mainTab === "admin") {
       setLoadingAdmin(true);
       setAdminError("");
       callAdminFunction({ action: "list_users" }).then(res => {
@@ -3910,7 +3896,7 @@ const CoachApp = ({ user, onLogout }) => {
         setLoadingAdmin(false);
       });
     }
-  }, [mainTab, selected]);
+  }, [mainTab]);
 
   const handleResetPassword = async (c, authUser) => {
     if (!authUser) { setResetMessage("❌ Compte introuvable pour cette cliente."); return; }
@@ -3942,7 +3928,7 @@ const CoachApp = ({ user, onLogout }) => {
   };
 
   const handleSaveClient = async (id, patch) => { await updateClient(id, patch); alert("✅ Profil mis à jour !"); };
-  const handleDeleteClient = async (id) => { await deleteClient(id); setSelected(null); setMainTab("dashboard"); alert("✅ Cliente supprimée."); };
+  const handleDeleteClient = async (id) => { await deleteClient(id); setSelected(null); setMainTab("clients"); alert("✅ Cliente supprimée."); };
   const handleToggleContractEnded = async (c) => {
     if (c.contract_ended) {
       await updateClient(c.id, { contract_ended: false, contract_ended_at: null });
@@ -3966,7 +3952,7 @@ const CoachApp = ({ user, onLogout }) => {
     const todayEntry = entries.find(e => e.date === today);
     if (todayEntry) { await updateEntry(todayEntry.id, { coach_message: msgText }); }
     else { await addEntry({ date: today, steps: 0, feeling: 3, meal_note: "", session_status: "rest", coach_message: msgText, photos: [] }); }
-    setMsgText(""); alert("✅ Message envoyé !");
+    setMsgText(""); setShowMessage(false); alert("✅ Message envoyé !");
   };
 
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} meals={meals} showBalance />;
@@ -3977,144 +3963,148 @@ const CoachApp = ({ user, onLogout }) => {
     </div>
   );
 
-  return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, display: "flex", flexDirection: "column" }}>
-      {/* HEADER */}
-      <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <Logo />
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {!notifGranted && (
-            <button onClick={requestCoachNotifs} style={{ background: C.orange + "22", border: `1px solid ${C.orange}44`, color: C.orange, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>🔔 Activer notifs</button>
-          )}
-          <span style={{ fontSize: 11, color: C.textMuted, background: C.card, padding: "4px 10px", borderRadius: 6 }}>Coach</span>
-          <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
-        </div>
-      </div>
+  const NAV_ITEMS = [["dashboard", "home", "Aujourd'hui"], ["clients", "users", "Clientes"], ["workouts", "dumbbell", "Séances"], ["comptabilite", "wallet", "Paiements"], ["admin", "key", "Accès"]];
+  const activeClientCount = clients.filter(c => !c.is_paused && !c.contract_ended).length;
+  const goTab = (k) => { setMainTab(k); window.scrollTo(0, 0); };
+  const openClient = (id, tab = "journal") => { setSelected(id); setClientTab(tab); setMainTab("clients"); window.scrollTo(0, 0); };
+  const todayLabel = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* SIDEBAR NAV */}
-        <div style={{ width: 220, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", overflowY: "auto", flexShrink: 0 }}>
-         {[["dashboard", "🏠", "Dashboard"], ["workouts", "💪", "Séances"], ["mediatheque", "📚", "Médiathèque"], ["comptabilite", "💶", "Comptabilité"], ["admin", "🔐", "Admin"]].map(([k, icon, label]) => (
-            <button key={k} onClick={() => { setMainTab(k); setSelected(null); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", background: mainTab === k && !selected ? C.pink + "15" : "transparent", borderLeft: `3px solid ${mainTab === k && !selected ? C.pink : "transparent"}`, border: "none", color: mainTab === k && !selected ? C.white : C.textMuted, cursor: "pointer", fontWeight: mainTab === k && !selected ? 700 : 400, fontSize: 14, textAlign: "left" }}>{icon} {label}</button>
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, display: "flex" }}>
+      {isWide ? (
+        <aside style={{ width: 236, flexShrink: 0, borderRight: `1px solid ${C.border}`, background: C.surface, padding: "30px 16px 20px", display: "flex", flexDirection: "column", gap: 4, position: "sticky", top: 0, height: "100vh" }}>
+          <div style={{ padding: "0 10px 30px" }}><Logo size={46} /></div>
+          <Eyebrow style={{ padding: "0 12px 10px", fontSize: 10 }}>Mon espace coach</Eyebrow>
+          {NAV_ITEMS.map(([k, icon, label]) => (
+            <button key={k} onClick={() => goTab(k)} style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 46, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 15, textAlign: "left", background: mainTab === k ? C.pink + "1c" : "transparent", color: mainTab === k ? C.cherry : C.textMuted, fontWeight: mainTab === k ? 650 : 500 }}>
+              <Icon name={icon} />
+              <span style={{ flex: 1 }}>{label}</span>
+              {k === "clients" && <span style={{ fontSize: 12, color: C.textMuted, background: C.card, borderRadius: 6, padding: "1px 7px" }}>{activeClientCount}</span>}
+            </button>
           ))}
-          <div style={{ padding: "10px 16px 6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>Clientes</span>
-            <button onClick={() => setShowAddClient(true)} style={{ background: C.pink, border: "none", color: C.black, borderRadius: 6, width: 20, height: 20, fontWeight: 900, fontSize: 14, cursor: "pointer" }}>+</button>
+          <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+            {!notifGranted && (
+              <button onClick={requestCoachNotifs} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.card, color: C.cherry, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600 }}><Icon name="bell" size={18} /> Activer les notifications</button>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+              <Avatar initials="NM" size={36} color={C.pink} />
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 650, fontSize: 14 }}>Nina Mallard</div><div style={{ fontSize: 12, color: C.textMuted }}>Coach</div></div>
+              <button onClick={onLogout} title="Déconnexion" aria-label="Déconnexion" style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", padding: 6 }}><Icon name="logout" size={19} /></button>
+            </div>
           </div>
-          {loadingClients ? <Spinner /> : (() => {
-            const active = clients.filter(c => !c.is_paused && !c.contract_ended);
-            const paused = clients.filter(c => c.is_paused && !c.contract_ended);
-            const ended = clients.filter(c => c.contract_ended);
-            const ClientRow = (c) => (
-              <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); setClientTab("journal"); }} style={{ padding: "9px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, background: selected === c.id ? C.pink + "15" : "transparent", borderLeft: `3px solid ${selected === c.id ? C.pink : "transparent"}`, opacity: c.contract_ended ? 0.5 : c.is_paused ? 0.65 : 1 }}>
-                <div style={{ position: "relative" }}>
-                  <Avatar initials={c.avatar} size={28} color={c.contract_ended ? C.muted : c.is_paused ? C.orange : isDoneToday(c.id) ? C.pink : C.muted} />
-                  {!c.contract_ended && <div style={{ position: "absolute", bottom: -1, right: -1, width: 7, height: 7, borderRadius: "50%", background: isDoneToday(c.id) ? C.green : C.red, border: `2px solid ${C.black}` }} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: c.contract_ended || c.is_paused ? C.textMuted : C.white }}>{c.name}</div>
-                  <div style={{ fontSize: 10, color: c.contract_ended ? C.textMuted : c.is_paused ? C.orange : daysUntil(c.next_payment) <= 3 ? C.yellow : C.textMuted }}>
-                    {c.contract_ended ? "🏁 Terminé" : c.is_paused ? "⏸ Pause" : daysUntil(c.next_payment) <= 5 ? `⚠️ J-${daysUntil(c.next_payment)}` : `🔥 ${c.streak}j`}
-                  </div>
-                </div>
-              </div>
+        </aside>
+      ) : (
+        <nav style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, background: C.card, borderTop: `1px solid ${C.border}`, display: "grid", gridTemplateColumns: `repeat(${NAV_ITEMS.length}, 1fr)`, padding: "8px 4px calc(10px + env(safe-area-inset-bottom, 0px))" }}>
+          {NAV_ITEMS.map(([k, icon, label]) => (
+            <button key={k} onClick={() => goTab(k)} style={{ background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: mainTab === k ? C.cherry : C.textMuted, fontWeight: mainTab === k ? 650 : 500, fontSize: 11, cursor: "pointer", fontFamily: "inherit", padding: "4px 0" }}>
+              <Icon name={icon} size={22} />{label}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      <main style={{ flex: 1, minWidth: 0, padding: isWide ? "0 40px 48px" : "0 16px 110px" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+          <div style={{ minHeight: isWide ? 64 : 58, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderBottom: `1px solid ${C.border}`, marginBottom: isWide ? 30 : 20 }}>
+            {isWide ? <Eyebrow>Her Process · {NAV_ITEMS.find(([k]) => k === mainTab)?.[2] || "Clientes"}</Eyebrow> : <Logo size={30} />}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {isWide ? <span style={{ fontSize: 13, color: C.textMuted, textTransform: "capitalize" }}>{todayLabel}</span> : (<>
+                {!notifGranted && <button onClick={requestCoachNotifs} aria-label="Activer les notifications" style={{ background: "none", border: "none", color: C.cherry, padding: 8, cursor: "pointer" }}><Icon name="bell" /></button>}
+                <button onClick={onLogout} aria-label="Déconnexion" style={{ background: "none", border: "none", color: C.textMuted, padding: 8, cursor: "pointer" }}><Icon name="logout" /></button>
+              </>)}
+            </div>
+          </div>
+          {mainTab === "dashboard" && (() => {
+            const activeClients = clients.filter(c => !c.is_paused && !c.contract_ended);
+            const doneCount = activeClients.filter(c => isDoneToday(c.id)).length;
+            // À ton attention : ce qui mérite un regard, à partir des journaux des 7 derniers jours
+            const attention = [];
+            activeClients.forEach(c => {
+              const rows = recentEntries.filter(e => e.client_id === c.id);
+              const diff = rows.find(e => e.had_difficulty && isJournalFilled(e));
+              if (diff) attention.push({ c, tone: C.orange, title: "Une difficulté signalée", detail: `${formatDate(diff.date)}${diff.difficulty_note ? " · " + diff.difficulty_note : ""}`, tab: "journal" });
+              const low = rows.find(e => isJournalFilled(e) && e.feeling && e.feeling <= 2);
+              if (low) attention.push({ c, tone: C.pink, title: "Un ressenti bas", detail: `${formatDate(low.date)} · ${feelingLabels[low.feeling - 1]}`, tab: "journal" });
+              const lastFilled = rows.find(isJournalFilled);
+              const since = lastFilled ? Math.round((new Date(today) - new Date(lastFilled.date)) / 86400000) : null;
+              if (!lastFilled) attention.push({ c, tone: C.textMuted, title: "Aucun journal depuis 7 jours", detail: "Prendre de ses nouvelles ?", tab: "journal" });
+              else if (since >= 2) attention.push({ c, tone: C.textMuted, title: `Pas de journal depuis ${since} jours`, detail: `Dernier journal le ${formatDate(lastFilled.date)}`, tab: "journal" });
+              const d = c.next_payment ? daysUntil(c.next_payment) : null;
+              if (d != null && d < 0) attention.push({ c, tone: C.red, title: "Paiement en retard", detail: `Échéance du ${formatDate(c.next_payment)} · ${c.monthly_amount} €`, tab: "paiements" });
+              else if (d != null && d <= 3) attention.push({ c, tone: C.yellow, title: d === 0 ? "Paiement aujourd'hui" : `Paiement dans ${d} jour${d > 1 ? "s" : ""}`, detail: `${c.monthly_amount} € · ${formatDate(c.next_payment)}`, tab: "paiements" });
+            });
+            const stat = (label, value, sub, onClick) => (
+              <Card onClick={onClick} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "18px 20px" }}>
+                <span style={{ fontSize: 14, color: C.textMuted }}>{label}</span>
+                <span style={{ fontFamily: F.serif, fontSize: 36, color: C.heading, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+                <span style={{ fontSize: 12.5, color: C.textMuted }}>{sub}</span>
+              </Card>
             );
             return (
-              <>
-                {active.map(c => ClientRow(c))}
-                {paused.length > 0 && (
-                  <>
-                    <div style={{ margin: "8px 16px 4px", display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ flex: 1, height: 1, background: C.border }} />
-                      <span style={{ fontSize: 9, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>En pause</span>
-                      <div style={{ flex: 1, height: 1, background: C.border }} />
+              <div>
+                <Eyebrow>{isWide ? "Chaque jour compte" : todayLabel}</Eyebrow>
+                <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: isWide ? 44 : 34, letterSpacing: "-1px", color: C.heading, margin: "8px 0 6px" }}>Bonjour Nina.</h1>
+                <p style={{ color: C.textMuted, fontSize: 15, margin: "0 0 24px" }}>Ce qui demande ton attention aujourd'hui.</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 22 }}>
+                  {stat("Journaux remplis aujourd'hui", `${doneCount}/${activeClients.length}`, "Les autres ont encore la journée")}
+                  {stat("À ton attention", attention.length, "Sur les 7 derniers jours")}
+                  {stat("Paiements à suivre", urgentPayments.length, "En retard ou dans les 7 jours", () => goTab("comptabilite"))}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: isWide ? "minmax(0, 1.6fr) minmax(280px, 1fr)" : "1fr", gap: 18, alignItems: "start" }}>
+                  <Card style={{ padding: "20px 22px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <h2 style={{ fontSize: 19, fontWeight: 650, margin: 0, color: C.heading }}>À ton attention</h2>
+                      {attention.length > 0 && <Badge color={C.textMuted}>{attention.length} à regarder</Badge>}
                     </div>
-                    {paused.map(c => ClientRow(c))}
-                  </>
-                )}
-                {ended.length > 0 && (
-                  <>
-                    <div style={{ margin: "8px 16px 4px", display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ flex: 1, height: 1, background: C.border }} />
-                      <span style={{ fontSize: 9, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>Contrat terminé</span>
-                      <div style={{ flex: 1, height: 1, background: C.border }} />
-                    </div>
-                    {ended.map(c => ClientRow(c))}
-                  </>
-                )}
-              </>
+                    {attention.length === 0 && <p style={{ color: C.textMuted, fontSize: 14, margin: "12px 0 4px" }}>Rien de particulier cette semaine. Tout le monde avance.</p>}
+                    {attention.map((a, i) => (
+                      <button key={i} onClick={() => openClient(a.c.id, a.tab)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "15px 0", background: "none", border: "none", borderTop: i ? `1px solid ${C.border}` : "none", textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: C.white }}>
+                        <Avatar initials={a.c.avatar} size={40} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 650, fontSize: 15 }}>{a.c.name}</div>
+                          <div style={{ fontSize: 14, color: a.tone }}>{a.title}</div>
+                          <div style={{ fontSize: 13, color: C.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.detail}</div>
+                        </div>
+                        <Icon name="chevron" color={C.muted} />
+                      </button>
+                    ))}
+                  </Card>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                    <Card style={{ padding: "20px 22px" }}>
+                      <h2 style={{ fontSize: 17, fontWeight: 650, margin: "0 0 8px", color: C.heading }}>Journal du jour</h2>
+                      {activeClients.length === 0 && <p style={{ color: C.textMuted, fontSize: 14 }}>Aucune cliente active.</p>}
+                      {activeClients.map((c, i) => (
+                        <button key={c.id} onClick={() => openClient(c.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 0", background: "none", border: "none", borderTop: i ? `1px solid ${C.border}` : "none", cursor: "pointer", fontFamily: "inherit", color: C.white, textAlign: "left" }}>
+                          <Avatar initials={c.avatar} size={32} color={isDoneToday(c.id) ? C.green : C.muted} />
+                          <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{c.name}</span>
+                          {isDoneToday(c.id) ? <Badge color={C.green}>Rempli</Badge> : <Badge color={C.textMuted}>Pas encore</Badge>}
+                        </button>
+                      ))}
+                    </Card>
+                    <Card style={{ padding: "20px 22px", background: C.green + "12", borderColor: C.green + "30" }}>
+                      <Eyebrow style={{ marginBottom: 10 }}>Raccourcis</Eyebrow>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <Btn variant="secondary" onClick={() => setShowAddClient(true)}>+ Nouvelle cliente</Btn>
+                        <Btn variant="secondary" onClick={() => { goTab("workouts"); setBuildingWorkout(true); }}>+ Créer une séance</Btn>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+              </div>
             );
           })()}
-        </div>
 
-        {/* MAIN CONTENT */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
-          {mainTab === "dashboard" && !selected && (
-            <div>
-              <h1 style={{ fontSize: 24, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, margin: "0 0 20px" }}>Tableau de bord 👋</h1>
-              <Card style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>ACTIONS RAPIDES</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-                  <QuickAction title="Ajouter une cliente" subtitle="Créer un compte et un profil" icon="➕" onClick={() => setShowAddClient(true)} />
-                  <QuickAction title="Créer une séance" subtitle="Préparer un programme clair" icon="💪" onClick={() => setBuildingWorkout(true)} />
-                  <QuickAction title="Voir la compta" subtitle="Suivre paiements et échéances" icon="💶" onClick={() => setMainTab("comptabilite")} />
-                  <QuickAction title="Médiathèque" subtitle="Gérer exercices et contenus" icon="📚" onClick={() => setMainTab("mediatheque")} />
-                </div>
-              </Card>
-
-              <Card style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>À FAIRE AUJOURD'HUI</div>
-                {pendingJournalClients.length === 0 && urgentPayments.length === 0 ? (
-                  <div style={{ color: C.textMuted, fontSize: 13 }}>Tout est à jour pour le moment. Bonne journée !</div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {pendingJournalClients.length > 0 && (
-                      <div style={{ background: C.field, borderRadius: 10, padding: 12 }}>
-                        <div style={{ fontWeight: 700, color: C.orange, marginBottom: 6 }}>📝 Journal non rempli</div>
-                        {pendingJournalClients.slice(0, 3).map(c => <div key={c.id} style={{ fontSize: 13, color: C.textMuted, padding: "3px 0" }}>{c.name}</div>)}
-                      </div>
-                    )}
-                    {urgentPayments.length > 0 && (
-                      <div style={{ background: C.field, borderRadius: 10, padding: 12 }}>
-                        <div style={{ fontWeight: 700, color: C.yellow, marginBottom: 6 }}>💳 Paiements à suivre</div>
-                        {urgentPayments.slice(0, 3).map(c => <div key={c.id} style={{ fontSize: 13, color: C.textMuted, padding: "3px 0" }}>{c.name} · {formatDate(c.next_payment)}</div>)}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Card>
-
-              {paymentAlerts.length > 0 && (
-                <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                  <div style={{ fontWeight: 700, color: C.yellow, marginBottom: 8, fontSize: 13 }}>⚠️ Paiements à venir</div>
-                  {paymentAlerts.map(c => <div key={c.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}><span style={{ fontSize: 13 }}>{c.name} — {formatDate(c.next_payment)}</span><Badge color={C.yellow}>J-{daysUntil(c.next_payment)}</Badge></div>)}
-                </div>
-              )}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
-                {[{ label: "Journal today", val: `${clients.filter(c => isDoneToday(c.id)).length}/${clients.filter(c => !c.is_paused && !c.contract_ended).length}`, color: C.pink }, { label: "Séances actives", val: activeWorkoutsList.length, color: C.orange }, { label: "Clientes actives", val: clients.filter(c => !c.is_paused && !c.contract_ended).length, color: C.green }].map(s => (
-                  <Card key={s.label}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>{s.label}</div><div style={{ fontSize: 28, fontWeight: 900, color: s.color }}>{s.val}</div></Card>
-                ))}
-              </div>
-              <Card>
-                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>JOURNAL DU JOUR</div>
-                {clients.length === 0 && <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune cliente. Clique sur "+" pour en ajouter une.</p>}
-                {clients.filter(c => !c.is_paused && !c.contract_ended).map(c => (
-                  <div key={c.id} onClick={() => { setSelected(c.id); setMainTab("client"); }} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
-                    <Avatar initials={c.avatar} size={32} color={isDoneToday(c.id) ? C.pink : C.muted} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13 }}>{c.name}</div>
-                      {isDoneToday(c.id) ? <div style={{ fontSize: 12, color: C.green }}>✅ Journal rempli aujourd'hui</div> : <div style={{ fontSize: 12, color: C.red }}>Pas encore rempli</div>}
-                    </div>
-                  </div>
-                ))}
-              </Card>
-            </div>
-          )}
-
-          {mainTab === "workouts" && !selected && (
+          {mainTab === "workouts" && (
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <SectionTitle title="Mes séances 💪" subtitle="Construis et gère tes programmes en quelques clics" action={<Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Nouvelle séance</Btn>} />
+                <div>
+                  <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: isWide ? 38 : 30, letterSpacing: "-0.8px", color: C.heading, margin: "0 0 6px" }}>Mes séances</h1>
+                  <p style={{ color: C.textMuted, fontSize: 15, margin: "0 0 14px" }}>Tes programmes rangés par cliente, puis par semaine.</p>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Btn small onClick={() => setBuildingWorkout(true)} style={{ width: "auto" }}>+ Créer une séance</Btn>
+                    <Btn small variant="secondary" onClick={() => setShowCatalog(true)} style={{ width: "auto" }}>Bibliothèque d'exercices</Btn>
+                  </div>
+                </div>
               </div>
 
               <Card style={{ marginBottom: 20, borderColor: C.purple + "44" }}>
@@ -4270,11 +4260,7 @@ const CoachApp = ({ user, onLogout }) => {
            </div>
           )}
 
-          {mainTab === "mediatheque" && !selected && (
-            <CatalogPickerModal onClose={() => setMainTab("dashboard")} onSelect={() => {}} />
-          )}
-
-          {mainTab === "comptabilite" && !selected && (() => {
+          {mainTab === "comptabilite" && (() => {
             const currentMonthPrefix = today.slice(0, 7);
             const isInCurrentMonth = d => d && d.slice(0, 7) === currentMonthPrefix;
             const activeForBilling = clients.filter(c => !c.is_paused && !c.contract_ended);
@@ -4299,11 +4285,15 @@ const CoachApp = ({ user, onLogout }) => {
             };
             return (
               <div>
-                <SectionTitle title="Comptabilité 💶" subtitle="Pilote tes paiements et tes échéances sereinement" />
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 20 }}>
-                  <Card><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>CA PRÉVU (CE MOIS)</div><div style={{ fontSize: 26, fontWeight: 900, color: C.pink }}>{caPrevu.toFixed(0)} €</div></Card>
-                  <Card><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>CA ENCAISSÉ (CE MOIS)</div><div style={{ fontSize: 26, fontWeight: 900, color: C.green }}>{caEncaisse.toFixed(0)} €</div></Card>
-                  <Card><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 6 }}>CLIENTES À ENCAISSER</div><div style={{ fontSize: 26, fontWeight: 900, color: C.orange }}>{dueThisMonth.length}</div></Card>
+                <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: isWide ? 38 : 30, letterSpacing: "-0.8px", color: C.heading, margin: "0 0 6px" }}>Paiements</h1>
+                <p style={{ color: C.textMuted, fontSize: 15, margin: "0 0 22px" }}>Les échéances de tes clientes, cycle de 4 semaines.</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
+                  {[["Prévu ce mois", `${caPrevu.toFixed(0)} €`], ["Encaissé ce mois", `${caEncaisse.toFixed(0)} €`], ["Clientes à encaisser", dueThisMonth.length]].map(([label, value]) => (
+                    <Card key={label} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "18px 20px" }}>
+                      <span style={{ fontSize: 14, color: C.textMuted }}>{label}</span>
+                      <span style={{ fontFamily: F.serif, fontSize: 32, color: C.heading, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+                    </Card>
+                  ))}
                 </div>
                 {newClients.length > 0 && (
                   <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
@@ -4317,25 +4307,36 @@ const CoachApp = ({ user, onLogout }) => {
                     <div style={{ fontSize: 12, color: C.textMuted, marginTop: 8 }}>Ce montant ({newClientsTotal.toFixed(0)} €) viendra gonfler le CA prévu du mois où tombe leur échéance.</div>
                   </div>
                 )}
-                <Card>
-                  <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>TOUTES LES CLIENTES</div>
-                  {loadingPayments ? <Spinner /> : activeForBilling.map(c => {
+                <Card style={{ padding: isWide ? "20px 24px" : 16 }}>
+                  <h2 style={{ fontSize: 19, fontWeight: 650, margin: "0 0 10px", color: C.heading }}>Échéances</h2>
+                  {isWide && (
+                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.7fr) 1fr 1fr 1fr 170px", gap: 12, padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13, color: C.textMuted }}>
+                      <span>Cliente</span><span>Échéance</span><span style={{ textAlign: "right" }}>Montant</span><span>État</span><span />
+                    </div>
+                  )}
+                  {loadingPayments ? <Spinner /> : [...activeForBilling].sort((a, b) => (a.next_payment || "9999").localeCompare(b.next_payment || "9999")).map(c => {
                     const status = rowStatus(c);
-                    return (
-                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${C.border}` }}>
-                        <Avatar initials={c.avatar} size={30} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13 }}>{c.name}</div>
-                          <div style={{ fontSize: 11, color: C.textMuted }}>{c.monthly_amount} € · échéance {formatDate(c.next_payment)}</div>
+                    const badge = <Badge color={status === "avenir" ? C.green : status === "nouvelle" ? C.blue : status === "retard" ? C.red : C.yellow}>{status === "avenir" ? "À jour" : status === "nouvelle" ? "Nouvelle" : status === "retard" ? "En retard" : "À encaisser"}</Badge>;
+                    const action = (status === "attente" || status === "retard") ? <Btn small variant="secondary" onClick={() => handleMarkPaid(c)} style={{ width: "auto" }}>Saisir le règlement</Btn> : null;
+                    return isWide ? (
+                      <div key={c.id} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.7fr) 1fr 1fr 1fr 170px", gap: 12, alignItems: "center", padding: "14px 0", borderBottom: `1px solid ${C.border}` }}>
+                        <button onClick={() => openClient(c.id, "paiements")} style={{ display: "flex", alignItems: "center", gap: 12, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", color: C.white, textAlign: "left", minWidth: 0 }}>
+                          <Avatar initials={c.avatar} size={34} />
+                          <span style={{ minWidth: 0 }}><span style={{ display: "block", fontWeight: 650, fontSize: 15 }}>{c.name}</span><span style={{ fontSize: 12.5, color: C.textMuted }}>Cycle de 4 semaines</span></span>
+                        </button>
+                        <span style={{ fontSize: 14 }}>{formatDate(c.next_payment)}</span>
+                        <span style={{ fontSize: 15, fontWeight: 650, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{(parseFloat(c.monthly_amount) || 0).toFixed(2).replace(".", ",")} €</span>
+                        <span>{badge}</span>
+                        <span style={{ textAlign: "right" }}>{action}</span>
+                      </div>
+                    ) : (
+                      <div key={c.id} style={{ padding: "14px 0", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <Avatar initials={c.avatar} size={34} />
+                          <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 650, fontSize: 15 }}>{c.name}</div><div style={{ fontSize: 13, color: C.textMuted }}>Échéance {formatDate(c.next_payment)}</div></div>
+                          <span style={{ fontWeight: 650, fontVariantNumeric: "tabular-nums" }}>{(parseFloat(c.monthly_amount) || 0).toFixed(0)} €</span>
                         </div>
-                       <Badge color={status === "avenir" ? C.green : status === "nouvelle" ? C.blue : status === "retard" ? C.red : C.yellow}>
-                          {status === "avenir" ? "✅ À jour" : status === "nouvelle" ? "👋 Nouvelle" : status === "retard" ? "🔴 En retard" : "⏳ En attente"}
-                        </Badge>
-                        {(status === "attente" || status === "retard") && (
-                          <button onClick={() => handleMarkPaid(c)} style={{ background: C.green, border: "none", borderRadius: 8, padding: "7px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer" }}>
-                            ✓ Reçu
-                          </button>
-                        )}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>{badge}{action}</div>
                       </div>
                     );
                   })}
@@ -4345,9 +4346,10 @@ const CoachApp = ({ user, onLogout }) => {
             );
           })()}
         
-          {mainTab === "admin" && !selected && (
+          {mainTab === "admin" && (
             <div>
-              <SectionTitle title="Administration 🔐" subtitle="Réinitialise le mot de passe d'une cliente directement depuis l'app, sans passer par Supabase." />
+              <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: isWide ? 38 : 30, letterSpacing: "-0.8px", color: C.heading, margin: "0 0 6px" }}>Accès des clientes</h1>
+              <p style={{ color: C.textMuted, fontSize: 15, margin: "0 0 22px" }}>Réinitialise le mot de passe d'une cliente sans passer par Supabase.</p>
               {adminError && (
                 <Card style={{ borderColor: C.red + "44", marginBottom: 16 }}>
                   <div style={{ color: C.red, fontSize: 13 }}>❌ {adminError}</div>
@@ -4405,59 +4407,81 @@ const CoachApp = ({ user, onLogout }) => {
             </div>
           )}
 
-          {mainTab === "client" && client && (
-            <div>
-              <button onClick={() => { setSelected(null); setMainTab("dashboard"); }} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 13, marginBottom: 18, padding: 0 }}>← Retour</button>
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-                <Avatar initials={client.avatar} size={46} />
-                <div style={{ flex: 1 }}>
-                  <h2 style={{ margin: "0 0 6px", fontSize: 20, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading }}>{client.name}</h2>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {client.contract_ended && <Badge color={C.textMuted}>🏁 Contrat terminé le {formatDate(client.contract_ended_at)}</Badge>}
-                    <Badge>🔥 {client.streak}j</Badge>
-                    {client.goal && <Badge color={C.purple}>{client.goal}</Badge>}
-                    {!client.contract_ended && client.next_payment && <Badge color={C.yellow}>💳 J-{daysUntil(client.next_payment)}</Badge>}
-                  </div>
+          {mainTab === "clients" && (() => {
+            const q = normName(clientSearch);
+            const match = (c) => !q || normName(c.name).includes(q);
+            const groups = [
+              ["Actives", clients.filter(c => !c.is_paused && !c.contract_ended && match(c))],
+              ["En pause", clients.filter(c => c.is_paused && !c.contract_ended && match(c))],
+              ["Contrat terminé", clients.filter(c => c.contract_ended && match(c))],
+            ].filter(([, list]) => list.length > 0);
+            const list = (
+              <Card style={{ padding: 14, ...(isWide ? { position: "sticky", top: 20 } : {}) }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                  <input value={clientSearch} onChange={e => setClientSearch(e.target.value)} placeholder="Rechercher une cliente" aria-label="Rechercher une cliente" style={{ ...inputSt, padding: "10px 12px" }} />
+                  <button onClick={() => setShowAddClient(true)} aria-label="Nouvelle cliente" title="Nouvelle cliente" style={{ flexShrink: 0, width: 44, borderRadius: 12, border: "none", background: C.cherry, color: C.brandCream, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="plus" /></button>
                 </div>
-                <button onClick={() => setEditingClient(client)} style={{ background: C.track, border: `1px solid ${C.border}`, color: C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>✏️ Modifier</button>
-                {!client.contract_ended && (
-                  <button onClick={() => setShowPauseModal(true)} style={{ background: client.is_paused ? C.orange + "22" : C.track, border: `1px solid ${client.is_paused ? C.orange : C.border}`, color: client.is_paused ? C.orange : C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
-                    {client.is_paused ? "⏸️ En pause" : "⏸️ Pause"}
-                  </button>
-                )}
-                <button onClick={() => handleToggleContractEnded(client)} style={{ background: client.contract_ended ? C.green + "22" : C.track, border: `1px solid ${client.contract_ended ? C.green : C.border}`, color: client.contract_ended ? C.green : C.white, borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>
-                  {client.contract_ended ? "🔓 Réactiver" : "🏁 Fin de contrat"}
-                </button>
-              </div>
+                {loadingClients ? <Spinner /> : groups.length === 0 ? <p style={{ color: C.textMuted, fontSize: 14, margin: 8 }}>Aucune cliente trouvée.</p> : groups.map(([label, items]) => (
+                  <div key={label} style={{ marginBottom: 6 }}>
+                    <Eyebrow style={{ fontSize: 10, padding: "8px 8px 4px" }}>{label} · {items.length}</Eyebrow>
+                    {items.map(c => (
+                      <button key={c.id} onClick={() => openClient(c.id, clientTab)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 8px", borderRadius: 12, border: "none", background: selected === c.id ? C.pink + "1c" : "transparent", cursor: "pointer", fontFamily: "inherit", color: C.white, textAlign: "left", opacity: c.contract_ended ? 0.6 : 1 }}>
+                        <div style={{ position: "relative" }}>
+                          <Avatar initials={c.avatar} size={38} color={c.is_paused ? C.orange : c.contract_ended ? C.muted : C.pink} />
+                          {!c.contract_ended && !c.is_paused && <span style={{ position: "absolute", right: 0, bottom: 0, width: 10, height: 10, borderRadius: "50%", background: isDoneToday(c.id) ? C.green : C.track, border: `2px solid ${C.card}` }} />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 650, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
+                          <div style={{ fontSize: 12.5, color: C.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.is_paused ? "En pause" : c.contract_ended ? "Contrat terminé" : isDoneToday(c.id) ? "Journal rempli aujourd'hui" : c.goal || "—"}</div>
+                        </div>
+                        {selected === c.id && isWide && <Icon name="chevron" size={18} color={C.cherry} />}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </Card>
+            );
+            if (!isWide && !client) return list;
+            const CLIENT_GROUPS = { suivi: ["journal", "bilan"], entrainement: ["seances", "perf"], corps: ["body"], admin: ["paiements"] };
+            const group = Object.keys(CLIENT_GROUPS).find(g => CLIENT_GROUPS[g].includes(clientTab)) || "suivi";
+            const fiche = !client ? (
+              <Card style={{ padding: 40, textAlign: "center" }}><p style={{ color: C.textMuted, margin: 0 }}>Choisis une cliente dans la liste pour ouvrir sa fiche.</p></Card>
+            ) : (
+            <div style={{ minWidth: 0 }}>
+              {!isWide && <button onClick={() => setSelected(null)} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, marginBottom: 14, padding: 0, fontFamily: "inherit" }}><Icon name="back" size={18} /> Clientes</button>}
+              <Card style={{ padding: isWide ? "20px 24px" : 16, marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                  <Avatar initials={client.avatar} size={52} />
+                  <div style={{ flex: 1, minWidth: 180 }}>
+                    <h2 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 28, letterSpacing: "-0.5px", color: C.heading, margin: "0 0 4px" }}>{client.name}</h2>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      {client.goal && <span style={{ fontSize: 14, color: C.textMuted, marginRight: 4 }}>{client.goal}</span>}
+                      {client.is_paused && <Badge color={C.orange}>En pause</Badge>}
+                      {client.contract_ended && <Badge color={C.textMuted}>Contrat terminé le {formatDate(client.contract_ended_at)}</Badge>}
+                      {!client.contract_ended && client.next_payment && <Badge color={daysUntil(client.next_payment) < 0 ? C.red : daysUntil(client.next_payment) <= 3 ? C.yellow : C.textMuted}>Paiement {formatDate(client.next_payment)}</Badge>}
+                      <Badge color={C.pink}>🔥 {client.streak || 0} j</Badge>
+                    </div>
+                  </div>
+                  <Btn small onClick={() => setShowMessage(true)} style={{ width: "auto", display: "flex", alignItems: "center", gap: 8 }}><Icon name="message" size={17} /> Message</Btn>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+                  <Btn small variant="secondary" onClick={() => setEditingClient(client)} style={{ width: "auto" }}>Modifier la fiche</Btn>
+                  {!client.contract_ended && <Btn small variant="secondary" onClick={() => setShowPauseModal(true)} style={{ width: "auto" }}>{client.is_paused ? "Gérer la pause" : "Mettre en pause"}</Btn>}
+                  <Btn small variant="secondary" onClick={() => handleToggleContractEnded(client)} style={{ width: "auto" }}>{client.contract_ended ? "Réactiver le contrat" : "Fin de contrat"}</Btn>
+                </div>
+              </Card>
               {client.contract_ended && (
-                <div style={{ background: C.textMuted + "15", border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 20, fontSize: 13, color: C.textMuted }}>
-                  🏁 Le contrat de {client.name.split(" ")[0]} est marqué comme terminé. Elle garde accès à son espace et aux séances que tu lui assignes, mais n'apparaît plus dans le suivi journal/paiements.
+                <div style={{ background: C.field, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 18, fontSize: 14, color: C.textMuted }}>
+                  Le contrat de {client.name.split(" ")[0]} est terminé. Elle garde accès à son espace et aux séances que tu lui assignes, mais n'apparaît plus dans le suivi journal et paiements.
                 </div>
               )}
 
-              <Tab tabs={[["journal", "📋 Journal"], ["bilan", "🗓️ Bilan"], ["seances", "💪 Séances"], ["perf", "📊 Perfs"], ["body", "📏 Corps"], ["paiements", "💳 Paiements"], ["message", "💬 Message"]]} active={clientTab} onChange={setClientTab} />
+              <UnderlineTabs tabs={[["suivi", "Suivi"], ["entrainement", "Entraînement"], ["corps", "Nutrition & corps"], ["admin", "Administratif"]]} active={group} onChange={g => setClientTab(CLIENT_GROUPS[g][0])} />
+              {group === "suivi" && <Segmented options={[["journal", "Journal"], ["bilan", "Bilan de la semaine"]]} active={clientTab} onChange={setClientTab} />}
+              {group === "entrainement" && <Segmented options={[["seances", "Séances et planning"], ["perf", "Performances"]]} active={clientTab} onChange={setClientTab} />}
 
               {clientTab === "journal" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {!loadingData && (
-                    <Card>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: profile ? 10 : 0 }}>
-                        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em" }}>🍽️ PROFIL NUTRITIONNEL</div>
-                        <button onClick={() => setEditingClient(client)} style={{ background: "none", border: "none", color: C.pink, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{profile ? "Modifier" : "+ Compléter"}</button>
-                      </div>
-                      {profile ? (
-                        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13 }}>
-                          <span><strong>{calcAge(profile.birth_date) ?? "—"}</strong> ans</span>
-                          <span>{profile.sex === "F" ? "Femme" : profile.sex === "M" ? "Homme" : "—"}</span>
-                          <span><strong>{profile.height_cm || "—"}</strong> cm</span>
-                          <span style={{ color: C.pink, fontWeight: 700 }}>{nutritionGoalLabel(profile.nutrition_goal)}</span>
-                          <span style={{ color: C.green }}>💪 <strong>{proteinTarget(profile) ? `${proteinTarget(profile)} g` : "—"}</strong> prot./jour</span>
-                          {(profile.kcal_target_training || profile.kcal_target_rest) && <span style={{ color: C.yellow }}>🔥 <strong>{profile.kcal_target_training || "—"}</strong> entraînement · <strong>{profile.kcal_target_rest || "—"}</strong> off</span>}
-                          {fatFloor(profile) && <span style={{ color: C.pink }}>🥑 min <strong>{fatFloor(profile)} g</strong></span>}
-                        </div>
-                      ) : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Profil non renseigné — la balance énergétique ne peut pas être calculée pour cette cliente.</p>}
-                    </Card>
-                  )}
                   {loadingData ? <Spinner /> : entries.length === 0 ? <Card><p style={{ color: C.textMuted, textAlign: "center", margin: 0 }}>Aucune entrée.</p></Card> : entries.map((e, i) => <EntryCard key={i} e={e} proteinGoal={proteinTarget(profile)} onClick={() => setSelectedEntry(e)} />)}
                 </div>
               )}
@@ -4504,6 +4528,25 @@ const CoachApp = ({ user, onLogout }) => {
               {clientTab === "body" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {loadingData ? <Spinner /> : (<>
+                    {(
+                      <Card>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: profile ? 10 : 0 }}>
+                          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em" }}>🍽️ PROFIL NUTRITIONNEL</div>
+                          <button onClick={() => setEditingClient(client)} style={{ background: "none", border: "none", color: C.pink, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{profile ? "Modifier" : "+ Compléter"}</button>
+                        </div>
+                        {profile ? (
+                          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13 }}>
+                            <span><strong>{calcAge(profile.birth_date) ?? "—"}</strong> ans</span>
+                            <span>{profile.sex === "F" ? "Femme" : profile.sex === "M" ? "Homme" : "—"}</span>
+                            <span><strong>{profile.height_cm || "—"}</strong> cm</span>
+                            <span style={{ color: C.pink, fontWeight: 700 }}>{nutritionGoalLabel(profile.nutrition_goal)}</span>
+                            <span style={{ color: C.green }}>💪 <strong>{proteinTarget(profile) ? `${proteinTarget(profile)} g` : "—"}</strong> prot./jour</span>
+                            {(profile.kcal_target_training || profile.kcal_target_rest) && <span style={{ color: C.yellow }}>🔥 <strong>{profile.kcal_target_training || "—"}</strong> entraînement · <strong>{profile.kcal_target_rest || "—"}</strong> off</span>}
+                            {fatFloor(profile) && <span style={{ color: C.pink }}>🥑 min <strong>{fatFloor(profile)} g</strong></span>}
+                          </div>
+                        ) : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Profil non renseigné — la balance énergétique ne peut pas être calculée pour cette cliente.</p>}
+                      </Card>
+                    )}
                     {weights.length > 1 && (
                       <Card>
                         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>POIDS</div>
@@ -4588,18 +4631,30 @@ const CoachApp = ({ user, onLogout }) => {
                 </div>
               )}
 
-              {clientTab === "message" && (
-                <Card>
-                  <TA label="Message pour la cliente" value={msgText} onChange={e => setMsgText(e.target.value)} placeholder={`Bravo ${client.name.split(" ")[0]} 💪`} style={{ minHeight: 120 }} />
-                  <Btn onClick={handleSendMessage} style={{ marginTop: 14 }}>Envoyer ✉️</Btn>
-                </Card>
-              )}
             </div>
-          )}
+            );
+            return isWide ? (
+              <div style={{ display: "grid", gridTemplateColumns: "300px minmax(0, 1fr)", gap: 24, alignItems: "start" }}>{list}{fiche}</div>
+            ) : fiche;
+          })()}
         </div>
-      </div>
+      </main>
 
       {/* MODALS */}
+      {showCatalog && <CatalogPickerModal onClose={() => setShowCatalog(false)} onSelect={() => {}} />}
+      {showMessage && client && (
+        <div onClick={() => setShowMessage(false)} style={{ position: "fixed", inset: 0, background: C.overlay, display: "flex", alignItems: isWide ? "center" : "flex-end", justifyContent: "center", zIndex: 100, padding: isWide ? 20 : 0 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: C.card, borderRadius: isWide ? 20 : "22px 22px 0 0", padding: "22px 20px calc(22px + env(safe-area-inset-bottom, 0px))", width: "100%", maxWidth: 480 }}>
+            <h3 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 24, color: C.heading, margin: "0 0 4px" }}>Message à {client.name.split(" ")[0]}</h3>
+            <p style={{ color: C.textMuted, fontSize: 14, margin: "0 0 14px" }}>Il s'affiche sur son accueil jusqu'à ce qu'elle le marque comme lu.</p>
+            <TA value={msgText} onChange={e => setMsgText(e.target.value)} placeholder={`Bravo ${client.name.split(" ")[0]} 💪`} style={{ minHeight: 120 }} />
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <Btn variant="secondary" onClick={() => setShowMessage(false)} style={{ flex: 1 }}>Annuler</Btn>
+              <Btn onClick={handleSendMessage} disabled={!msgText.trim()} style={{ flex: 2 }}>Envoyer</Btn>
+            </div>
+          </div>
+        </div>
+      )}
       {showAddClient && (
         <div style={{ position: "fixed", inset: 0, background: C.overlay, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}>
@@ -4644,6 +4699,7 @@ const ClientApp = ({ user, onLogout }) => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [sessionLogs, setSessionLogs] = useState([]);
   const [bodyTab, setBodyTab] = useState("weight");
+  const [showRules, setShowRules] = useState(false);
   const [seancesTab, setSeancesTab] = useState("todo");
   const [perfView, setPerfView] = useState("sessions");
   const [openExercise, setOpenExercise] = useState(null);
@@ -4762,7 +4818,7 @@ const ClientApp = ({ user, onLogout }) => {
 
   if (screen === "repas") {
     if (!clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
-    return <MealLogForm meals={meals} profile={profile} clientId={clientId} getKcalTarget={getKcalTarget} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} onBack={() => setScreen("home")} />;
+    return <MealLogForm meals={meals} profile={profile} clientId={clientId} getKcalTarget={getKcalTarget} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} onBack={() => setScreen("home")} bottomNav={<ClientBottomNav currentScreen="repas" onNavigate={setScreen} />} />;
   }
 
   if (!clientInfo) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
@@ -4775,40 +4831,38 @@ const ClientApp = ({ user, onLogout }) => {
     const search = exerciseSearch.trim().toLowerCase();
     const shownExercises = search ? exerciseHistory.filter(ex => ex.name.toLowerCase().includes(search)) : exerciseHistory;
     return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
-      <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-      <h2 style={{ fontSize: 22, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, marginBottom: 16 }}>Mes séances 💪</h2>
-      <Tab tabs={[["todo", "💪 À faire"], ["history", `📊 Mes performances (${sessionLogs.length})`]]} active={seancesTab} onChange={setSeancesTab} />
+    <div style={SCREEN}>
+      <h1 style={H1}>Mes séances</h1>
+      <Segmented options={[["todo", "À faire"], ["history", `Mes performances · ${sessionLogs.length}`]]} active={seancesTab} onChange={setSeancesTab} />
       {seancesTab === "todo" && (
         <>
       <Card style={{ marginBottom: 20 }}>
         <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} onSelectWorkout={openWorkoutPreview} loadingWorkoutId={loadingWorkoutId} />
       </Card>
-      {loading ? <div style={{ marginBottom: 20 }}><Spinner /></div> : myWorkouts.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>💪 À FAIRE</div>
-          {myWorkouts.map(w => {
-            const nextSchedule = schedule.filter(s => s.workout_id === w.id && s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
-            const scheduledDate = nextSchedule?.date || w.scheduledDate;
-            const isToday = scheduledDate === today;
-            const isPast = scheduledDate && scheduledDate < today;
-            return (
-              <Card key={w.id} style={{ marginBottom: 10, borderColor: isToday ? C.orange + "66" : C.border }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orange + "22", border: `1.5px solid ${isToday ? C.orange : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💪</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{w.name}</div>
-                    <div style={{ fontSize: 12, color: C.textMuted }}>{w.exercises?.length || 0} exercices</div>
-                    {scheduledDate && <div style={{ fontSize: 11, color: isToday ? C.orange : isPast ? C.red : C.textMuted, fontWeight: isToday ? 700 : 400, marginTop: 2 }}>{isToday ? "📅 Prévue aujourd'hui !" : isPast ? `⚠️ Prévue le ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}` : `📅 ${new Date(scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`}</div>}
-                  </div>
-                </div>
-                {w.description && <div style={{ background: C.field, borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: C.textMuted }}>{w.description}</div>}
-                <Btn onClick={() => openWorkoutPreview(w)} disabled={loadingWorkoutId === w.id} style={{ fontSize: 14 }}>{loadingWorkoutId === w.id ? "Chargement..." : "▶ Commencer la séance"}</Btn>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      {loading ? <div style={{ marginBottom: 20 }}><Spinner /></div> : myWorkouts.length === 0 ? (
+        <Card><p style={{ color: C.textMuted, margin: 0 }}>Ta coach ne t'a pas encore assigné de séance.</p></Card>
+      ) : (() => {
+        const nextDate = (w) => schedule.filter(sc => sc.workout_id === w.id && sc.date >= today).sort((x, y) => x.date.localeCompare(y.date))[0]?.date || w.scheduledDate;
+        const doneIds = new Set(sessionLogs.map(l => l.workout_id));
+        const sorted = [...myWorkouts].sort((x, y) => (nextDate(x) || "9999").localeCompare(nextDate(y) || "9999") || (x.name || "").localeCompare(y.name || "", "fr", { numeric: true }));
+        return (
+          <Card style={{ padding: "6px 16px" }}>
+            {sorted.map((w, i) => {
+              const d = nextDate(w); const isToday = d === today;
+              return (
+                <button key={w.id} onClick={() => openWorkoutPreview(w)} disabled={loadingWorkoutId === w.id} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "13px 0", background: "none", border: "none", borderTop: i ? `1px solid ${C.border}` : "none", cursor: "pointer", fontFamily: "inherit", color: C.white, textAlign: "left" }}>
+                  <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: "grid", placeItems: "center", background: isToday ? C.cherry : doneIds.has(w.id) ? C.green + "1c" : C.field, color: isToday ? C.brandCream : doneIds.has(w.id) ? C.green : C.textMuted }}><Icon name={doneIds.has(w.id) && !isToday ? "check" : "dumbbell"} size={20} /></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontWeight: 650, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{w.name}</span>
+                    <span style={{ fontSize: 13, color: isToday ? C.cherry : C.textMuted }}>{loadingWorkoutId === w.id ? "Chargement…" : isToday ? "Prévue aujourd'hui" : d ? `Prévue le ${new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}` : `${w.exercises?.length || 0} exercices`}{doneIds.has(w.id) ? " · déjà faite" : ""}</span>
+                  </span>
+                  <Icon name="chevron" size={18} color={C.muted} />
+                </button>
+              );
+            })}
+          </Card>
+        );
+      })()}
         </>
       )}
       {seancesTab === "history" && (
@@ -4859,9 +4913,21 @@ const ClientApp = ({ user, onLogout }) => {
   }
 
   if (screen === "contrat") return (
-        <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
-          <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-          <h2 style={{ fontSize: 22, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, marginBottom: 20 }}>Mon contrat 📄</h2>
+        <div style={SCREEN}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "8px 0 18px" }}>
+            <Avatar initials={clientInfo.avatar} size={52} />
+            <div><h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 30, color: C.heading, margin: 0 }}>{clientInfo.name}</h1>{clientInfo.goal && <div style={{ fontSize: 14, color: C.textMuted }}>{clientInfo.goal}</div>}</div>
+          </div>
+          <Card style={{ marginBottom: 14, padding: "6px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0" }}>
+              <Icon name="bell" color={C.cherry} />
+              <span style={{ flex: 1, fontSize: 15 }}>Rappels<span style={{ display: "block", fontSize: 13, color: C.textMuted }}>{notifEnabled ? "Activés sur ce téléphone" : "Pour ne pas oublier ton journal"}</span></span>
+              {!notifEnabled && <Btn small onClick={handleEnableNotifs} style={{ width: "auto" }}>Activer</Btn>}
+            </div>
+            <button onClick={onLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: `1px solid ${C.border}`, background: "none", borderLeft: "none", borderRight: "none", borderBottom: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 15, color: C.white, textAlign: "left" }}>
+              <Icon name="logout" color={C.textMuted} /> Se déconnecter
+            </button>
+          </Card>
           {clientInfo.contract_ended && (
             <div style={{ background: C.textMuted + "15", border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
               <div style={{ fontWeight: 700, color: C.textMuted, marginBottom: 4 }}>🏁 Accompagnement terminé le {formatDate(clientInfo.contract_ended_at)}</div>
@@ -4881,7 +4947,11 @@ const ClientApp = ({ user, onLogout }) => {
           </Card>
           {!clientInfo.contract_ended && daysUntil(clientInfo.next_payment) <= 7 && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 14, padding: 16, marginBottom: 14 }}><div style={{ fontWeight: 700, color: C.yellow, marginBottom: 4 }}>⚠️ Paiement à venir</div><div style={{ fontSize: 13 }}>Ton prochain paiement de <strong>{clientInfo.monthly_amount} €</strong> est dû le <strong>{formatDate(clientInfo.next_payment)}</strong>.</div></div>}
           <Card style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 16 }}>📄 RÈGLEMENT DU COACHING</div>
+            <button onClick={() => setShowRules(v => !v)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", color: C.white, marginBottom: showRules || !clientInfo.contract_accepted ? 16 : 0 }}>
+              <span style={{ fontSize: 16, fontWeight: 650 }}>Règlement du coaching{clientInfo.contract_accepted && <span style={{ display: "block", fontSize: 13, fontWeight: 500, color: C.green, textAlign: "left" }}>Accepté le {formatDate(clientInfo.contract_accepted_at)}</span>}</span>
+              <span style={{ fontSize: 14, color: C.cherry, fontWeight: 650 }}>{showRules || !clientInfo.contract_accepted ? "Masquer" : "Lire"}</span>
+            </button>
+            {(showRules || !clientInfo.contract_accepted) && (<>
             {CONTRACT_TEXT.sections.map((section, si) => (
               <div key={si} style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, color: C.pink, fontWeight: 700, marginBottom: 8 }}>{section.title}</div>
@@ -4906,8 +4976,9 @@ const ClientApp = ({ user, onLogout }) => {
                 if (!error && data) setClientInfo(data);
               }} style={{ marginTop: 16 }}>✅ J'ai lu et j'accepte le règlement</Btn>
             ) : (
-              <div style={{ marginTop: 16, fontSize: 12, color: C.green, fontWeight: 700 }}>✅ Règlement accepté le {formatDate(clientInfo.contract_accepted_at)}</div>
+              null
             )}
+            </>)}
           </Card>
 
           {clientInfo.contract_accepted && clientInfo.image_consent === null && (
@@ -4967,17 +5038,42 @@ const ClientApp = ({ user, onLogout }) => {
   );
 
   if (screen === "bilan") return (
-    <ClientWeeklyBilan schedule={schedule} sessionLogs={sessionLogs} entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyFocus={weeklyFocus} weeklyCheckins={weeklyCheckins} onSaveCheckin={upsertWeeklyCheckin} onBack={() => setScreen("home")} />
+    <ClientWeeklyBilan schedule={schedule} sessionLogs={sessionLogs} entries={entries} meals={meals} activitySessions={activitySessions} weights={weights} profile={profile} weeklyFocus={weeklyFocus} weeklyCheckins={weeklyCheckins} onSaveCheckin={upsertWeeklyCheckin} onBack={() => setScreen("body")} />
   );
 
   if (screen === "body") return (
-        <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
-          <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-          <h2 style={{ fontSize: 22, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, marginBottom: 20 }}>Mon suivi corps</h2>
-          <Tab tabs={[["weight", "⚖️ Poids"], ["measures", "📏 Mensurations"], ["photos", "📸 Photos"], ["cycle", "🌙 Cycle"]]} active={bodyTab} onChange={setBodyTab} />
+        <div style={SCREEN}>
+          <h1 style={H1}>Mes progrès</h1>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+            {[["bilan", "Bilan de la semaine", "Tendance et ressenti"], ["history", "Mes journées", "Historique du journal"]].map(([k, t, sub]) => (
+              <button key={k} onClick={() => { setScreen(k); window.scrollTo(0, 0); }} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "14px", textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: C.white }}>
+                <span style={{ display: "block", fontWeight: 650, fontSize: 15 }}>{t}</span><span style={{ fontSize: 13, color: C.textMuted }}>{sub}</span>
+              </button>
+            ))}
+          </div>
+          <Segmented options={[["weight", "Poids"], ["measures", "Mesures"], ["photos", "Photos"], ["cycle", "Cycle"]]} active={bodyTab} onChange={setBodyTab} />
           {bodyTab === "weight" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {weights.length > 1 && <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>{[{ l: "DÉPART", v: `${startWeight.value} kg`, c: C.white }, { l: "MOY. 7 JOURS", v: weekAvgWeight != null ? `${weekAvgWeight.toFixed(1)} kg` : `${lastWeight.value} kg`, c: C.pink }, { l: "ÉVOLUTION", v: `${(weekAvgWeight ?? lastWeight.value) - startWeight.value > 0 ? "+" : ""}${((weekAvgWeight ?? lastWeight.value) - startWeight.value).toFixed(1)} kg`, c: C.green }].map(s => <Card key={s.l} style={{ padding: 14, textAlign: "center" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div><div style={{ fontSize: 18, fontWeight: 900, color: s.c }}>{s.v}</div></Card>)}</div>}
+              {weekAvgWeight != null && (() => {
+                // Moyenne glissante sur 7 jours, une valeur par pesée : la courbe montre la tendance, pas le bruit
+                const pts = weights.slice(-30).map(w => ({ d: w.date, v: avgWeightBetween(weights, addDays(w.date, -6), w.date) }));
+                const prev = avgWeightBetween(weights, addDays(today, -13), addDays(today, -7));
+                const vs = pts.map(x => x.v), min = Math.min(...vs), max = Math.max(...vs), span = max - min || 1;
+                const path = pts.map((x, i) => `${pts.length > 1 ? (i / (pts.length - 1)) * 300 : 150},${8 + (1 - (x.v - min) / span) * 48}`).join(" L");
+                return (
+                  <Card>
+                    <Eyebrow>Moyenne des 7 derniers jours</Eyebrow>
+                    <div style={{ fontFamily: F.serif, fontSize: 38, color: C.heading, margin: "6px 0 2px", fontVariantNumeric: "tabular-nums" }}>{weekAvgWeight.toFixed(1).replace(".", ",")} <span style={{ fontFamily: F.sans, fontSize: 15, color: C.textMuted }}>kg{prev != null ? ` · ${weekAvgWeight - prev > 0 ? "+" : ""}${(weekAvgWeight - prev).toFixed(1).replace(".", ",")} kg en une semaine` : ""}</span></div>
+                    {pts.length > 1 && (
+                      <svg viewBox="0 0 300 64" preserveAspectRatio="none" style={{ width: "100%", height: 72, display: "block", margin: "6px 0" }} aria-hidden="true">
+                        <path d={`M${path} L300,64 L0,64 Z`} fill={C.pink + "1c"} />
+                        <path d={`M${path}`} fill="none" stroke={C.cherry} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                      </svg>
+                    )}
+                    <div style={{ fontSize: 13, color: C.textMuted }}>Une pesée isolée varie d'un à deux kilos selon l'eau, le cycle ou le transit. La moyenne montre la vraie tendance.</div>
+                  </Card>
+                );
+              })()}
               <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>AJOUTER UN PESAGE</div><div style={{ display: "flex", gap: 10 }}><input type="number" step="0.1" placeholder="ex: 63.2 kg" value={newWeight} onChange={e => setNewWeight(e.target.value)} style={{ ...inputSt, flex: 1 }} /><button onClick={handleAddWeight} style={{ background: C.pink, border: "none", borderRadius: 10, padding: "11px 18px", fontWeight: 800, color: C.black, cursor: "pointer" }}>+</button></div></Card>
               {weights.length > 0 && <Card>{[...weights].reverse().map((w, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{formatDate(w.date)}</span><span style={{ fontWeight: 700 }}>{w.value} kg</span></div>)}</Card>}
             </div>
@@ -5026,101 +5122,88 @@ const ClientApp = ({ user, onLogout }) => {
   );
 
   if (screen === "history") return (
-        <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
-          <button onClick={() => setScreen("home")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-          <SectionTitle title="Mon historique" subtitle="Retour sur tes jours, tes ressentis et ton évolution" />
+        <div style={SCREEN}>
+          <button onClick={() => setScreen("body")} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, marginBottom: 6, padding: "8px 0", display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}><Icon name="back" size={18} /> Progrès</button>
+          <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 32, letterSpacing: "-0.6px", color: C.heading, margin: "0 0 16px" }}>Mes journées</h1>
           {loading ? <Spinner /> : entries.length === 0 ? <p style={{ color: C.textMuted, textAlign: "center" }}>Aucune entrée.</p> : entries.map((e, i) => <div key={i} style={{ marginBottom: 12 }}><EntryCard e={e} proteinGoal={proteinTarget(profile)} onClick={() => setSelectedEntry(e)} /></div>)}
           <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
         </div>
   );
 
-  // ── HOME ──────────────────────────────────────────────────────────────────
+  // ── AUJOURD'HUI ──────────────────────────────────────────────────────────
+  const firstName = clientInfo.name?.split(" ")[0] || "";
+  const todayMeals = meals.filter(m => m.date === today);
+  const todayLogged = sessionLogs.some(l => l.date === today);
+  const tasks = clientInfo.contract_ended ? [] : [
+    todayWorkout && { done: todayLogged, title: "Séance du jour", sub: todayLogged ? "Faite, bravo" : todayWorkout.name, action: todayLogged ? null : "Commencer", onClick: () => openWorkoutPreview(todayWorkout) },
+    { done: todayMeals.length >= 3, title: "Mes repas", sub: todayMeals.length ? `${todayMeals.length} repas noté${todayMeals.length > 1 ? "s" : ""}${todayKcalTarget ? ` · ${Math.round(todayCalories).toLocaleString()} / ${todayKcalTarget.target.toLocaleString()} kcal` : ""}` : "Aucun repas noté", action: "Ajouter", onClick: () => setScreen("repas") },
+    { done: todayJournalDone, title: "Mon journal", sub: todayJournalDone ? "Rempli, merci" : "Ressenti, pas, sommeil, eau", action: todayJournalDone ? "Revoir" : "Remplir", onClick: () => setScreen("journal") },
+  ].filter(Boolean);
+  const doneTasks = tasks.filter(t => t.done).length;
+  const weekDays = isoWeekDates(new Date());
   return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans }}>
-      <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Logo />
-        <button onClick={onLogout} style={{ background: "none", border: `1px solid ${C.border}`, color: C.textMuted, borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer" }}>Déconnexion</button>
+    <div style={SCREEN}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Logo size={30} />
+        <Eyebrow>{new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</Eyebrow>
       </div>
+      <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 36, letterSpacing: "-0.8px", color: C.heading, margin: "22px 0 16px" }}>Bonjour {firstName}.</h1>
 
-      <div style={{ padding: 20, background: "transparent" }}>
-        <PremiumHero
-          badge="Espace coaching"
-          title={`${clientInfo.name?.split(" ")[0] || "Bonjour"} 👋`}
-          subtitle="Tout est pensé pour te guider avec clarté, douceur et efficacité."
-          accent={C.pink}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <Badge>🔥 {clientInfo.streak || 0} jours</Badge>
-            {clientInfo.contract_ended ? <Badge color={C.textMuted}>🏁 Contrat terminé</Badge> : todayJournalDone ? <Badge color={C.green}>✅ Journal OK</Badge> : (
-              <button onClick={() => setScreen("journal")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-                <Badge color={C.orange}>📝 À compléter</Badge>
-              </button>
-            )}
-          </div>
-        </PremiumHero>
-{!clientInfo.contract_accepted && (
-          <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.blue }}>📄 Règlement à valider</div><div style={{ fontSize: 12, color: C.textMuted }}>Prends 2 minutes pour lire et accepter le règlement du coaching</div></div>
-            <button onClick={() => { setScreen("contrat"); window.scrollTo(0, 0); }} style={{ background: C.blue, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Voir</button>          </div>
-        )}
-        {!notifEnabled && (
-          <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 14, padding: 16, marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div><div style={{ fontWeight: 700, fontSize: 13, color: C.orange }}>🔔 Active tes rappels</div><div style={{ fontSize: 12, color: C.textMuted }}>Recevoir des notifications utiles pour ton suivi</div></div>
-            <button onClick={handleEnableNotifs} style={{ background: C.orange, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 12, color: C.black, cursor: "pointer", flexShrink: 0 }}>Activer</button>
-          </div>
-        )}
+      {!clientInfo.contract_accepted && (
+        <button onClick={() => setScreen("contrat")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: C.blue + "12", border: `1px solid ${C.blue}33`, borderRadius: 14, padding: 14, marginBottom: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: C.white }}>
+          <span style={{ flex: 1, fontSize: 15 }}><b style={{ fontWeight: 650 }}>Règlement à valider</b><span style={{ display: "block", fontSize: 13, color: C.textMuted }}>2 minutes pour le lire et l'accepter</span></span>
+          <Icon name="chevron" color={C.blue} />
+        </button>
+      )}
 
-        {pendingClientTasks.length > 0 && (
-          <Card style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>À FAIRE MAINTENANT</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {pendingClientTasks.map(task => (
-                <QuickAction key={task.title} title={task.title} subtitle={task.subtitle} icon={task.icon} accent={task.accent} onClick={task.onClick} />
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {coachMsg && (
-          <Card style={{ marginBottom: 14, borderColor: C.pink + "44", background: C.pink + "08" }}>
-            <div style={{ fontSize: 10, color: C.pink, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>MESSAGE DE TON COACH</div>
-            <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{coachMsg}</div>
-            <button onClick={async () => {
-              const entry = entries.find(e => e.coach_message);
-              if (entry) await updateEntry(entry.id, { coach_message: "" });
-            }} style={{ background: "none", border: `1px solid ${C.pink}55`, borderRadius: 8, padding: "6px 12px", color: C.pink, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-              ✓ Marquer comme lu
+      {tasks.length > 0 && (
+        <div style={{ background: C.cherry, color: C.brandCream, borderRadius: 18, padding: "14px 16px", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 650, letterSpacing: "0.14em", textTransform: "uppercase", color: "#e9c9c9", marginBottom: 4 }}>Ma journée · {doneTasks} sur {tasks.length}</div>
+          {tasks.map((t, i) => (
+            <button key={t.title} onClick={t.onClick} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 0", background: "none", border: "none", borderTop: i ? "1px solid rgba(255,255,255,0.14)" : "none", cursor: "pointer", fontFamily: "inherit", color: C.brandCream, textAlign: "left" }}>
+              <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", border: `1.5px solid ${t.done ? C.brandCream : "#e9c9c9"}`, background: t.done ? C.brandCream : "transparent", color: C.cherry }}>{t.done && <Icon name="check" size={15} strokeWidth={2.4} />}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>{t.title}</span>
+                <span style={{ display: "block", fontSize: 13, color: "#e9c9c9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.sub}</span>
+              </span>
+              {t.action && <span style={{ fontSize: 14, fontWeight: 650, flexShrink: 0 }}>{t.action}</span>}
             </button>
-          </Card>
-        )}
-
-        <Card style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>📅 MA SEMAINE</div>
-          <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} onSelectWorkout={openWorkoutPreview} loadingWorkoutId={loadingWorkoutId} />
-        </Card>
-
-        <Card onClick={() => setScreen("bilan")} style={{ marginBottom: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800 }}>📊 Mon bilan de la semaine</div>
-            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Ta tendance, tes réussites, ton objectif</div>
-          </div>
-          <span style={{ color: C.cherryLight, fontWeight: 700 }}>→</span>
-        </Card>
-
-        {todayKcalTarget && !clientInfo.contract_ended && (
-          <div onClick={() => setScreen("repas")} style={{ cursor: "pointer", marginBottom: 2 }}>
-            <CalorieProgress value={todayCalories} target={todayKcalTarget.target} training={todayKcalTarget.training} label="Calories du jour" />
-          </div>
-        )}
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-          <Card onClick={() => setScreen("body")} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>POIDS</div><div style={{ fontSize: 22, fontWeight: 900, color: C.pink }}>{lastWeight ? `${lastWeight.value} kg` : "—"}</div>{startWeight && lastWeight && startWeight.value !== lastWeight.value && <div style={{ fontSize: 11, color: C.green }}>-{(startWeight.value - lastWeight.value).toFixed(1)} kg</div>}</Card>
-          <Card onClick={() => { setSeancesTab("history"); setScreen("perfs"); }} style={{ cursor: "pointer" }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>SÉANCES</div><div style={{ fontSize: 22, fontWeight: 900, color: C.purple }}>{sessionLogs.length}</div><div style={{ fontSize: 11, color: C.textMuted }}>réalisées</div></Card>
+          ))}
         </div>
-      </div>
+      )}
+
+      {coachMsg && (
+        <div style={{ background: C.green + "14", border: `1px solid ${C.green}30`, borderRadius: 16, padding: 16, marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}><Eyebrow>Un mot de Nina</Eyebrow><Badge color={C.green}>nouveau</Badge></div>
+          <p style={{ fontSize: 15, lineHeight: 1.5, margin: "0 0 10px" }}>{coachMsg}</p>
+          <button onClick={async () => { const entry = entries.find(e => e.coach_message); if (entry) await updateEntry(entry.id, { coach_message: "" }); }} style={{ background: "none", border: "none", padding: "6px 0", color: C.cherry, fontWeight: 650, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>J'ai lu, merci</button>
+        </div>
+      )}
+
+      <Card style={{ marginBottom: 14 }}>
+        <Eyebrow style={{ marginBottom: 12 }}>Ma semaine</Eyebrow>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, textAlign: "center" }}>
+          {weekDays.map(d => {
+            const filled = entries.some(e => e.date === d && isJournalFilled(e));
+            const planned = schedule.some(sc => sc.date === d);
+            const isToday = d === today;
+            return (
+              <div key={d} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, fontSize: 12, color: C.textMuted }}>
+                {new Date(d).toLocaleDateString("fr-FR", { weekday: "narrow" })}
+                <span style={{ width: 36, height: 36, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 13, fontWeight: isToday ? 650 : 500, background: isToday ? C.cherry : filled ? C.green + "1f" : planned ? C.pink + "1f" : C.field, color: isToday ? C.brandCream : filled ? C.green : planned ? C.pink : C.white }}>{filled && !isToday ? <Icon name="check" size={15} strokeWidth={2.2} /> : new Date(d).getDate()}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 10 }}>Vert : journal rempli · rose : séance prévue</div>
+      </Card>
+
+      <button onClick={() => setScreen("bilan")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: C.white }}>
+        <span style={{ flex: 1 }}><b style={{ fontWeight: 650, fontSize: 15 }}>Mon bilan de la semaine</b><span style={{ display: "block", fontSize: 13, color: C.textMuted }}>Ta tendance, tes réussites, ton objectif</span></span>
+        <Icon name="chevron" color={C.muted} />
+      </button>
 
       <ClientBottomNav currentScreen={screen} onNavigate={setScreen} />
-
     </div>
   );
 };

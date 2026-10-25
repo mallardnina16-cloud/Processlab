@@ -158,3 +158,113 @@ export const Spinner = () => (
     <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
   </div>
 );
+
+// ── Icônes au trait (navigation) ─────────────────────────────────────────────────
+const ICON_PATHS = {
+  home: "M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z",
+  users: "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21c.6-3.5 3.4-6 7-6s6.4 2.5 7 6M17 3.5a4 4 0 0 1 0 7.5M22 21c-.4-2.6-2-4.7-4.3-5.6",
+  dumbbell: "M3 9v6M6 6v12M18 6v12M21 9v6M6 12h12",
+  wallet: "M3 7h15a3 3 0 0 1 3 3v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l12-3v3M16 13.5h2",
+  key: "M15 7a4 4 0 1 1-3.5 6L4 20.5V17h3v-3h3l1.5-1.5A4 4 0 0 1 15 7zM16 10h.01",
+  chevron: "M9 6l6 6-6 6",
+  back: "M15 6l-6 6 6 6",
+  bell: "M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0",
+  logout: "M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10",
+  plus: "M12 5v14M5 12h14",
+  message: "M4 5h16v11H8l-4 4z",
+  book: "M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10",
+  fork: "M7 3v8a3 3 0 0 0 6 0V3M10 3v18M17 3c-2 2-2 6 0 8v10",
+  chart: "M4 19l5-6 4 3 7-9",
+  user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4-6 8-6s7 2 8 6",
+  check: "M5 12l5 5 9-10",
+};
+export const Icon = ({ name, size = 20, color = "currentColor", strokeWidth = 1.6 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+    <path d={ICON_PATHS[name]} />
+  </svg>
+);
+
+// Vrai sur grand écran (ordinateur, tablette en paysage) : barre latérale au lieu de la barre du bas
+export const useIsWide = (minWidth = 960) => {
+  const query = `(min-width: ${minWidth}px)`;
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia ? window.matchMedia(query).matches : true);
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia(query);
+    const handler = () => setWide(mq.matches);
+    handler();
+    try { mq.addEventListener("change", handler); } catch { mq.addListener(handler); }
+    return () => { try { mq.removeEventListener("change", handler); } catch { mq.removeListener(handler); } };
+  }, [query]);
+  return wide;
+};
+
+// Onglets soulignés (fiche cliente)
+export const UnderlineTabs = ({ tabs, active, onChange }) => (
+  <div style={{ display: "flex", gap: 24, borderBottom: `1px solid ${C.border}`, marginBottom: 18, overflowX: "auto" }}>
+    {tabs.map(([k, label]) => (
+      <button key={k} onClick={() => onChange(k)} style={{
+        background: "none", border: "none", borderBottom: `2px solid ${active === k ? C.cherry : "transparent"}`,
+        color: active === k ? C.cherry : C.textMuted, fontWeight: active === k ? 650 : 500, fontSize: 15,
+        padding: "10px 0 12px", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", marginBottom: -1,
+      }}>{label}</button>
+    ))}
+  </div>
+);
+
+// Sélecteur segmenté (sous-vues d'un onglet)
+export const Segmented = ({ options, active, onChange }) => (
+  <div style={{ display: "inline-flex", background: C.field2, borderRadius: 10, padding: 3, marginBottom: 16, maxWidth: "100%", overflowX: "auto" }}>
+    {options.map(([k, label]) => (
+      <button key={k} onClick={() => onChange(k)} style={{
+        background: active === k ? C.card : "transparent", border: "none", borderRadius: 8,
+        color: active === k ? C.cherry : C.textMuted, fontWeight: active === k ? 650 : 500, fontSize: 14,
+        padding: "7px 14px", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
+        boxShadow: active === k ? "0 1px 2px rgba(64,32,32,0.08)" : "none",
+      }}>{label}</button>
+    ))}
+  </div>
+);
+
+// Petit titre de section en capitales
+export const Eyebrow = ({ children, style = {} }) => (
+  <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 650, letterSpacing: "0.14em", textTransform: "uppercase", ...style }}>{children}</div>
+);
+
+// Choix du jour « ‹ Aujourd'hui · mer. 22 oct. › » : on remonte jusqu'à `maxBack` jours en arrière.
+// `done(dateStr)` permet d'afficher une coche quand le jour est déjà rempli.
+export const DayPicker = ({ value, onChange, maxBack = 3, done }) => {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const shift = (n) => { const d = new Date(value); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+  const back = Math.round((new Date(todayStr) - new Date(value)) / 86400000);
+  const canPrev = back < maxBack, canNext = back > 0;
+  const name = back === 0 ? "Aujourd'hui" : back === 1 ? "Hier" : null;
+  const date = new Date(value).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  const arrow = (enabled, dir, label) => (
+    <button onClick={() => enabled && onChange(shift(dir))} disabled={!enabled} aria-label={label} style={{ background: "none", border: "none", width: 44, height: 44, display: "grid", placeItems: "center", color: enabled ? C.cherry : C.border, cursor: enabled ? "pointer" : "default" }}>
+      <Icon name={dir < 0 ? "back" : "chevron"} size={22} />
+    </button>
+  );
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, marginBottom: 16 }}>
+      {arrow(canPrev, -1, "Jour précédent")}
+      <div style={{ textAlign: "center", fontSize: 15 }}>
+        <b style={{ fontWeight: 650 }}>{name ? `${name} · ` : ""}</b>{date}
+        {done && done(value) && <span style={{ color: C.green, fontWeight: 650, marginLeft: 8 }}>✓ rempli</span>}
+      </div>
+      {arrow(canNext, 1, "Jour suivant")}
+    </div>
+  );
+};
+
+// Champ chiffré compact (pas, sommeil, eau…) : libellé au-dessus, clavier numérique sur téléphone
+export const NumField = ({ label, unit, value, onChange, placeholder, decimal }) => (
+  <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+    <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{label}</span>
+    <span style={{ display: "flex", alignItems: "center", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "0 12px" }}>
+      <input type="text" inputMode={decimal ? "decimal" : "numeric"} value={value} onChange={onChange} placeholder={placeholder}
+        style={{ border: "none", outline: "none", background: "transparent", padding: "12px 0", fontSize: 17, color: C.white, width: "100%", minWidth: 0, fontFamily: "inherit", fontVariantNumeric: "tabular-nums" }} />
+      {unit && <span style={{ color: C.textMuted, fontSize: 14, flexShrink: 0 }}>{unit}</span>}
+    </span>
+  </label>
+);
