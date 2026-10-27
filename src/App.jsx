@@ -1375,27 +1375,36 @@ const perfSets = (perf) => {
 const formatPerfSets = (sets) => sets.map(s => [s.weight, s.reps && `${s.reps} reps`].filter(Boolean).join(" × ")).join(" · ");
 const sameExerciseName = (a, b) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
-const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
+// coachFor : prénom de la cliente quand c'est la coach qui mène la séance et saisit pour elle
+const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor = null }) => {
   const rawBlocks = (workout.blocks && workout.blocks.length > 0) ? workout.blocks : workout.exercises.map(e => ({ ...e, type: e.type || "exercise" }));
   const blocks = [
     ...rawBlocks.filter(b => b.type === "warmup"),
     ...rawBlocks.filter(b => b.type !== "warmup")
   ];
   const summary = getWorkoutSummary(workout);
+  // Brouillon de séance gardé sur l'appareil à chaque saisie : si l'appli est fermée ou rechargée
+  // (iPhone qui met l'appli en veille, appel, autre appli), la séance reprend là où elle était.
+  const draftKey = `hp:seance:${clientId || "anon"}:${workout.id}`;
+  const [draft] = useState(() => {
+    try { const d = JSON.parse(window.localStorage.getItem(draftKey) || "null"); return d && Date.now() - d.savedAt < 36 * 3600 * 1000 ? d : null; } catch { return null; }
+  });
   const [showSummary, setShowSummary] = useState(false);
-  const [blockIdx, setBlockIdx] = useState(0);
+  const [blockIdx, setBlockIdx] = useState(draft?.blockIdx ?? 0);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(0);
   const [restLabel, setRestLabel] = useState("REPOS");
-  const [done, setDone] = useState(false);
-  const [exLogs, setExLogs] = useState({});
-  const [globalNote, setGlobalNote] = useState("");
-  const [simpleSets, setSimpleSets] = useState(0);
+  const [done, setDone] = useState(draft?.done ?? false);
+  const [exLogs, setExLogs] = useState(draft?.exLogs ?? {});
+  const [globalNote, setGlobalNote] = useState(draft?.globalNote ?? "");
+  const [simpleSets, setSimpleSets] = useState(draft?.simpleSets ?? 0);
   const [loggingSet, setLoggingSet] = useState(false);
   const [loggingCircuitSet, setLoggingCircuitSet] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [currentRound, setCurrentRound] = useState(1);
-  const [circuitExIdx, setCircuitExIdx] = useState(0);
+  const [currentRound, setCurrentRound] = useState(draft?.currentRound ?? 1);
+  const [circuitExIdx, setCircuitExIdx] = useState(draft?.circuitExIdx ?? 0);
+  const [resumed, setResumed] = useState(!!draft);
+  const [showQuit, setShowQuit] = useState(false);
   const [intervalPhase, setIntervalPhase] = useState("work");
   const [savingFinal, setSavingFinal] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -1432,7 +1441,18 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   };
 
   useEffect(() => () => clearInterval(timerRef.current), []);
-  useEffect(() => { setSimpleSets(0); setLoggingSet(false); setLoggingCircuitSet(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work"); }, [blockIdx]);
+  // Changement d'exercice : on repart de la série 1 (sauf au montage, pour garder une séance reprise)
+  const firstBlockRun = useRef(true);
+  useEffect(() => {
+    if (firstBlockRun.current) { firstBlockRun.current = false; return; }
+    setSimpleSets(0); setLoggingSet(false); setLoggingCircuitSet(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work");
+  }, [blockIdx]);
+  useEffect(() => {
+    try { window.localStorage.setItem(draftKey, JSON.stringify({ blockIdx, exLogs, globalNote, simpleSets, currentRound, circuitExIdx, done, savedAt: Date.now() })); } catch {}
+  }, [draftKey, blockIdx, exLogs, globalNote, simpleSets, currentRound, circuitExIdx, done]);
+  const clearDraft = () => { try { window.localStorage.removeItem(draftKey); } catch {} };
+  const restartFromScratch = () => { clearDraft(); setBlockIdx(0); setExLogs({}); setGlobalNote(""); setSimpleSets(0); setCurrentRound(1); setCircuitExIdx(0); setDone(false); setResumed(false); };
+  const hasAnyPerf = Object.values(exLogs).some(l => (l?.sets || []).some(x => x && (x.weight || x.reps)) || l?.comment);
 
   const startTimer = (secs, label, onEnd) => {
     clearInterval(timerRef.current);
@@ -1490,10 +1510,13 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
       const { error } = await supabase.from("session_logs").insert([{ client_id: clientId, workout_id: workout.id, workout_name: workout.name, date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote }]);
       if (error) {
         setSavingFinal(false);
-        setSaveError("❌ Impossible d'enregistrer la séance. Vérifie ta connexion et réessaie. Si ça persiste, préviens ta coach — rien n'est perdu, tes données sont encore ici.");
+        setSaveError(coachFor
+          ? `Impossible d'enregistrer la séance de ${coachFor} (${error.message}). Rien n'est perdu : les saisies restent ici, réessaie.`
+          : "❌ Impossible d'enregistrer la séance. Vérifie ta connexion et réessaie. Si ça persiste, préviens ta coach — rien n'est perdu, tes données sont encore ici.");
         return;
       }
     }
+    clearDraft();
     setSavingFinal(false);
     onFinish();
   };
@@ -1586,12 +1609,31 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [] }) => {
   const NavBar = () => (
     <>
       <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <button onClick={onFinish} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, padding: 0 }}>✕ Quitter</button>
+        <button onClick={() => setShowQuit(true)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, padding: "8px 0", fontFamily: "inherit" }}>✕ Quitter</button>
         <span style={{ fontWeight: 700, fontSize: 14 }}>{workout.name}</span>
         <span style={{ fontSize: 13, color: C.pink, fontWeight: 700 }}>{blockIdx + 1}/{blocks.length}</span>
       </div>
       <div style={{ height: 3, background: C.border }}><div style={{ height: "100%", background: C.pink, width: `${(blockIdx / blocks.length) * 100}%`, transition: "width .4s" }} /></div>
+      {coachFor && <div style={{ background: C.cherry, color: C.brandCream, padding: "8px 20px", fontSize: 14 }}>Séance avec <b>{coachFor}</b> · tu saisis pour elle, tout est enregistré sur son compte.</div>}
+      {resumed && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: C.green + "14", padding: "8px 20px", fontSize: 14 }}>
+          <span>Séance reprise là où elle s'était arrêtée.</span>
+          <button onClick={restartFromScratch} style={{ background: "none", border: "none", color: C.cherry, fontWeight: 650, cursor: "pointer", fontFamily: "inherit", fontSize: 14, padding: "6px 0", flexShrink: 0 }}>Recommencer</button>
+        </div>
+      )}
       <SessionSummaryBar />
+      {showQuit && (
+        <div onClick={() => setShowQuit(false)} style={{ position: "fixed", inset: 0, background: C.overlay, zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: C.card, width: "100%", maxWidth: 520, borderRadius: "22px 22px 0 0", padding: "20px 18px calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}>
+            <h3 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 24, color: C.heading, margin: "0 0 4px" }}>Quitter la séance ?</h3>
+            <p style={{ fontSize: 14, color: C.textMuted, margin: "0 0 6px" }}>{hasAnyPerf ? "Ce qui a déjà été saisi peut être enregistré maintenant." : "Aucune performance n'a encore été saisie."}</p>
+            {saveError && <div style={{ fontSize: 14, color: C.red }}>{saveError}</div>}
+            {hasAnyPerf && <Btn onClick={saveAndFinish} disabled={savingFinal}>{savingFinal ? "Enregistrement…" : "Enregistrer ce qui a été fait"}</Btn>}
+            <Btn variant="secondary" onClick={() => setShowQuit(false)}>Continuer la séance</Btn>
+            <Btn variant="ghost" onClick={() => { clearDraft(); onFinish(); }}>Quitter sans enregistrer</Btn>
+          </div>
+        </div>
+      )}
     </>
   );
 
@@ -3740,6 +3782,9 @@ const CoachApp = ({ user, onLogout }) => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
+  // Séance menée par la coach pour la cliente ouverte (saisie à sa place, enregistrée sur son compte)
+  const [coachSession, setCoachSession] = useState(null);
+  const [launchingId, setLaunchingId] = useState(null);
   const [showCatalog, setShowCatalog] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   // Journaux des 7 derniers jours de toutes les clientes : alimente « À ton attention »
@@ -3879,11 +3924,16 @@ const CoachApp = ({ user, onLogout }) => {
     if (perm === "granted") { setNotifGranted(true); new Notification(BRAND_NAME + " ✅", { body: "Tu seras notifiée dès qu'une cliente remplit son journal !", icon: "/logo.png" }); }
   };
 
-  useEffect(() => {
-    if (selected) {
-      supabase.from("session_logs").select("*").eq("client_id", selected).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || []));
-    }
-  }, [selected]);
+  const reloadSessionLogs = () => {
+    if (selected) supabase.from("session_logs").select("*").eq("client_id", selected).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || []));
+  };
+  useEffect(reloadSessionLogs, [selected]);
+  const launchSession = async (w) => {
+    setLaunchingId(w.id);
+    const detail = await fetchWorkoutDetail(w);
+    setLaunchingId(null);
+    setCoachSession(detail);
+  };
 
   // ── ADMIN : chargement des comptes Supabase Auth via l'Edge Function sécurisée ──
   useEffect(() => {
@@ -3956,6 +4006,11 @@ const CoachApp = ({ user, onLogout }) => {
   };
 
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} meals={meals} showBalance />;
+
+  if (coachSession && client) return (
+    <WorkoutPlayer workout={coachSession} clientId={client.id} sessionLogs={sessionLogs} coachFor={client.name.split(" ")[0]}
+      onFinish={() => { setCoachSession(null); reloadSessionLogs(); setClientTab("perf"); window.scrollTo(0, 0); }} />
+  );
 
   if (buildingWorkout || editingWorkout) return (
     <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
@@ -4462,6 +4517,12 @@ const CoachApp = ({ user, onLogout }) => {
                       <Badge color={C.pink}>🔥 {client.streak || 0} j</Badge>
                     </div>
                   </div>
+                  {(() => {
+                    const todays = schedule.filter(sc => sc.date === today).map(sc => workoutsById[sc.workout_id]).filter(Boolean);
+                    return todays.length > 0
+                      ? <Btn small variant="secondary" onClick={() => launchSession(todays[0])} disabled={launchingId === todays[0].id} style={{ width: "auto" }}>{launchingId === todays[0].id ? "Chargement…" : "▶ Séance du jour"}</Btn>
+                      : <Btn small variant="secondary" onClick={() => setClientTab("seances")} style={{ width: "auto" }}>▶ Lancer une séance</Btn>;
+                  })()}
                   <Btn small onClick={() => setShowMessage(true)} style={{ width: "auto", display: "flex", alignItems: "center", gap: 8 }}><Icon name="message" size={17} /> Message</Btn>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
@@ -4502,7 +4563,7 @@ const CoachApp = ({ user, onLogout }) => {
                     <WeekStrip schedule={schedule} workoutsById={workoutsById} appointments={appointments} />
                   </Card>
                   <AppointmentScheduler appointments={appointments} onAdd={addAppointment} onDelete={deleteAppointment} />
-                  {loadingData ? <Spinner /> : activeWorkoutsList.map(w => {
+                  {loadingData ? <Spinner /> : [...activeWorkoutsList].sort((x, y) => Number(!assignedWorkouts.some(a => a.workout_id === x.id)) - Number(!assignedWorkouts.some(a => a.workout_id === y.id))).map(w => {
                     const assigned = assignedWorkouts.find(a => a.workout_id === w.id);
                     return (
                       <Card key={w.id} style={{ borderColor: assigned ? C.green + "44" : C.border }}>
@@ -4512,6 +4573,7 @@ const CoachApp = ({ user, onLogout }) => {
                             {assigned ? "✓ Assignée" : "+ Assigner"}
                           </button>
                         </div>
+                        {assigned && <Btn small onClick={() => launchSession(w)} disabled={launchingId === w.id} style={{ width: "auto", marginBottom: 12 }}>{launchingId === w.id ? "Chargement…" : `▶ Lancer avec ${client.name.split(" ")[0]}`}</Btn>}
                         {assigned && <WorkoutScheduleEditor workoutId={w.id} schedule={schedule} onSchedule={scheduleWorkout} onUnschedule={unscheduleWorkout} />}
                       </Card>
                     );
