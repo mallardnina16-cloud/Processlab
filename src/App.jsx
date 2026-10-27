@@ -2150,7 +2150,7 @@ const useClientData = (clientId, { isCoach = false } = {}) => {
 
   const addEntry = async (entry) => {
     const { data } = await supabase.from("entries").insert([{ ...entry, client_id: clientId }]).select().single();
-    if (data) { setEntries(e => [data, ...e]); await supabase.from("clients").update({ today_done: true }).eq("id", clientId); }
+    if (data) { setEntries(e => [data, ...e]); if (isJournalFilled(data)) await supabase.from("clients").update({ today_done: true }).eq("id", clientId); }
     return data;
   };
   const updateEntry = async (id, patch) => {
@@ -4102,7 +4102,8 @@ const CoachApp = ({ user, onLogout }) => {
     if (!msgText.trim() || !selected) return;
     const todayEntry = entries.find(e => e.date === today);
     if (todayEntry) { await updateEntry(todayEntry.id, { coach_message: msgText }); }
-    else { await addEntry({ date: today, steps: 0, feeling: 3, meal_note: "", session_status: "rest", coach_message: msgText, photos: [] }); }
+    // Un message de la coach crée la journée si besoin : elle ne compte pas comme journal rempli
+    else { await addEntry({ date: today, steps: 0, feeling: 3, meal_note: "", session_status: "rest", coach_message: msgText, photos: [], journal_filled: false }); }
     setMsgText(""); setShowMessage(false); alert("✅ Message envoyé !");
   };
 
