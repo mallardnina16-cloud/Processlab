@@ -78,6 +78,7 @@ Format natif du WorkoutBuilder. Trois types.
   "tempo": "2-0-1-1",             // desc-bas-mont-haut, optionnel
   "rpe": "7",                     // optionnel — badge côté élève
   "technique": "Dropset : 1 × -25 %",   // optionnel — dropset / rest-pause / AMRAP / myo-reps…
+  "equipment": "Banc, barre, disques",  // optionnel — matériel, séparé par des virgules (liste « Matériel à préparer » de l'aperçu ; à défaut, le weight_type sert de matériel)
   "suggested_weight": "100",      // texte libre : "100", "2×30", "poids du corps"
   "weight_type": "barre",         // barre | haltères | machine | disques | kettlebell | élastique | poids du corps …
   "note": "Consigne technique courte.",

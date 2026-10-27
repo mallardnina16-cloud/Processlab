@@ -979,6 +979,7 @@ const ExerciseFields = ({ ex, onChange, onDelete, showSets = true, intervalMode 
           </select>
         </div>
       </div>
+      <Inp label="Matériel (optionnel)" placeholder="ex : banc, barre, disques, slam ball" value={ex.equipment || ""} onChange={e => onChange({ ...ex, equipment: e.target.value })} />
       <div>
         <label style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 4 }}>⏱️ Tempo (optionnel)</label>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1252,6 +1253,23 @@ const estimateBlockDuration = (block) => {
   return sets * workPerSet + Math.max(0, sets - 1) * rest;
 };
 
+// Matériel d'un exercice : le champ « Matériel » (liste séparée par des virgules) ou, à défaut,
+// le type de charge renseigné (haltères, barre, banc…) pour les séances créées avant ce champ.
+const WEIGHT_TYPE_EQUIPMENT = { "haltères": "Haltères", "disques": "Disques", "barre": "Barre", "machine": "Machine", "kettlebell": "Kettlebell", "élastique": "Élastique", "medicine ball": "Medicine ball", "slam ball": "Slam ball", "ballon (swiss ball)": "Swiss ball", "TRX / sangles": "TRX", "corde ondulatoire": "Corde ondulatoire", "corde à sauter": "Corde à sauter", "box / step": "Box / step", "tapis": "Tapis", "banc": "Banc" };
+const exerciseEquipment = (e) => {
+  const own = String(e?.equipment || "").split(",").map(x => x.trim()).filter(Boolean);
+  if (own.length) return own;
+  const fromType = WEIGHT_TYPE_EQUIPMENT[e?.weight_type];
+  return fromType ? [fromType] : [];
+};
+const workoutEquipment = (blocks = []) => {
+  const seen = new Map();
+  blocks.flatMap(b => (b.type === "circuit" || b.type === "warmup") ? (b.exercises || []) : [b])
+    .flatMap(exerciseEquipment)
+    .forEach(item => { const k = item.toLowerCase(); if (!seen.has(k)) seen.set(k, item.charAt(0).toUpperCase() + item.slice(1)); });
+  return [...seen.values()];
+};
+
 const getWorkoutSummary = (workout) => {
   const blocks = (workout?.blocks && workout.blocks.length > 0)
     ? workout.blocks
@@ -1267,8 +1285,6 @@ const getWorkoutSummary = (workout) => {
   const durationMinutes = Math.max(5, Math.round(totalSeconds / 60));
 
   const allExercises = blocks.flatMap(b => (b.type === "circuit" || b.type === "warmup") ? (b.exercises || []) : [b]);
-  const equipmentSet = new Set();
-  allExercises.forEach(e => { if (e.weight_type) equipmentSet.add(e.weight_type); });
 
   // Structure détaillée bloc par bloc, pour afficher clairement ce qui est un circuit
   // (avec son nombre de tours) et ce qui est un exercice seul, avant de démarrer la séance.
@@ -1295,69 +1311,91 @@ const getWorkoutSummary = (workout) => {
     exerciseCount: allExercises.length,
     exercises: allExercises.map(e => ({ name: e.name, weight_type: e.weight_type })),
     blocksSummary,
-    equipment: Array.from(equipmentSet),
+    equipment: workoutEquipment(blocks),
   };
 };
 
 // Écran de preview affiché avant de lancer une séance : type, durée, matériel, liste des exercices
-const WorkoutPreview = ({ workout, onStart, onBack }) => {
-  const summary = getWorkoutSummary(workout);
-  return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
-      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, marginBottom: 18, padding: 0 }}>← Retour</button>
-      <h2 style={{ fontSize: 24, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, margin: "0 0 6px" }}>{workout.name}</h2>
-      {workout.description && <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 20, marginTop: 0 }}>{workout.description}</p>}
+// Durée lisible : 90 → « 1 min 30 », 45 → « 45 s »
+const fmtSeconds = (sec) => {
+  const n = parseInt(sec, 10); if (!n) return "";
+  const m = Math.floor(n / 60), r = n % 60;
+  return m ? `${m} min${r ? ` ${String(r).padStart(2, "0")}` : ""}` : `${r} s`;
+};
+// Ce qu'il faut faire pour un exercice : « 8–10 reps » ou « 40 s »
+const exercisePrescription = (e) => (e.mode || "reps") === "time" ? `${e.duration || 30} s` : !e.reps ? "" : /^[\d\s\-–àa,]+$/.test(String(e.reps)) ? `${e.reps} reps` : String(e.reps);
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-        <Card style={{ padding: 14, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>TYPE</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: summary.hasCircuit ? C.purple : C.pink }}>{summary.hasCircuit ? "🔄" : "💪"} {summary.type}</div>
-        </Card>
-        <Card style={{ padding: 14, textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>DURÉE ESTIMÉE</div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: C.orange }}>~{summary.durationMinutes} min</div>
+// AVANT DE COMMENCER — matériel à préparer, mot de Nina, échauffement, programme bloc par bloc
+// (les circuits sont regroupés), et la dernière performance de chaque exercice.
+const WorkoutPreview = ({ workout, onStart, onBack, sessionLogs = [], coachFor = null }) => {
+  const summary = getWorkoutSummary(workout);
+  const blocks = (workout.blocks && workout.blocks.length > 0) ? workout.blocks : (workout.exercises || []).map(e => ({ ...e, type: e.type || "exercise" }));
+  const warmups = blocks.filter(b => b.type === "warmup");
+  const main = blocks.filter(b => b.type !== "warmup");
+  const lastOf = (name) => perfHistoryOf(sessionLogs, name)[0];
+  const exRow = (e, key, first) => {
+    const last = lastOf(e.name);
+    return (
+      <div key={key} style={{ padding: "10px 0", borderTop: first ? "none" : `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+          <span style={{ fontWeight: 650, fontSize: 15, minWidth: 0 }}>{e.name || "—"}</span>
+          <span style={{ fontSize: 14, color: C.textMuted, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{e.sets ? `${e.sets} × ` : ""}{exercisePrescription(e)}</span>
+        </div>
+        {(e.rest || e.tempo || e.rpe || e.technique) && <div style={{ fontSize: 13, color: C.textMuted }}>{[e.rest && `repos ${fmtSeconds(e.rest)}`, e.tempo && `tempo ${e.tempo}`, e.rpe && `RPE ${e.rpe}`, e.technique].filter(Boolean).join(" · ")}</div>}
+        {last && <div style={{ fontSize: 13, color: C.pink, marginTop: 2 }}>Dernière fois : {formatPerfSets(last.sets.slice(0, 1))}{last.sets.length > 1 ? ` (+${last.sets.length - 1} série${last.sets.length > 2 ? "s" : ""})` : ""}</div>}
+      </div>
+    );
+  };
+  return (
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: "20px 16px 110px", maxWidth: 560, margin: "0 auto" }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, padding: "8px 0", display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}><Icon name="back" size={18} /> Retour</button>
+      {coachFor && <div style={{ background: C.cherry, color: C.brandCream, borderRadius: 12, padding: "9px 14px", fontSize: 14, margin: "6px 0 10px" }}>Séance avec <b>{coachFor}</b> · tu saisis pour elle</div>}
+      <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 30, letterSpacing: "-0.5px", color: C.heading, margin: "6px 0 10px", lineHeight: 1.15 }}>{workout.name}</h1>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+        <Badge color={C.textMuted}>≈ {summary.durationMinutes} min</Badge>
+        <Badge color={C.textMuted}>{summary.exerciseCount} exercice{summary.exerciseCount > 1 ? "s" : ""}</Badge>
+        {main.filter(b => b.type === "circuit").length > 0 && <Badge color={C.yellow}>{main.filter(b => b.type === "circuit").length} circuit{main.filter(b => b.type === "circuit").length > 1 ? "s" : ""}</Badge>}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {summary.equipment.length > 0 && (
+          <Card style={{ background: C.green + "12", borderColor: C.green + "30" }}>
+            <Eyebrow style={{ marginBottom: 10 }}>Matériel à préparer</Eyebrow>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{summary.equipment.map(eq => <span key={eq} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "5px 11px", fontSize: 14 }}>{eq}</span>)}</div>
+          </Card>
+        )}
+        {workout.description && (
+          <Card>
+            <Eyebrow style={{ marginBottom: 6 }}>Le mot de Nina</Eyebrow>
+            <div style={{ fontSize: 15, lineHeight: 1.5, whiteSpace: "pre-line" }}>{workout.description}</div>
+          </Card>
+        )}
+        {warmups.map((w, i) => (
+          <Card key={`w${i}`} style={{ gap: 0 }}>
+            <Eyebrow style={{ marginBottom: 4 }}>Échauffement</Eyebrow>
+            {(w.exercises || []).map((e, j) => (
+              <div key={j} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderTop: j ? `1px solid ${C.border}` : "none", fontSize: 15 }}>
+                <span style={{ minWidth: 0 }}>{e.name}</span><span style={{ color: C.textMuted, flexShrink: 0 }}>{exercisePrescription(e)}</span>
+              </div>
+            ))}
+          </Card>
+        ))}
+        <Card style={{ gap: 0 }}>
+          <Eyebrow style={{ marginBottom: 4 }}>Au programme</Eyebrow>
+          {main.map((b, i) => b.type === "circuit" ? (
+            <div key={i} style={{ background: C.yellow + "10", border: `1px solid ${C.yellow}30`, borderRadius: 14, padding: "10px 12px", margin: "8px 0" }}>
+              <div style={{ fontWeight: 650, fontSize: 15, color: C.yellow }}>Circuit · {b.rounds || 3} tour{(b.rounds || 3) > 1 ? "s" : ""}</div>
+              <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 2 }}>
+                {[b.interval_mode && "Enchaîné au chrono", b.rest_between_rounds && `${fmtSeconds(b.rest_between_rounds)} de repos entre les tours`].filter(Boolean).join(" · ") || "Les exercices s'enchaînent, puis on recommence"}
+              </div>
+              {(b.exercises || []).map((e, j) => exRow(b.interval_mode ? { ...e, mode: "time", duration: e.work_time, rest: e.rest_time } : e, `${i}-${j}`, j === 0))}
+            </div>
+          ) : exRow(b, i, i === 0))}
+          {main.length === 0 && <div style={{ fontSize: 14, color: C.textMuted, padding: "8px 0" }}>Aucun exercice pour le moment.</div>}
         </Card>
       </div>
-
-      {summary.equipment.length > 0 && (
-        <Card style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 10 }}>⚖️ MATÉRIEL NÉCESSAIRE</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {summary.equipment.map(eq => <Badge key={eq} color={C.blue}>{eq}</Badge>)}
-          </div>
-        </Card>
-      )}
-
-     <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📋 STRUCTURE DE LA SÉANCE ({summary.exerciseCount} exercice{summary.exerciseCount > 1 ? "s" : ""})</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {summary.blocksSummary.map((b, i) => (
-            <div key={i} style={{
-              background: b.type === "circuit" ? C.purple + "0f" : b.type === "warmup" ? C.yellow + "0f" : C.field,
-              border: `1px solid ${b.type === "circuit" ? C.purple + "33" : b.type === "warmup" ? C.yellow + "33" : C.border}`,
-              borderRadius: 12, padding: 14,
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: b.type === "circuit" ? C.purple : b.type === "warmup" ? C.yellow : C.pink, marginBottom: 8 }}>
-                {b.label}
-              </div>
-              {b.type === "exercise" ? (
-                <div style={{ fontSize: 14 }}>
-                  {b.name || "—"}
-                  {b.sets && b.reps && <span style={{ color: C.textMuted, fontSize: 12 }}> · {b.sets} séries × {b.reps}</span>}
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {b.exercises.map((n, j) => <div key={j} style={{ fontSize: 13, color: C.textMuted }}>{j + 1}. {n || "—"}</div>)}
-                  {b.exercises.length === 0 && <div style={{ fontSize: 12, color: C.textMuted }}>Aucun exercice</div>}
-                </div>
-              )}
-            </div>
-          ))}
-          {summary.blocksSummary.length === 0 && <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>Aucun exercice pour le moment</div>}
-        </div>
-      </Card>
-
-      <Btn onClick={onStart} style={{ fontSize: 17, marginBottom: 20 }}>▶ Commencer la séance</Btn>
+      <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", background: C.black + "f2", borderTop: `1px solid ${C.border}`, zIndex: 40 }}>
+        <div style={{ maxWidth: 528, margin: "0 auto" }}><Btn onClick={onStart} style={{ width: "100%" }}>Commencer la séance</Btn></div>
+      </div>
     </div>
   );
 };
@@ -1372,8 +1410,23 @@ const perfSets = (perf) => {
   const sets = perf.sets?.length ? perf.sets : [{ weight: perf.weight, reps: perf.reps }];
   return sets.filter(s => s && (s.weight || s.reps));
 };
-const formatPerfSets = (sets) => sets.map(s => [s.weight, s.reps && `${s.reps} reps`].filter(Boolean).join(" × ")).join(" · ");
+// Charge saisie en chiffre seul (« 62,5 ») : on ajoute l'unité pour la lecture
+const fmtWeight = (w) => /^\d+([.,]\d+)?$/.test(String(w ?? "").trim()) ? `${String(w).trim().replace(".", ",")} kg` : w;
+const formatPerfSets = (sets) => sets.map(s => [fmtWeight(s.weight), s.reps && `${s.reps} reps`].filter(Boolean).join(" × ")).join(" · ");
 const sameExerciseName = (a, b) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+// Historique d'un exercice retrouvé par son nom dans toutes les séances de la cliente (les plus
+// récentes d'abord) : dans un programme, chaque semaine est une séance distincte.
+const perfHistoryOf = (sessionLogs = [], exName) => sessionLogs
+  .map(l => {
+    let logs = {};
+    try { logs = JSON.parse(l.exercise_logs || "{}"); } catch {}
+    const perf = Object.values(logs).find(e => sameExerciseName(e?.name, exName));
+    const sets = perfSets(perf);
+    return sets.length ? { date: l.date, sets, summary: formatPerfSets(sets) } : null;
+  })
+  .filter(Boolean);
+// Nombre lu dans une saisie libre (« 62,5 kg », « 10 ») — null si absent
+const perfNumber = (v) => { const n = parseFloat(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : null; };
 
 // coachFor : prénom de la cliente quand c'est la coach qui mène la séance et saisit pour elle
 const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor = null }) => {
@@ -1394,6 +1447,13 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(0);
   const [restLabel, setRestLabel] = useState("REPOS");
+  const [restTotal, setRestTotal] = useState(0);
+  // Dernière série validée, affichée pendant le repos
+  const [lastDone, setLastDone] = useState(null);
+  const [zoomPhoto, setZoomPhoto] = useState(null);
+  const [howTo, setHowTo] = useState(null);
+  const [openRecap, setOpenRecap] = useState(null);
+  const [startedAt] = useState(draft?.startedAt ?? Date.now());
   const [done, setDone] = useState(draft?.done ?? false);
   const [exLogs, setExLogs] = useState(draft?.exLogs ?? {});
   const [globalNote, setGlobalNote] = useState(draft?.globalNote ?? "");
@@ -1423,22 +1483,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor
   // seulement celle en cours : dans un programme chaque semaine est une séance distincte
   // (S1 · J1, S2 · J1...), il faut donc remonter aux semaines précédentes pour le même exercice.
   // sessionLogs arrive trié du plus récent au plus ancien.
-  const getAllPerfs = (exName) => sessionLogs
-    .map(l => {
-      let logs = {};
-      try { logs = JSON.parse(l.exercise_logs || "{}"); } catch {}
-      const perf = Object.values(logs).find(e => sameExerciseName(e?.name, exName));
-      const sets = perfSets(perf);
-      return sets.length ? { date: l.date, sets, summary: formatPerfSets(sets) } : null;
-    })
-    .filter(Boolean).slice(0, 5);
+  const getAllPerfs = (exName) => perfHistoryOf(sessionLogs, exName).slice(0, 5);
   const getLastPerf = (exName) => getAllPerfs(exName)[0] || null;
-  // Rappel « la dernière fois » pour la série en cours de saisie
-  const LastSetHint = ({ exName, setIdx }) => {
-    const s = getLastPerf(exName)?.sets?.[setIdx];
-    if (!s || !(s.weight || s.reps)) return null;
-    return <div style={{ fontSize: 12, color: C.purple, marginBottom: 10 }}>🕐 La dernière fois, série {setIdx + 1} : {formatPerfSets([s])}</div>;
-  };
 
   useEffect(() => () => clearInterval(timerRef.current), []);
   // Changement d'exercice : on repart de la série 1 (sauf au montage, pour garder une séance reprise)
@@ -1448,25 +1494,40 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor
     setSimpleSets(0); setLoggingSet(false); setLoggingCircuitSet(false); setCurrentRound(1); setCircuitExIdx(0); setIntervalPhase("work");
   }, [blockIdx]);
   useEffect(() => {
-    try { window.localStorage.setItem(draftKey, JSON.stringify({ blockIdx, exLogs, globalNote, simpleSets, currentRound, circuitExIdx, done, savedAt: Date.now() })); } catch {}
-  }, [draftKey, blockIdx, exLogs, globalNote, simpleSets, currentRound, circuitExIdx, done]);
+    try { window.localStorage.setItem(draftKey, JSON.stringify({ blockIdx, exLogs, globalNote, simpleSets, currentRound, circuitExIdx, done, startedAt, savedAt: Date.now() })); } catch {}
+  }, [draftKey, blockIdx, exLogs, globalNote, simpleSets, currentRound, circuitExIdx, done, startedAt]);
   const clearDraft = () => { try { window.localStorage.removeItem(draftKey); } catch {} };
   const restartFromScratch = () => { clearDraft(); setBlockIdx(0); setExLogs({}); setGlobalNote(""); setSimpleSets(0); setCurrentRound(1); setCircuitExIdx(0); setDone(false); setResumed(false); };
-  const hasAnyPerf = Object.values(exLogs).some(l => (l?.sets || []).some(x => x && (x.weight || x.reps)) || l?.comment);
+  const hasAnyPerf = Object.values(exLogs).some(l => (l?.sets || []).some(x => x && !x.prefill && (x.weight || x.reps)) || l?.comment);
 
   const startTimer = (secs, label, onEnd) => {
     clearInterval(timerRef.current);
-    setResting(true); setRestTime(secs); setRestLabel(label);
+    setResting(true); setRestTime(secs); setRestTotal(secs); setRestLabel(label);
     timerRef.current = setInterval(() => {
       setRestTime(t => { if (t <= 1) { clearInterval(timerRef.current); setResting(false); onEnd(); return 0; } return t - 1; });
     }, 1000);
   };
   const skipTimer = () => { clearInterval(timerRef.current); setResting(false); };
+  const addRestTime = (n) => { setRestTime(t => t + n); setRestTotal(t => t + n); };
   const goNextBlock = () => { const next = blockIdx + 1; if (next < blocks.length) { setBlockIdx(next); } else { setDone(true); } };
   const completeSimpleSet = () => {
     setLoggingSet(true);
   };
+  // Marque la série comme réellement faite (une valeur préremplie non validée n'est pas enregistrée)
+  const markDone = (ex, idx, expected) => {
+    const cur = exLogs[ex.id]?.sets?.[idx] || {};
+    const last = perfHistoryOf(sessionLogs, ex.name)[0]?.sets;
+    const prev = last ? (last[idx] || last[last.length - 1]) : null;
+    setLastDone({ name: ex.name, idx, weight: cur.weight, reps: cur.reps, diff: perfNumber(cur.weight) != null && perfNumber(prev?.weight) != null ? perfNumber(cur.weight) - perfNumber(prev.weight) : null });
+    setExLogs(p => {
+      const sets = [...(p[ex.id]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" })))];
+      while (sets.length <= idx) sets.push({ weight: "", reps: "" });
+      sets[idx] = { ...sets[idx], prefill: false };
+      return { ...p, [ex.id]: { ...p[ex.id], sets } };
+    });
+  };
   const confirmSetLog = () => {
+    markDone(currentBlock, simpleSets, getExpectedSets(currentBlock));
     setLoggingSet(false);
     const nd = simpleSets + 1; setSimpleSets(nd);
     if (nd < currentBlock.sets) startTimer(currentBlock.rest || 60, "REPOS", () => {});
@@ -1474,6 +1535,7 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor
   };
   const circuitEx = currentBlock?.type === "circuit" ? currentBlock.exercises[circuitExIdx] : null;
   const confirmCircuitLog = () => {
+    markDone(circuitEx, currentRound - 1, currentBlock.rounds);
     setLoggingCircuitSet(false);
     advanceCircuit();
   };
@@ -1504,7 +1566,8 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor
       const logsWithNames = {};
       allExercises.forEach(e => {
         const expected = getExpectedSets(e);
-        const setsArr = exLogs[e.id]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" }));
+        const setsArr = (exLogs[e.id]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" })))
+          .map(x => x?.prefill ? { weight: "", reps: "" } : { weight: x?.weight || "", reps: x?.reps || "" });
         logsWithNames[e.id] = { name: e.name, suggested_weight: e.suggested_weight, weight_type: e.weight_type, sets: setsArr, comment: exLogs[e.id]?.comment || "" };
       });
       const { error } = await supabase.from("session_logs").insert([{ client_id: clientId, workout_id: workout.id, workout_name: workout.name, date: today, exercise_logs: JSON.stringify(logsWithNames), note: globalNote }]);
@@ -1524,109 +1587,73 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor
   const setSetField = (exId, setIdx, field, value, expected) => {
     setExLogs(prev => {
       const current = prev[exId]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" }));
-      const next = current.map((s, i) => i === setIdx ? { ...s, [field]: value } : s);
+      const padded = [...current]; while (padded.length <= setIdx) padded.push({ weight: "", reps: "" });
+      const next = padded.map((s, i) => i === setIdx ? { ...s, [field]: value } : s);
       return { ...prev, [exId]: { ...prev[exId], sets: next } };
     });
   };
 
-  // Petite barre de rappel affichée sous la navbar de chaque écran de la séance :
-  // type, durée estimée, nombre d'exercices, avec possibilité de déplier la liste complète.
-  const SessionSummaryBar = () => (
-    <div style={{ padding: "10px 20px", borderBottom: `1px solid ${C.border}` }}>
-      <button onClick={() => setShowSummary(s => !s)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 12, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
-        <span>{summary.hasCircuit ? "🔄" : "💪"} {summary.type} · ~{summary.durationMinutes} min · {summary.exerciseCount} exercices</span>
-        <span style={{ marginLeft: "auto" }}>{showSummary ? "▲" : "▼"}</span>
-      </button>
-    {showSummary && (
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-          {summary.blocksSummary.map((b, i) => (
-            <div key={i}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: b.type === "circuit" ? C.purple : b.type === "warmup" ? C.yellow : C.pink, marginBottom: 4 }}>{b.label}</div>
-              {b.type === "exercise" ? (
-                <div style={{ fontSize: 12, color: C.textMuted }}>{b.name || "—"}</div>
-              ) : (
-                b.exercises.map((n, j) => <div key={j} style={{ fontSize: 12, color: C.textMuted }}>{j + 1}. {n || "—"}</div>)
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+  // ── Exercice en cours : exercice simple ou exercice d'un circuit ───────────────────
+  const isCircuit = currentBlock?.type === "circuit";
+  const activeEx = isCircuit ? circuitEx : currentBlock?.type === "exercise" ? currentBlock : null;
+  const activeIdx = isCircuit ? currentRound - 1 : simpleSets;
+  const activeExpected = isCircuit ? (currentBlock?.rounds || 1) : (currentBlock ? getExpectedSets(currentBlock) : 1);
+
+  // Préremplissage avec la dernière fois : la série qui commence reprend la charge et les
+  // répétitions de la même série la dernière fois (ou de la dernière série faite). Tant qu'elle
+  // n'est pas validée, la valeur est marquée « prefill » et n'est pas enregistrée.
+  useEffect(() => {
+    if (done || !activeEx || (isCircuit && currentBlock.interval_mode)) return;
+    const cur = exLogs[activeEx.id]?.sets?.[activeIdx];
+    if (cur && (cur.weight || cur.reps)) return;
+    const last = perfHistoryOf(sessionLogs, activeEx.name)[0]?.sets;
+    if (!last?.length) return;
+    const src = last[activeIdx] || last[last.length - 1];
+    setExLogs(p => {
+      const sets = [...(p[activeEx.id]?.sets || Array.from({ length: activeExpected }, () => ({ weight: "", reps: "" })))];
+      while (sets.length <= activeIdx) sets.push({ weight: "", reps: "" });
+      sets[activeIdx] = { weight: src.weight || "", reps: src.reps || "", prefill: true };
+      return { ...p, [activeEx.id]: { ...p[activeEx.id], sets } };
+    });
+  }, [blockIdx, simpleSets, circuitExIdx, currentRound, done]);
+
+  // Fiche « Bien l'exécuter » de la médiathèque, chargée à la demande
+  const openHowTo = async (name) => {
+    setHowTo({ name, loading: true });
+    const { data } = await supabase.from("exercises_catalogue").select("nom, positionnement, execution, respiration, vigilance").ilike("nom", name.trim()).limit(1);
+    setHowTo({ name, loading: false, data: data?.[0] || null });
+  };
+
+  const screen = { minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, maxWidth: 560, margin: "0 auto", paddingBottom: 110 };
+  const pad = { padding: "0 16px" };
+  const foot = (children) => (
+    <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", background: C.black + "f2", borderTop: `1px solid ${C.border}`, zIndex: 40 }}>
+      <div style={{ maxWidth: 528, margin: "0 auto", display: "flex", gap: 10 }}>{children}</div>
     </div>
   );
+  const tag = (content, key, tone) => <span key={key} style={{ fontSize: 13, padding: "4px 9px", borderRadius: 8, background: tone === "sand" ? C.yellow + "1c" : C.field, color: tone === "sand" ? C.yellow : C.white, fontWeight: tone === "sand" ? 600 : 500, whiteSpace: tone === "sand" ? "normal" : "nowrap" }}>{content}</span>;
 
-  if (done) return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: 20 }}>
-      <div style={{ textAlign: "center", paddingTop: 40, marginBottom: 32 }}>
-        <div style={{ fontSize: 72, marginBottom: 16 }}>🏆</div>
-        <h1 style={{ fontSize: 26, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, marginBottom: 8 }}>Séance terminée !</h1>
-        <p style={{ color: C.textMuted }}>{workout.name}</p>
-      </div>
-      <Card style={{ marginBottom: 16 }}><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>📝 NOTE SUR LA SÉANCE</div><TA placeholder="Comment c'était ?" value={globalNote} onChange={e => setGlobalNote(e.target.value)} style={{ minHeight: 100 }} /></Card>
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 16 }}>MES PERFORMANCES</div>
-        {allExercises.map(ex => {
-          const expected = getExpectedSets(ex);
-          const sets = exLogs[ex.id]?.sets || Array.from({ length: expected }, () => ({ weight: "", reps: "" }));
-          return (
-            <div key={ex.id} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>{ex.name || "—"}</div>
-              {ex.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 6 }}>⚖️ {ex.suggested_weight} {ex.weight_type}</div>}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
-                {Array.from({ length: expected }, (_, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "28px 1fr 1fr", gap: 8, alignItems: "center" }}>
-                    <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textAlign: "center" }}>S{i + 1}</div>
-                    <input type="text" placeholder="ex: 10 kg" value={sets[i]?.weight || ""} onChange={e => setSetField(ex.id, i, "weight", e.target.value, expected)} style={{ ...inputSt, fontSize: 13 }} />
-                    <input type="text" placeholder={ex.reps || "reps"} value={sets[i]?.reps || ""} onChange={e => setSetField(ex.id, i, "reps", e.target.value, expected)} style={{ ...inputSt, fontSize: 13 }} />
-                  </div>
-                ))}
-              </div>
-              <TA placeholder="💬 Commentaire sur cet exercice (optionnel)" value={exLogs[ex.id]?.comment || ""} onChange={e => setExComment(ex.id, e.target.value)} style={{ minHeight: 44, fontSize: 13 }} />
-            </div>
-          );
-        })}
-      </Card>
-      {saveError && (
-        <div style={{ background: C.red + "15", border: `1px solid ${C.red}44`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 13, color: C.red }}>
-          {saveError}
-        </div>
-      )}
-      <Btn onClick={saveAndFinish} disabled={savingFinal} style={{ marginBottom: 30 }}>
-        {savingFinal ? "Enregistrement..." : "💾 Enregistrer et terminer"}
-      </Btn>
-    </div>
-  );
-
-  if (!currentBlock) return null;
-
-  const TimerBar = () => resting ? (
-    <div style={{ background: C.surface, border: `1px solid ${restLabel.includes("TRAVAIL") ? C.green : C.orange}44`, borderRadius: 20, padding: 28, marginBottom: 20, textAlign: "center" }}>
-      <div style={{ fontSize: 13, color: restLabel.includes("TRAVAIL") ? C.green : C.orange, fontWeight: 700, marginBottom: 8 }}>{restLabel}</div>
-      <div style={{ fontSize: 72, fontWeight: 900, color: restLabel.includes("TRAVAIL") ? C.green : C.orange, letterSpacing: "-2px" }}>{restTime}s</div>
-      <Btn small variant="ghost" onClick={skipTimer} style={{ width: "auto", margin: "16px auto 0" }}>Passer →</Btn>
-    </div>
-  ) : null;
-
-  const NavBar = () => (
+  const TopBar = () => (
     <>
-      <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ ...pad, paddingTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button onClick={() => setShowQuit(true)} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, padding: "8px 0", fontFamily: "inherit" }}>✕ Quitter</button>
-        <span style={{ fontWeight: 700, fontSize: 14 }}>{workout.name}</span>
-        <span style={{ fontSize: 13, color: C.pink, fontWeight: 700 }}>{blockIdx + 1}/{blocks.length}</span>
+        <span style={{ fontSize: 14, color: C.textMuted, fontVariantNumeric: "tabular-nums" }}>{currentBlock?.type === "warmup" ? "Échauffement" : `Exercice ${blocks.filter((b, i) => i <= blockIdx && b.type !== "warmup").length} sur ${blocks.filter(b => b.type !== "warmup").length}`}</span>
       </div>
-      <div style={{ height: 3, background: C.border }}><div style={{ height: "100%", background: C.pink, width: `${(blockIdx / blocks.length) * 100}%`, transition: "width .4s" }} /></div>
-      {coachFor && <div style={{ background: C.cherry, color: C.brandCream, padding: "8px 20px", fontSize: 14 }}>Séance avec <b>{coachFor}</b> · tu saisis pour elle, tout est enregistré sur son compte.</div>}
+      <div style={{ ...pad, display: "flex", gap: 4, margin: "4px 0 10px" }}>
+        {blocks.map((b, i) => <i key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < blockIdx ? C.cherry : i === blockIdx ? C.pink : C.track }} />)}
+      </div>
+      {coachFor && <div style={{ background: C.cherry, color: C.brandCream, padding: "8px 16px", fontSize: 14 }}>Séance avec <b>{coachFor}</b> · tu saisis pour elle, tout est enregistré sur son compte.</div>}
       {resumed && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: C.green + "14", padding: "8px 20px", fontSize: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, background: C.green + "14", padding: "8px 16px", fontSize: 14 }}>
           <span>Séance reprise là où elle s'était arrêtée.</span>
           <button onClick={restartFromScratch} style={{ background: "none", border: "none", color: C.cherry, fontWeight: 650, cursor: "pointer", fontFamily: "inherit", fontSize: 14, padding: "6px 0", flexShrink: 0 }}>Recommencer</button>
         </div>
       )}
-      <SessionSummaryBar />
       {showQuit && (
         <div onClick={() => setShowQuit(false)} style={{ position: "fixed", inset: 0, background: C.overlay, zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: C.card, width: "100%", maxWidth: 520, borderRadius: "22px 22px 0 0", padding: "20px 18px calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 10 }}>
             <h3 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 24, color: C.heading, margin: "0 0 4px" }}>Quitter la séance ?</h3>
-            <p style={{ fontSize: 14, color: C.textMuted, margin: "0 0 6px" }}>{hasAnyPerf ? "Ce qui a déjà été saisi peut être enregistré maintenant." : "Aucune performance n'a encore été saisie."}</p>
+            <p style={{ fontSize: 14, color: C.textMuted, margin: "0 0 6px" }}>{hasAnyPerf ? "Ce qui a déjà été validé peut être enregistré maintenant." : "Aucune série n'a encore été validée."}</p>
             {saveError && <div style={{ fontSize: 14, color: C.red }}>{saveError}</div>}
             {hasAnyPerf && <Btn onClick={saveAndFinish} disabled={savingFinal}>{savingFinal ? "Enregistrement…" : "Enregistrer ce qui a été fait"}</Btn>}
             <Btn variant="secondary" onClick={() => setShowQuit(false)}>Continuer la séance</Btn>
@@ -1634,176 +1661,250 @@ const WorkoutPlayer = ({ workout, onFinish, clientId, sessionLogs = [], coachFor
           </div>
         </div>
       )}
+      {zoomPhoto && (
+        <div onClick={() => setZoomPhoto(null)} style={{ position: "fixed", inset: 0, background: "rgba(20,14,16,0.92)", zIndex: 110, display: "grid", placeItems: "center", padding: 16 }}>
+          <img src={zoomPhoto} alt="" style={{ maxWidth: "100%", maxHeight: "90vh", borderRadius: 14 }} />
+        </div>
+      )}
+      {howTo && (
+        <div onClick={() => setHowTo(null)} style={{ position: "fixed", inset: 0, background: C.overlay, zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: C.card, width: "100%", maxWidth: 520, maxHeight: "85vh", overflowY: "auto", borderRadius: "22px 22px 0 0", padding: "20px 18px calc(22px + env(safe-area-inset-bottom, 0px))", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 24, color: C.heading, margin: 0 }}>{howTo.name}</h3>
+              <button onClick={() => setHowTo(null)} aria-label="Fermer" style={{ background: "none", border: "none", fontSize: 20, color: C.textMuted, cursor: "pointer", width: 40, height: 40 }}>✕</button>
+            </div>
+            {howTo.loading ? <Spinner /> : !howTo.data ? <p style={{ color: C.textMuted, fontSize: 15, margin: 0 }}>Pas encore de fiche détaillée pour cet exercice dans la médiathèque.</p> :
+              [["Positionnement", "positionnement"], ["Exécution", "execution"], ["Respiration", "respiration"], ["Vigilance", "vigilance"]].filter(([, k]) => howTo.data[k]).map(([label, k]) => (
+                <div key={k}><Eyebrow style={{ marginBottom: 4 }}>{label}</Eyebrow><div style={{ fontSize: 15, lineHeight: 1.5, whiteSpace: "pre-line" }}>{howTo.data[k]}</div></div>
+              ))}
+          </div>
+        </div>
+      )}
     </>
   );
 
-  if (currentBlock.type === "warmup") return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans }}>
-      <NavBar />
-      <div style={{ padding: 20 }}>
-        <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 20 }}>🔥</span>
-          <div>
-            <div style={{ fontSize: 13, color: C.yellow, fontWeight: 700 }}>ÉCHAUFFEMENT</div>
-            <div style={{ fontSize: 11, color: C.textMuted }}>{currentBlock.exercises.length} exercice{currentBlock.exercises.length > 1 ? "s" : ""}</div>
-          </div>
+  // ── 4. Fin de séance : récapitulatif corrigeable, progrès, mot, enregistrement ─────
+  if (done) {
+    const minutes = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
+    const warmupEx = new Set(blocks.filter(b => b.type === "warmup").flatMap(b => b.exercises || []));
+    const recap = allExercises.filter(e => !warmupEx.has(e)).map(ex => {
+      const sets = (exLogs[ex.id]?.sets || []).filter(x => x && !x.prefill && (x.weight || x.reps));
+      const last = perfHistoryOf(sessionLogs, ex.name)[0]?.sets || [];
+      const maxOf = list => Math.max(-Infinity, ...list.map(x => perfNumber(x.weight)).filter(v => v != null));
+      const maxRepsOf = list => Math.max(-Infinity, ...list.map(x => perfNumber(x.reps)).filter(v => v != null));
+      const dW = sets.length && last.length ? maxOf(sets) - maxOf(last) : null;
+      const dR = sets.length && last.length ? maxRepsOf(sets) - maxRepsOf(last) : null;
+      const progress = Number.isFinite(dW) && dW > 0 ? `+${String(dW).replace(".", ",")} kg` : Number.isFinite(dW) && dW === 0 && Number.isFinite(dR) && dR > 0 ? `+${dR} rep${dR > 1 ? "s" : ""}` : null;
+      return { ex, sets, progress };
+    });
+    const progressCount = recap.filter(r => r.progress).length;
+    return (
+      <div style={{ ...screen, padding: "28px 16px 120px" }}>
+        {coachFor && <div style={{ background: C.cherry, color: C.brandCream, borderRadius: 12, padding: "9px 14px", fontSize: 14, marginBottom: 14 }}>Séance avec <b>{coachFor}</b></div>}
+        <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 34, letterSpacing: "-0.6px", color: C.heading, margin: "0 0 10px" }}>Séance terminée.</h1>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+          <Badge color={C.textMuted}>{minutes} min</Badge>
+          <Badge color={C.textMuted}>{recap.length} exercice{recap.length > 1 ? "s" : ""}</Badge>
+          {progressCount > 0 && <Badge color={C.green}>{progressCount} progrès</Badge>}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {currentBlock.exercises.map((ex, i) => (
-            <Card key={ex.id} style={{ borderColor: C.yellow + "33" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: ex.photo || ex.note ? 12 : 0 }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.yellow + "22", border: `1.5px solid ${C.yellow}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: C.yellow }}>{i + 1}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{ex.name}</div>
-                  {ex.reps && <div style={{ fontSize: 13, color: C.yellow, marginTop: 2 }}>⏱️ {ex.reps}</div>}
-                </div>
-              </div>
-              {ex.photo && <img src={ex.photo} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 10, marginBottom: 10 }} />}
-              {ex.note && <div style={{ background: C.yellow + "11", border: `1px solid ${C.yellow}22`, borderRadius: 10, padding: 10, fontSize: 13, color: C.textMuted }}>💡 {ex.note}</div>}
-            </Card>
-          ))}
-        </div>
-        <div style={{ marginTop: 20 }}>
-          <Btn onClick={goNextBlock} style={{ fontSize: 17, background: C.yellow, color: C.black }}>
-            ✅ Échauffement terminé — Commencer la séance →
-          </Btn>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (currentBlock.type === "exercise") return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans }}>
-      <NavBar />
-      <div style={{ padding: 20 }}>
-        <TimerBar />
-        {loggingSet ? (
-          <Card style={{ borderColor: C.green + "44" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ Série {simpleSets + 1} terminée !</div>
-            <LastSetHint exName={currentBlock.name} setIdx={simpleSets} />
-            {currentBlock.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 10 }}>⚖️ {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-              <input type="text" placeholder="ex: 10 kg" autoFocus value={exLogs[currentBlock.id]?.sets?.[simpleSets]?.weight || ""} onChange={e => setSetField(currentBlock.id, simpleSets, "weight", e.target.value, getExpectedSets(currentBlock))} style={{ ...inputSt, fontSize: 13 }} />
-              <input type="text" placeholder={currentBlock.reps || "reps"} value={exLogs[currentBlock.id]?.sets?.[simpleSets]?.reps || ""} onChange={e => setSetField(currentBlock.id, simpleSets, "reps", e.target.value, getExpectedSets(currentBlock))} style={{ ...inputSt, fontSize: 13 }} />
-            </div>
-            <Btn onClick={confirmSetLog}>Valider →</Btn>
-          </Card>
-        ) : (
-          <div>
-            <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>EXERCICE</div>
-            <h2 style={{ fontSize: 26, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, margin: "0 0 10px" }}>{currentBlock.name}</h2>
-            {currentBlock.photo && <img src={currentBlock.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
-            {currentBlock.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {currentBlock.suggested_weight} {currentBlock.weight_type}</div>}
-            {currentBlock.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {currentBlock.tempo}</div>}
-            {currentBlock.rpe && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🎯 <span style={{ color: C.yellow, fontWeight: 700 }}>RPE :</span> {currentBlock.rpe}</div>}
-            {currentBlock.technique && <div style={{ background: C.red + "12", border: `1px solid ${C.red}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, whiteSpace: "pre-line" }}>🔥 <span style={{ color: C.red, fontWeight: 700 }}>Technique :</span> {currentBlock.technique}</div>}
-            {(() => { const lp = getLastPerf(currentBlock.name); return lp ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois ({formatDate(lp.date)}) :</span> {lp.summary}</div> : null; })()}
-            {getAllPerfs(currentBlock.name).length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <button onClick={() => setShowHistory(!showHistory)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", color: C.textMuted, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-                  📊 {showHistory ? "Masquer" : "Voir"} mon historique ({getAllPerfs(currentBlock.name).length} séances)
+        <Card style={{ gap: 0, marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}><Eyebrow>Récapitulatif</Eyebrow><span style={{ fontSize: 13, color: C.textMuted }}>Toucher pour corriger</span></div>
+          {recap.map(({ ex, sets, progress }, i) => {
+            const open = openRecap === ex.id;
+            const expected = getExpectedSets(ex);
+            const all = exLogs[ex.id]?.sets || [];
+            return (
+              <div key={ex.id || i} style={{ borderTop: i ? `1px solid ${C.border}` : "none", padding: "10px 0" }}>
+                <button onClick={() => setOpenRecap(open ? null : ex.id)} style={{ width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", color: C.white, textAlign: "left" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><b style={{ fontWeight: 650, fontSize: 15 }}>{ex.name || "—"}</b>{progress && <Badge color={C.green}>{progress}</Badge>}</div>
+                  <div style={{ fontSize: 14, color: C.textMuted, fontVariantNumeric: "tabular-nums" }}>{sets.length ? sets.map(x => [x.weight, x.reps].filter(Boolean).join(" × ")).join(" · ") : "Rien de saisi"}</div>
                 </button>
-                {showHistory && (
-                  <div style={{ marginTop: 10, background: C.field, borderRadius: 12, padding: 12 }}>
-                    {getAllPerfs(currentBlock.name).map((p, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: i < getAllPerfs(currentBlock.name).length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <span style={{ fontSize: 12, color: C.textMuted }}>{formatDate(p.date)}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: C.pink, textAlign: "right" }}>{p.summary}</span>
+                {open && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+                    {Array.from({ length: Math.max(expected, all.length) }, (_, k) => (
+                      <div key={k} style={{ display: "grid", gridTemplateColumns: "34px 1fr 1fr", gap: 8, alignItems: "center" }}>
+                        <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 650 }}>S{k + 1}</span>
+                        <input type="text" inputMode="decimal" placeholder="Charge" value={all[k] && !all[k].prefill ? all[k].weight || "" : ""} onChange={e => { setSetField(ex.id, k, "weight", e.target.value, expected); setExLogs(p => ({ ...p, [ex.id]: { ...p[ex.id], sets: p[ex.id].sets.map((x, j) => j === k ? { ...x, prefill: false } : x) } })); }} style={inputSt} />
+                        <input type="text" inputMode="numeric" placeholder="Reps" value={all[k] && !all[k].prefill ? all[k].reps || "" : ""} onChange={e => { setSetField(ex.id, k, "reps", e.target.value, expected); setExLogs(p => ({ ...p, [ex.id]: { ...p[ex.id], sets: p[ex.id].sets.map((x, j) => j === k ? { ...x, prefill: false } : x) } })); }} style={inputSt} />
                       </div>
                     ))}
+                    <TA placeholder="Commentaire sur cet exercice (facultatif)" value={exLogs[ex.id]?.comment || ""} onChange={e => setExComment(ex.id, e.target.value)} style={{ minHeight: 44 }} />
                   </div>
                 )}
               </div>
-            )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
-              {[{ l: "SÉRIES", v: `${simpleSets}/${currentBlock.sets}`, c: C.pink }, (currentBlock.mode || "reps") === "time" ? { l: "DURÉE", v: `${currentBlock.duration || 30}s`, c: C.white } : { l: "REPS", v: currentBlock.reps, c: C.white }, { l: "REPOS", v: `${currentBlock.rest}s`, c: C.orange }].map(s => (
-                <div key={s.l} style={{ background: C.field, borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>{s.l}</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: s.c }}>{s.v}</div>
-                </div>
+            );
+          })}
+        </Card>
+        <Eyebrow style={{ marginBottom: 6 }}>Un mot sur la séance</Eyebrow>
+        <TA placeholder={coachFor ? "Facultatif · visible dans ses performances" : "Facultatif · ta coach le lira"} value={globalNote} onChange={e => setGlobalNote(e.target.value)} style={{ minHeight: 70 }} />
+        {saveError && <div style={{ background: C.red + "12", borderRadius: 12, padding: 12, marginTop: 12, fontSize: 14, color: C.red }}>{saveError}</div>}
+        {foot(<Btn onClick={saveAndFinish} disabled={savingFinal} style={{ flex: 1 }}>{savingFinal ? "Enregistrement…" : "Enregistrer la séance"}</Btn>)}
+      </div>
+    );
+  }
+
+  if (!currentBlock) return null;
+
+  // ── Échauffement ──────────────────────────────────────────────────────────────────
+  if (currentBlock.type === "warmup") return (
+    <div style={screen}>
+      <TopBar />
+      <div style={{ ...pad, display: "flex", flexDirection: "column", gap: 10 }}>
+        <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 30, color: C.heading, margin: "6px 0 4px" }}>Échauffement</h1>
+        {currentBlock.exercises.map((ex, i) => (
+          <Card key={ex.id || i}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><b style={{ fontWeight: 650, fontSize: 16 }}>{ex.name}</b><span style={{ color: C.textMuted, flexShrink: 0 }}>{exercisePrescription(ex)}</span></div>
+            {ex.photo && <img src={ex.photo} alt="" onClick={() => setZoomPhoto(ex.photo)} style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 12, cursor: "zoom-in" }} />}
+            {ex.note && <div style={{ fontSize: 14, color: C.textMuted, whiteSpace: "pre-line" }}>{ex.note}</div>}
+          </Card>
+        ))}
+      </div>
+      {foot(<Btn onClick={goNextBlock} style={{ flex: 1 }}>Échauffement terminé</Btn>)}
+    </div>
+  );
+
+  // ── 3. Repos (ou chrono de travail) : le chrono prend l'écran ─────────────────────
+  if (resting) {
+    const isWork = restLabel.includes("TRAVAIL");
+    const pct = restTotal ? Math.round((restTime / restTotal) * 100) : 0;
+    const color = isWork ? C.cherry : C.green;
+    const nextEx = activeEx;
+    const nextLast = nextEx ? perfHistoryOf(sessionLogs, nextEx.name)[0]?.sets : null;
+    const nextLastSet = nextLast ? (nextLast[activeIdx] || nextLast[nextLast.length - 1]) : null;
+    const mm = Math.floor(restTime / 60), ss = String(restTime % 60).padStart(2, "0");
+    return (
+      <div style={screen}>
+        <TopBar />
+        <div style={{ ...pad, display: "flex", flexDirection: "column", gap: 14 }}>
+          {!isWork && lastDone && !(isCircuit && currentBlock.interval_mode) && (
+            <Card>
+              <div style={{ fontSize: 16 }}>Série {lastDone.idx + 1} validée · <b style={{ color: C.green, fontVariantNumeric: "tabular-nums" }}>{[fmtWeight(lastDone.weight), lastDone.reps && `${lastDone.reps} reps`].filter(Boolean).join(" × ") || "faite"}</b></div>
+              {lastDone.diff != null && lastDone.diff !== 0 && <div style={{ fontSize: 14, color: C.textMuted }}>{lastDone.diff > 0 ? "+" : ""}{String(lastDone.diff).replace(".", ",")} kg par rapport à la dernière fois</div>}
+            </Card>
+          )}
+          {isWork && activeEx && <h2 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 28, color: C.heading, margin: "6px 0 0", textAlign: "center" }}>{activeEx.name}</h2>}
+          <Eyebrow style={{ textAlign: "center", marginTop: 6 }}>{isWork ? "Travail" : "Repos"}</Eyebrow>
+          <div style={{ width: 240, height: 240, borderRadius: "50%", margin: "0 auto", display: "grid", placeItems: "center", background: `conic-gradient(${color} 0 ${pct}%, ${color}22 ${pct}% 100%)` }}>
+            <div style={{ width: 212, height: 212, borderRadius: "50%", background: C.black, display: "grid", placeItems: "center" }}>
+              <span style={{ fontFamily: F.serif, fontSize: 66, color, fontVariantNumeric: "tabular-nums" }}>{mm}:{ss}</span>
+            </div>
+          </div>
+          {!isWork && nextEx && (
+            <Card>
+              <Eyebrow>Ensuite</Eyebrow>
+              <div style={{ fontSize: 17, fontWeight: 650 }}>{isCircuit ? `${nextEx.name} · tour ${currentRound}` : `Série ${simpleSets + 1} · ${exercisePrescription(nextEx)}`}</div>
+              {nextLastSet && <div style={{ fontSize: 14, color: C.pink }}>La dernière fois : {formatPerfSets([nextLastSet])}</div>}
+            </Card>
+          )}
+        </div>
+        {foot(<>
+          {!isWork && <Btn variant="secondary" onClick={() => addRestTime(15)} style={{ flex: 1 }}>+ 15 s</Btn>}
+          <Btn variant={isWork ? "primary" : "secondary"} onClick={skipTimer} style={{ flex: 1 }}>{isWork ? "Arrêter le chrono" : "Passer"}</Btn>
+        </>)}
+      </div>
+    );
+  }
+
+  // ── 2. Pendant la série ───────────────────────────────────────────────────────────
+  if (!activeEx) return null;
+  const ex = activeEx;
+  const timeMode = (ex.mode || "reps") === "time";
+  const interval = isCircuit && currentBlock.interval_mode;
+  const logging = isCircuit ? loggingCircuitSet : loggingSet;
+  const showInputs = !interval && (!timeMode || logging);
+  const totalSets = isCircuit ? currentBlock.rounds : currentBlock.sets;
+  const history = getAllPerfs(ex.name);
+  const last = history[0];
+  const curSet = exLogs[ex.id]?.sets?.[activeIdx] || {};
+  const equipment = exerciseEquipment(ex);
+  const validate = isCircuit ? confirmCircuitLog : confirmSetLog;
+  const bigInput = (field, label, unitHint, mode) => (
+    <label style={{ background: C.card, border: `1.5px solid ${curSet.prefill ? C.border : C.cherry}`, borderRadius: 14, padding: "9px 14px", display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <span style={{ fontSize: 12, color: C.textMuted }}>{label}</span>
+      <input type="text" inputMode={mode} value={curSet[field] || ""} placeholder={unitHint}
+        onChange={e => setSetField(ex.id, activeIdx, field, e.target.value, activeExpected)}
+        style={{ border: "none", outline: "none", background: "transparent", fontSize: 28, fontWeight: 650, color: C.white, width: "100%", padding: 0, fontFamily: "inherit", fontVariantNumeric: "tabular-nums" }} />
+    </label>
+  );
+  return (
+    <div style={screen}>
+      <TopBar />
+      <div style={{ ...pad, display: "flex", flexDirection: "column", gap: 12 }}>
+        {isCircuit && (
+          <div style={{ background: C.yellow + "12", border: `1px solid ${C.yellow}30`, borderRadius: 14, padding: "9px 12px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}><b style={{ color: C.yellow, fontWeight: 650 }}>Circuit · tour {currentRound} sur {currentBlock.rounds}</b><span style={{ color: C.textMuted }}>exercice {circuitExIdx + 1} sur {currentBlock.exercises.length}</span></div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+              {currentBlock.exercises.map((e, i) => <span key={i} style={{ fontSize: 12.5, padding: "2px 8px", borderRadius: 7, background: i === circuitExIdx ? C.yellow : C.card, color: i === circuitExIdx ? C.brandCream : i < circuitExIdx ? C.textMuted : C.white, textDecoration: i < circuitExIdx ? "line-through" : "none" }}>{e.name}</span>)}
+            </div>
+          </div>
+        )}
+        {ex.photo && (
+          <div onClick={() => setZoomPhoto(ex.photo)} style={{ position: "relative", cursor: "zoom-in" }}>
+            <img src={ex.photo} alt="" style={{ width: "100%", height: 170, objectFit: "cover", borderRadius: 16, display: "block" }} />
+            <span style={{ position: "absolute", right: 10, bottom: 8, fontSize: 12, background: C.card, padding: "2px 8px", borderRadius: 6 }}>Agrandir</span>
+          </div>
+        )}
+        <div>
+          <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 28, lineHeight: 1.15, color: C.heading, margin: "0 0 6px" }}>{ex.name}</h1>
+          {!interval && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Eyebrow style={{ marginRight: 6 }}>{isCircuit ? `Tour ${currentRound} sur ${totalSets}` : `Série ${simpleSets + 1} sur ${totalSets}`}</Eyebrow>
+              {Array.from({ length: totalSets || 1 }, (_, i) => <i key={i} style={{ width: 24, height: 6, borderRadius: 3, background: i < activeIdx ? C.cherry : i === activeIdx ? C.pink : C.track }} />)}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {interval ? [tag(<>Travail <b>{ex.work_time || 30} s</b></>, "w"), tag(<>Repos <b>{ex.rest_time || 30} s</b></>, "r")]
+            : [tag(<b>{exercisePrescription(ex)}</b>, "p"), !isCircuit && currentBlock.rest && tag(<>Repos <b>{fmtSeconds(currentBlock.rest)}</b></>, "rest")]}
+          {ex.tempo && tag(<>Tempo <b>{ex.tempo}</b></>, "t")}
+          {ex.rpe && tag(<>RPE <b>{ex.rpe}</b></>, "rpe")}
+          {ex.suggested_weight && tag(<>Conseillé <b>{ex.suggested_weight}</b> {ex.weight_type}</>, "sw")}
+          {equipment.length > 0 && tag(equipment.join(", "), "eq")}
+          {ex.technique && tag(ex.technique, "tech", "sand")}
+        </div>
+        {(ex.note || ex.name) && (
+          <div style={{ fontSize: 15, lineHeight: 1.45 }}>
+            {ex.note && <span style={{ whiteSpace: "pre-line" }}><b style={{ fontWeight: 650 }}>Consigne : </b>{ex.note} </span>}
+            <button onClick={() => openHowTo(ex.name)} style={{ background: "none", border: "none", padding: 0, color: C.cherry, fontWeight: 650, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Bien l'exécuter ›</button>
+          </div>
+        )}
+        {last && (
+          <div style={{ background: C.pink + "18", borderRadius: 14, padding: "10px 13px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span style={{ fontSize: 12, fontWeight: 650, color: C.pink, letterSpacing: "0.06em", textTransform: "uppercase" }}>La dernière fois · {new Date(last.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
+              {history.length > 1 && <button onClick={() => setShowHistory(!showHistory)} style={{ background: "none", border: "none", padding: 0, color: C.pink, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{showHistory ? "Masquer" : "Historique"}</button>}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(4, last.sets.length)}, 1fr)`, gap: 4, marginTop: 6, textAlign: "center" }}>
+              {last.sets.map((x, i) => (
+                <span key={i} style={{ padding: "4px 2px", borderRadius: 8, fontSize: 13.5, color: i === activeIdx ? C.heading : C.pink, background: i === activeIdx ? C.card : "transparent", fontWeight: i === activeIdx ? 650 : 500, fontVariantNumeric: "tabular-nums" }}>
+                  <span style={{ display: "block", fontSize: 11, opacity: 0.8 }}>S{i + 1}</span>{[x.weight, x.reps].filter(Boolean).join(" × ")}
+                </span>
               ))}
             </div>
-            {currentBlock.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>💡 {currentBlock.note}</div>}
-            <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-              {Array.from({ length: currentBlock.sets }, (_, i) => (
-                <div key={i} style={{ width: 36, height: 36, borderRadius: "50%", background: i < simpleSets ? C.green : i === simpleSets ? C.pink + "22" : C.field, border: `2px solid ${i < simpleSets ? C.green : i === simpleSets ? C.pink : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: i < simpleSets ? C.black : i === simpleSets ? C.pink : C.textMuted }}>{i < simpleSets ? "✓" : i + 1}</div>
-              ))}
-            </div>
-            {!resting && ((currentBlock.mode || "reps") === "time" ? (
-              <Btn onClick={() => startTimer(currentBlock.duration || 30, "⚡ TRAVAIL", completeSimpleSet)} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Lancer le chrono ({currentBlock.duration || 30}s) — Série {simpleSets + 1}</Btn>
-            ) : (
-              <Btn onClick={completeSimpleSet} style={{ fontSize: 17 }}>✅ Série {simpleSets + 1} terminée !</Btn>
+            {showHistory && history.slice(1).map((h, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "6px 0 0", color: C.pink }}>
+                <span>{formatDate(h.date)}</span><span style={{ textAlign: "right" }}>{h.summary}</span>
+              </div>
             ))}
           </div>
         )}
-      </div>
-    </div>
-  );
-
-  if (currentBlock.type === "circuit") return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans }}>
-      <NavBar />
-      <div style={{ padding: 20 }}>
-        <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 12, padding: "10px 14px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 13, color: C.purple, fontWeight: 700 }}>🔄 Circuit</span>
-          <span style={{ fontSize: 20, fontWeight: 900, color: C.purple }}>Tour {currentRound}/{currentBlock.rounds}</span>
-          <span style={{ fontSize: 12, color: C.textMuted }}>{circuitExIdx + 1}/{currentBlock.exercises.length} exos</span>
-        </div>
-        <TimerBar />
-        {!resting && circuitEx && (
+        {showInputs && (
           <div>
-            <h2 style={{ fontSize: 26, fontFamily: F.serif, fontWeight: 400, letterSpacing: "-0.5px", color: C.heading, margin: "0 0 10px" }}>{circuitEx.name}</h2>
-            {circuitEx.photo && <img src={circuitEx.photo} alt="" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />}
-            {circuitEx.suggested_weight && <div style={{ background: C.orange + "15", border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⚖️ <span style={{ color: C.orange, fontWeight: 700 }}>Suggéré :</span> {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
-            {circuitEx.tempo && <div style={{ background: C.blue + "15", border: `1px solid ${C.blue}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>⏱️ <span style={{ color: C.blue, fontWeight: 700 }}>Tempo :</span> {circuitEx.tempo}</div>}
-            {circuitEx.rpe && <div style={{ background: C.yellow + "15", border: `1px solid ${C.yellow}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🎯 <span style={{ color: C.yellow, fontWeight: 700 }}>RPE :</span> {circuitEx.rpe}</div>}
-            {circuitEx.technique && <div style={{ background: C.red + "12", border: `1px solid ${C.red}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, whiteSpace: "pre-line" }}>🔥 <span style={{ color: C.red, fontWeight: 700 }}>Technique :</span> {circuitEx.technique}</div>}
-            {(() => { const lp = getLastPerf(circuitEx.name); return lp ? <div style={{ background: C.purple + "15", border: `1px solid ${C.purple}44`, borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13 }}>🕐 <span style={{ color: C.purple, fontWeight: 700 }}>Dernière fois ({formatDate(lp.date)}) :</span> {lp.summary}</div> : null; })()}
-            {currentBlock.interval_mode ? (
-              <div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-                  <div style={{ background: C.green + "15", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: `1px solid ${C.green}44` }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>⚡ TRAVAIL</div><div style={{ fontSize: 28, fontWeight: 900, color: C.green }}>{circuitEx.work_time}s</div></div>
-                  <div style={{ background: C.orange + "15", borderRadius: 12, padding: "14px 8px", textAlign: "center", border: `1px solid ${C.orange}44` }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>😴 REPOS</div><div style={{ fontSize: 28, fontWeight: 900, color: C.orange }}>{circuitEx.rest_time}s</div></div>
-                </div>
-                {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, whiteSpace: "pre-line" }}>💡 {circuitEx.note}</div>}
-                <Btn onClick={startIntervalWork} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Démarrer</Btn>
-              </div>
-            ) : loggingCircuitSet ? (
-              <Card style={{ borderColor: C.green + "44" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginBottom: 14 }}>✅ {circuitEx.name} — Tour {currentRound} terminé !</div>
-                <LastSetHint exName={circuitEx.name} setIdx={currentRound - 1} />
-                {circuitEx.suggested_weight && <div style={{ fontSize: 12, color: C.orange, marginBottom: 10 }}>⚖️ {circuitEx.suggested_weight} {circuitEx.weight_type}</div>}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-                  <input type="text" placeholder="ex: 10 kg" autoFocus value={exLogs[circuitEx.id]?.sets?.[currentRound - 1]?.weight || ""} onChange={e => setSetField(circuitEx.id, currentRound - 1, "weight", e.target.value, currentBlock.rounds)} style={{ ...inputSt, fontSize: 13 }} />
-                  <input type="text" placeholder={circuitEx.reps || "reps"} value={exLogs[circuitEx.id]?.sets?.[currentRound - 1]?.reps || ""} onChange={e => setSetField(circuitEx.id, currentRound - 1, "reps", e.target.value, currentBlock.rounds)} style={{ ...inputSt, fontSize: 13 }} />
-                </div>
-                <Btn onClick={confirmCircuitLog}>Valider →</Btn>
-              </Card>
-            ) : (
-              <div>
-                {(circuitEx.mode || "reps") === "time" ? (
-                  <div style={{ background: C.field, borderRadius: 12, padding: "14px", textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>DURÉE</div><div style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{circuitEx.duration || 30}s</div></div>
-                ) : (
-                  <div style={{ background: C.field, borderRadius: 12, padding: "14px", textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, marginBottom: 4 }}>REPS</div><div style={{ fontSize: 32, fontWeight: 900, color: C.purple }}>{circuitEx.reps}</div></div>
-                )}
-                {circuitEx.note && <div style={{ background: C.pink + "0f", border: `1px solid ${C.pink}33`, borderRadius: 12, padding: 14, marginBottom: 14, fontSize: 14, whiteSpace: "pre-line" }}>💡 {circuitEx.note}</div>}
-                {(circuitEx.mode || "reps") === "time" ? (
-                  <Btn onClick={() => startTimer(circuitEx.duration || 30, "⚡ TRAVAIL", () => setLoggingCircuitSet(true))} style={{ fontSize: 17, background: C.green, color: C.black }}>▶ Lancer le chrono ({circuitEx.duration || 30}s)</Btn>
-                ) : (
-                  <Btn onClick={() => setLoggingCircuitSet(true)} style={{ fontSize: 17, background: C.purple, color: C.brandCream }}>✅ Exo suivant →</Btn>
-                )}
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 6, marginTop: 20 }}>
-              {currentBlock.exercises.map((e, i) => (<div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: i < circuitExIdx ? C.green : i === circuitExIdx ? C.purple : C.border }} />))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {bigInput("weight", "Charge", "kg", "decimal")}
+              {bigInput("reps", timeMode ? "Durée tenue" : "Répétitions", timeMode ? "s" : "reps", "numeric")}
             </div>
+            {curSet.prefill && <div style={{ fontSize: 13, color: C.textMuted, marginTop: 6 }}>Repris de la dernière fois · corrige si besoin</div>}
           </div>
         )}
       </div>
+      {foot(
+        interval ? <Btn onClick={startIntervalWork} style={{ flex: 1 }}>Démarrer ({ex.work_time || 30} s)</Btn>
+        : timeMode && !logging ? <Btn onClick={() => startTimer(ex.duration || 30, "⚡ TRAVAIL", isCircuit ? () => setLoggingCircuitSet(true) : completeSimpleSet)} style={{ flex: 1 }}>Lancer le chrono ({ex.duration || 30} s)</Btn>
+        : <Btn onClick={validate} style={{ flex: 1 }}>{isCircuit ? (circuitExIdx + 1 < currentBlock.exercises.length ? "Valider · exercice suivant" : currentRound < currentBlock.rounds ? "Valider · fin du tour" : "Valider · fin du circuit") : `Valider la série ${simpleSets + 1}`}</Btn>
+      )}
     </div>
   );
-
-  return null;
 };
 // ══════════════════════════════════════════════════════════════════════════════
 // DATA HOOKS
@@ -4007,6 +4108,9 @@ const CoachApp = ({ user, onLogout }) => {
 
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} meals={meals} showBalance />;
 
+  if (coachSession && client && !coachSession.started) return (
+    <WorkoutPreview workout={coachSession} sessionLogs={sessionLogs} coachFor={client.name.split(" ")[0]} onBack={() => setCoachSession(null)} onStart={() => { setCoachSession({ ...coachSession, started: true }); window.scrollTo(0, 0); }} />
+  );
   if (coachSession && client) return (
     <WorkoutPlayer workout={coachSession} clientId={client.id} sessionLogs={sessionLogs} coachFor={client.name.split(" ")[0]}
       onFinish={() => { setCoachSession(null); reloadSessionLogs(); setClientTab("perf"); window.scrollTo(0, 0); }} />
@@ -4870,7 +4974,7 @@ const ClientApp = ({ user, onLogout }) => {
   };
 
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onBack={() => setSelectedEntry(null)} profile={profile} weights={weights} activitySessions={activitySessions} meals={meals} />;
-  if (previewWorkout) return <WorkoutPreview workout={previewWorkout} onBack={() => setPreviewWorkout(null)} onStart={() => { setActiveWorkout(previewWorkout); setPreviewWorkout(null); }} />;
+  if (previewWorkout) return <WorkoutPreview workout={previewWorkout} sessionLogs={sessionLogs} onBack={() => setPreviewWorkout(null)} onStart={() => { setActiveWorkout(previewWorkout); setPreviewWorkout(null); }} />;
   if (activeWorkout) return <WorkoutPlayer workout={activeWorkout} onFinish={() => { setActiveWorkout(null); supabase.from("session_logs").select("*").eq("client_id", clientId).order("date", { ascending: false }).then(({ data }) => setSessionLogs(data || [])); }} clientId={clientId} sessionLogs={sessionLogs} />;
 
   if (screen === "journal") {
