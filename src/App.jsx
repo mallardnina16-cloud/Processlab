@@ -5156,6 +5156,14 @@ const ClientApp = ({ user, onLogout }) => {
         </button>
       )}
 
+      {!notifEnabled && !clientInfo.contract_ended && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "12px 14px", marginBottom: 12 }}>
+          <Icon name="bell" color={C.cherry} />
+          <span style={{ flex: 1, fontSize: 15 }}><b style={{ fontWeight: 650 }}>Active tes rappels</b><span style={{ display: "block", fontSize: 13, color: C.textMuted }}>Pour ne pas oublier ton journal</span></span>
+          <Btn small onClick={handleEnableNotifs} style={{ width: "auto" }}>Activer</Btn>
+        </div>
+      )}
+
       {tasks.length > 0 && (
         <div style={{ background: C.cherry, color: C.brandCream, borderRadius: 18, padding: "14px 16px", marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 650, letterSpacing: "0.14em", textTransform: "uppercase", color: "#e9c9c9", marginBottom: 4 }}>Ma journée · {doneTasks} sur {tasks.length}</div>
