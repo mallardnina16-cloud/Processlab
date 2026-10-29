@@ -114,9 +114,9 @@ const QuickAction = ({ title, subtitle, icon, onClick, accent = C.pink }) => (
 // Mise en page commune des écrans de l'espace cliente (calibrés téléphone)
 const SCREEN = { minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: "20px 16px 110px", maxWidth: 560, margin: "0 auto" };
 const H1 = { fontFamily: F.serif, fontWeight: 400, fontSize: 32, letterSpacing: "-0.6px", color: C.heading, margin: "8px 0 16px" };
-const CLIENT_TABS = [["home", "home", "Aujourd'hui"], ["repas", "fork", "Repas"], ["perfs", "dumbbell", "Séances"], ["body", "chart", "Progrès"], ["contrat", "user", "Moi"]];
+const CLIENT_TABS = [["home", "home", "Aujourd'hui"], ["journal", "book", "Journal"], ["repas", "fork", "Repas"], ["perfs", "dumbbell", "Séances"], ["body", "chart", "Progrès"], ["contrat", "user", "Moi"]];
 // Écrans secondaires rattachés à un onglet (pour garder l'onglet allumé)
-const CLIENT_TAB_OF = { history: "body", bilan: "body", journal: "home" };
+const CLIENT_TAB_OF = { history: "body", bilan: "body" };
 const ClientBottomNav = ({ currentScreen, onNavigate }) => {
   const active = CLIENT_TAB_OF[currentScreen] || currentScreen;
   return (
@@ -2301,7 +2301,7 @@ const useClientData = (clientId, { isCoach = false } = {}) => {
 
   return { entries, weights, measurements, assignedWorkouts, progressPhotos, payments, profile, activitySessions, meals, schedule, appointments, weeklyFocus, weeklyCheckins, loading, addEntry, updateEntry, addWeight, addMeasurement, toggleWorkout, updateScheduledDate, addProgressPhoto, addPayment, updateProfile, addActivitySession, deleteActivitySession, addMeal, updateMeal, deleteMeal, scheduleWorkout, unscheduleWorkout, unscheduleSeriesFrom, addAppointment, deleteAppointment, upsertWeeklyFocus, upsertWeeklyCheckin };
 };
-const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal, getKcalTarget = () => null }) => {
+const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile, latestWeightKg, activityTypes = [], activitySessions = [], onAddActivitySession, onDeleteActivitySession, meals = [], onAddMeal, onUpdateMeal, onDeleteMeal, getKcalTarget = () => null, bottomNav = null }) => {
   const [selectedDate, setSelectedDate] = useState(today);
   const [feeling, setFeeling] = useState(null);
   const [steps, setSteps] = useState("");
@@ -2429,9 +2429,9 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
   const sectionTitle = { fontSize: 17, fontWeight: 650, color: C.heading, margin: "0 0 14px" };
   const chip = (on, color = C.cherry) => ({ flex: 1, minHeight: 44, borderRadius: 12, border: `1px solid ${on ? color : C.border}`, background: on ? color + "18" : C.card, color: on ? color : C.textMuted, fontWeight: on ? 650 : 500, fontSize: 14, cursor: "pointer", fontFamily: "inherit" });
   return (
-    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: "16px 16px 120px", maxWidth: 560, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, padding: "8px 0", display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}><Icon name="back" size={18} /> Retour</button>
+    <div style={{ minHeight: "100vh", background: C.black, color: C.white, fontFamily: F.sans, padding: bottomNav ? "16px 16px 190px" : "16px 16px 120px", maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: bottomNav ? "flex-end" : "space-between", alignItems: "center", marginBottom: 10 }}>
+        {!bottomNav && <button onClick={onBack} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 15, padding: "8px 0", display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}><Icon name="back" size={18} /> Retour</button>}
         {onViewHistory && <button onClick={onViewHistory} style={{ background: "none", border: "none", color: C.cherry, cursor: "pointer", fontSize: 14, fontWeight: 650, padding: "8px 0", fontFamily: "inherit" }}>Historique</button>}
       </div>
       <h1 style={{ fontFamily: F.serif, fontWeight: 400, fontSize: 32, letterSpacing: "-0.6px", color: C.heading, margin: "0 0 14px" }}>Mon journal</h1>
@@ -2540,11 +2540,13 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
         </Card>
       </div>
 
-      <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, padding: "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", background: C.black + "f2", borderTop: `1px solid ${C.border}`, zIndex: 40 }}>
+      {/* Avec la barre d'onglets, le bouton se pose juste au-dessus d'elle */}
+      <div style={{ position: "fixed", left: 0, right: 0, bottom: bottomNav ? "calc(68px + env(safe-area-inset-bottom, 0px))" : 0, padding: bottomNav ? "12px 16px" : "12px 16px calc(12px + env(safe-area-inset-bottom, 0px))", background: C.black + "f2", borderTop: `1px solid ${C.border}`, zIndex: 40 }}>
         <div style={{ maxWidth: 528, margin: "0 auto" }}>
           <Btn onClick={handleSave} disabled={saving} style={{ width: "100%" }}>{saving ? "Enregistrement…" : isJournalFilled(existing) ? "Mettre à jour mon journal" : "Enregistrer mon journal"}</Btn>
         </div>
       </div>
+      {bottomNav}
     </div>
   );
 };
@@ -5029,7 +5031,7 @@ const ClientApp = ({ user, onLogout }) => {
 
   if (screen === "journal") {
     if (!clientId) return <div style={{ minHeight: "100vh", background: C.black, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner /></div>;
-    return <JournalForm entries={entries} getKcalTarget={getKcalTarget} onSave={handleSaveJournal} onBack={() => setScreen("home")} onViewHistory={() => setScreen("history")} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} meals={meals} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} />;
+    return <JournalForm entries={entries} getKcalTarget={getKcalTarget} onSave={handleSaveJournal} onBack={() => setScreen("home")} onViewHistory={() => setScreen("history")} bottomNav={<ClientBottomNav currentScreen="journal" onNavigate={setScreen} />} clientId={clientId} profile={profile} latestWeightKg={lastWeight?.value} activityTypes={activityTypes} activitySessions={activitySessions} onAddActivitySession={addActivitySession} onDeleteActivitySession={deleteActivitySession} meals={meals} onAddMeal={addMeal} onUpdateMeal={updateMeal} onDeleteMeal={deleteMeal} />;
   }
 
   if (screen === "repas") {
