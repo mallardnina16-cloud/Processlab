@@ -1,0 +1,3408 @@
+{
+ "version": 1,
+ "program_name": "Auriane — Full body découverte (Bloc 1, S1 à S4)",
+ "client": "Auriane",
+ "assign": true,
+ "archive_existing_named": false,
+ "catalogue_category_default": "Musculation avec charges",
+ "catalogue": [
+  {
+   "nom": "Sac de frappe (échauffement)",
+   "categorie": "Échauffement & Mobilité",
+   "positionnement": "Debout face au sac, gants aux mains, pieds décalés, genoux souples, garde haute.",
+   "execution": "Enchaîner des coups simples (directs, crochets) à intensité modérée en restant mobile sur les appuis.",
+   "respiration": "Expirer à chaque coup.",
+   "vigilance": "Poignets alignés avec l'avant-bras à l'impact. On ne cherche pas la puissance : c'est un échauffement."
+  },
+  {
+   "nom": "Squat au poids du corps",
+   "categorie": "Échauffement & Mobilité",
+   "positionnement": "Debout, pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes.",
+   "execution": "Descendre en poussant les fesses en arrière et en pliant les genoux, puis remonter en poussant dans le sol.",
+   "respiration": "Inspirer en descendant, expirer en remontant.",
+   "vigilance": "Genoux dans l'axe des pieds, dos droit, talons au sol."
+  },
+  {
+   "nom": "Charnière de hanche (poids du corps)",
+   "categorie": "Échauffement & Mobilité",
+   "positionnement": "Debout, mains sur les hanches, pieds largeur de hanches, genoux légèrement fléchis.",
+   "execution": "Reculer les fesses en penchant le buste, dos plat, jusqu'à sentir l'étirement des ischios, puis se redresser en serrant les fessiers.",
+   "respiration": "Inspirer en descendant, expirer en remontant.",
+   "vigilance": "Le dos reste plat. Les genoux ne se plient pas davantage pendant la descente."
+  },
+  {
+   "nom": "Pompes inclinées (mains sur la box)",
+   "categorie": "Poids du corps",
+   "positionnement": "Mains sur la box, un peu plus larges que les épaules, corps aligné de la tête aux talons.",
+   "execution": "Descendre la poitrine vers la box, coudes à 45° du corps, puis repousser.",
+   "respiration": "Inspirer en descendant, expirer en poussant.",
+   "vigilance": "Box stable, calée contre le mur. Le bassin ne s'affaisse pas."
+  },
+  {
+   "nom": "Soulevé de terre barre surélevée",
+   "categorie": "Musculation avec charges",
+   "positionnement": "Disques posés sur des steps pour que la barre parte à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied, mains juste à l'extérieur des jambes, poitrine haute, dos plat.",
+   "execution": "Mettre les bras sous tension, pousser le sol avec les pieds : la barre remonte le long des jambes, les hanches passent devant en fin de mouvement. Redescendre fesses en arrière puis genoux.",
+   "respiration": "Inspirer et gainer avant de tirer, expirer en haut.",
+   "vigilance": "Dos plat du début à la fin, barre collée aux jambes. Ne pas se pencher en arrière en haut."
+  },
+  {
+   "nom": "Développé couché haltères",
+   "categorie": "Musculation avec charges",
+   "positionnement": "Allongée sur le banc, pieds à plat au sol, omoplates serrées, haltères au-dessus de la poitrine.",
+   "execution": "Descendre les haltères au niveau de la poitrine, coudes à 45° du corps, puis pousser vers le haut.",
+   "respiration": "Inspirer en descendant, expirer en poussant.",
+   "vigilance": "Coudes pas en croix (90°). Les épaules restent plaquées au banc."
+  },
+  {
+   "nom": "Abduction allongée sur le côté (poids de chevilles)",
+   "categorie": "Musculation avec charges",
+   "positionnement": "Allongée sur le côté, jambe du dessous pliée, jambe du dessus tendue légèrement en arrière de l'axe du corps, poids à la cheville.",
+   "execution": "Lever la jambe du dessus de 30 à 40°, tenir 1 s, redescendre en 2 s.",
+   "respiration": "Expirer en montant, inspirer en descendant.",
+   "vigilance": "Orteils vers l'avant (pas vers le plafond), sinon c'est le fléchisseur de hanche qui travaille. Le bassin ne bascule pas en arrière."
+  },
+  {
+   "nom": "Split squat statique aux haltères",
+   "categorie": "Musculation avec charges",
+   "positionnement": "En fente, une grande enjambée entre les pieds, pied arrière sur la pointe, un haltère dans chaque main.",
+   "execution": "Descendre à la verticale jusqu'à ce que le genou arrière frôle le sol, puis remonter en poussant dans le pied avant, sans changer la position des pieds.",
+   "respiration": "Inspirer en descendant, expirer en remontant.",
+   "vigilance": "Genou avant dans l'axe du pied, buste légèrement penché vers l'avant. Une main sur un support si l'équilibre est fragile."
+  },
+  {
+   "nom": "Développé épaules haltères debout",
+   "categorie": "Musculation avec charges",
+   "positionnement": "Debout, pieds largeur de hanches, fessiers et abdominaux serrés, haltères à hauteur d'oreilles.",
+   "execution": "Pousser les haltères vers le haut et légèrement vers l'avant, puis redescendre à hauteur d'oreilles.",
+   "respiration": "Expirer en poussant, inspirer en descendant.",
+   "vigilance": "Ne pas cambrer le bas du dos ni se pencher en arrière. Variante à genoux sur un genou pour plus de stabilité."
+  },
+  {
+   "nom": "Pull-over haltère allongée",
+   "categorie": "Musculation avec charges",
+   "positionnement": "Allongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut, bras au-dessus de la poitrine, coudes légèrement fléchis.",
+   "execution": "Descendre l'haltère derrière la tête jusqu'à ce que les bras soient dans le prolongement du corps, puis le ramener au-dessus de la poitrine en tirant avec les dorsaux.",
+   "respiration": "Inspirer en descendant, expirer en remontant.",
+   "vigilance": "Coudes fixes. Côtes basses, bas du dos collé au banc : limiter l'amplitude si les épaules tirent ou si le dos se cambre."
+  },
+  {
+   "nom": "Leg curl sur gros ballon",
+   "categorie": "Poids du corps",
+   "positionnement": "Allongée sur le dos, talons sur le gros ballon, bras écartés au sol paumes vers le bas.",
+   "execution": "Monter le bassin, puis ramener les talons vers les fesses en roulant le ballon, hanches hautes. Retendre lentement les jambes sans laisser retomber le bassin.",
+   "respiration": "Expirer en ramenant le ballon, inspirer en retendant.",
+   "vigilance": "Le bassin ne redescend pas pendant le mouvement. Progression : pont tenu → excentrique seul → complet → une jambe."
+  },
+  {
+   "nom": "Marche du serveur à une main (suitcase carry)",
+   "categorie": "Fonctionnel",
+   "positionnement": "Debout, un seul haltère lourd tenu bras tendu le long du corps.",
+   "execution": "Marcher lentement en gardant les épaules à la même hauteur et le buste droit. Changer de main.",
+   "respiration": "Respiration normale, ventre serré.",
+   "vigilance": "Ne pas pencher du côté de l'haltère ni compenser de l'autre côté. Version statique possible si la place manque."
+  },
+  {
+   "nom": "Superman alterné",
+   "categorie": "Poids du corps",
+   "positionnement": "Allongée sur le ventre, bras tendus devant, front posé sur une serviette.",
+   "execution": "Lever en même temps le bras et la jambe opposés de quelques centimètres, tenir 2 s, alterner.",
+   "respiration": "Expirer en montant.",
+   "vigilance": "Regard vers le sol. Les fessiers lèvent la jambe : pas de cambrure forcée du bas du dos."
+  },
+  {
+   "nom": "Superman",
+   "categorie": "Poids du corps",
+   "positionnement": "Allongée sur le ventre, bras tendus devant, front posé sur une serviette.",
+   "execution": "Lever en même temps les bras et les jambes de quelques centimètres, tenir 3 s, redescendre.",
+   "respiration": "Expirer en montant.",
+   "vigilance": "Amplitude courte, regard vers le sol, fessiers serrés. Revenir à la version alternée en cas de gêne lombaire."
+  },
+  {
+   "nom": "Pompes inclinées (mains sur une table)",
+   "categorie": "Poids du corps",
+   "positionnement": "Mains sur une table ou un plan de travail stable, corps aligné de la tête aux talons.",
+   "execution": "Descendre la poitrine vers le support, coudes à 45° du corps, puis repousser.",
+   "respiration": "Inspirer en descendant, expirer en poussant.",
+   "vigilance": "Support qui ne glisse pas. Le bassin ne s'affaisse pas."
+  }
+ ],
+ "workouts": [
+  {
+   "name": "Auriane · S1 · Séance A — Full body, priorité squat",
+   "description": "Semaine 1/4 — Découverte. On apprend les mouvements et on trouve tes poids de départ. Note les poids utilisés : ce sera ta base.\n\nAu studio, avec Nina. Durée : ~60 min (10 min d'échauffement, 45 min de travail, 5 min de bilan). Laisse au moins 48 h entre la séance A et la séance B.\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s1d1-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s1d1-2",
+       "name": "Sac de frappe (échauffement)",
+       "reps": "2 min",
+       "note": "Enchaînements simples (direct, crochet), sans forcer. On monte la température.",
+       "photo": "https://static.exercisedb.dev/media/hoXt6wv.gif"
+      },
+      {
+       "id": "s1d1-3",
+       "name": "Cat-cow",
+       "reps": "8 lentes",
+       "note": "À quatre pattes : arrondis le dos en soufflant, puis creuse doucement en inspirant.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/cat-cow.gif"
+      },
+      {
+       "id": "s1d1-4",
+       "name": "Ouverture thoracique à quatre pattes",
+       "reps": "6 / côté",
+       "note": "Une main derrière la tête, ouvre le coude vers le plafond en suivant du regard. Le bassin ne bouge pas.",
+       "photo": null
+      },
+      {
+       "id": "s1d1-5",
+       "name": "Marche latérale élastique (band walk)",
+       "reps": "2 × 10 pas / côté",
+       "note": "Élastique au-dessus des genoux, légèrement accroupie, petits pas. Tu dois sentir le côté des fesses chauffer.",
+       "photo": "https://static.exercisedb.dev/media/O95afRA.gif"
+      },
+      {
+       "id": "s1d1-6",
+       "name": "Squat au poids du corps",
+       "reps": "8",
+       "note": "Genoux dans l'axe des pieds, descends aussi bas que ton dos reste droit.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-poids-du-corps.gif"
+      },
+      {
+       "id": "s1d1-7",
+       "name": "Charnière de hanche (poids du corps)",
+       "reps": "8",
+       "note": "Mains sur les hanches, genoux légèrement fléchis : recule les fesses comme pour fermer une porte, dos plat, puis redresse-toi en serrant les fesses.",
+       "photo": "https://static.exercisedb.dev/media/rR0LJzx.gif"
+      }
+     ]
+    },
+    {
+     "id": "s1d1-8",
+     "type": "exercise",
+     "name": "Squat gobelet (goblet squat)",
+     "sets": 3,
+     "reps": "8-12",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nHaltère tenu contre le sternum, coudes vers le bas. Pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes. Descends en 3 secondes, genoux dans l'axe des pieds, aussi bas que ton dos reste droit. Si tes talons décollent, on les surélève avec un petit disque.",
+     "photo": "https://static.exercisedb.dev/media/yn8yg1r.gif",
+     "suggested_weight": "8",
+     "weight_type": "haltères",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Haltère"
+    },
+    {
+     "id": "s1d1-9",
+     "type": "exercise",
+     "name": "Soulevé de terre barre surélevée",
+     "sets": 3,
+     "reps": "8-10",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nDisques posés sur les steps : la barre part à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied. Attrape la barre juste à l'extérieur des jambes, poitrine haute, dos plat. Avant de tirer, serre les bras comme pour « casser » la barre en deux. Pousse le sol avec les pieds, la barre glisse le long des jambes, finis debout en serrant les fesses — sans te pencher en arrière. Pour redescendre : d'abord les fesses en arrière, puis les genoux.",
+     "photo": "https://static.exercisedb.dev/media/ila4NZS.gif",
+     "suggested_weight": "20",
+     "weight_type": "barre",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Barre, disques, steps"
+    },
+    {
+     "id": "s1d1-10",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s1d1-11",
+       "name": "Développé couché haltères",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nSUPERSET : enchaîne avec le rowing, puis 1 min 15 de repos.\n\nOmoplates serrées contre le banc, pieds bien à plat. Les coudes partent à 45° du corps (pas en croix). Descends les haltères au niveau de la poitrine en 2 secondes, pousse sans verrouiller.",
+       "suggested_weight": "2×6",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères, banc",
+       "photo": "https://static.exercisedb.dev/media/SpYC0Kp.gif"
+      },
+      {
+       "id": "s1d1-12",
+       "name": "Rowing haltère 1 bras",
+       "reps": "10-12 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nUn genou et une main sur le banc (ou en fente, main sur la box), dos plat comme une table. Tire le coude vers la hanche, le buste ne tourne pas. Redescends lentement.",
+       "suggested_weight": "8",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère, banc",
+       "photo": "https://static.exercisedb.dev/media/C0MA9bC.gif"
+      }
+     ]
+    },
+    {
+     "id": "s1d1-13",
+     "type": "exercise",
+     "name": "Step-up",
+     "sets": 2,
+     "reps": "8 / jambe",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 60,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nSur la plateforme à sa hauteur maximale, pied posé à une extrémité (au-dessus d'un pied de la plateforme) pour qu'elle ne bascule pas. Pied entier dessus, pousse uniquement avec la jambe du haut, redescends en 3 secondes.",
+     "photo": "https://static.exercisedb.dev/media/aXtJhlg.gif",
+     "suggested_weight": "poids du corps",
+     "weight_type": "poids du corps",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Plateforme"
+    },
+    {
+     "id": "s1d1-14",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 45,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s1d1-15",
+       "name": "Dead bug",
+       "reps": "6-8 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "SUPERSET : enchaîne avec l'abduction, puis 45 s de repos.\n\nSur le dos, bras vers le plafond, genoux à 90°. Tends un bras et la jambe opposée en soufflant longuement. Le bas du dos reste plaqué au sol tout le temps : s'il décolle, réduis l'amplitude.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/iny3m5y.gif"
+      },
+      {
+       "id": "s1d1-16",
+       "name": "Abduction allongée sur le côté (poids de chevilles)",
+       "reps": "12-15 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Allongée sur le côté, jambe du dessous pliée. Jambe du dessus tendue, légèrement EN ARRIÈRE de ton corps, orteils vers l'avant (pas vers le plafond). Monte de 30 à 40° seulement, tiens 1 seconde, redescends en 2 secondes. Le bassin ne bascule pas en arrière. Tu dois sentir le haut-côté de la fesse brûler.",
+       "suggested_weight": "poids de chevilles léger",
+       "weight_type": "poids de chevilles",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Poids de chevilles",
+       "photo": "https://static.exercisedb.dev/media/7WaDzyL.gif"
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Squat gobelet (goblet squat)",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nHaltère tenu contre le sternum, coudes vers le bas. Pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes. Descends en 3 secondes, genoux dans l'axe des pieds, aussi bas que ton dos reste droit. Si tes talons décollent, on les surélève avec un petit disque.",
+     "position": 1,
+     "suggested_weight": "8",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Soulevé de terre barre surélevée",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nDisques posés sur les steps : la barre part à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied. Attrape la barre juste à l'extérieur des jambes, poitrine haute, dos plat. Avant de tirer, serre les bras comme pour « casser » la barre en deux. Pousse le sol avec les pieds, la barre glisse le long des jambes, finis debout en serrant les fesses — sans te pencher en arrière. Pour redescendre : d'abord les fesses en arrière, puis les genoux.",
+     "position": 2,
+     "suggested_weight": "20",
+     "weight_type": "barre",
+     "tempo": ""
+    },
+    {
+     "name": "Développé couché haltères",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nSUPERSET : enchaîne avec le rowing, puis 1 min 15 de repos.\n\nOmoplates serrées contre le banc, pieds bien à plat. Les coudes partent à 45° du corps (pas en croix). Descends les haltères au niveau de la poitrine en 2 secondes, pousse sans verrouiller.",
+     "position": 3,
+     "suggested_weight": "2×6",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Rowing haltère 1 bras",
+     "sets": 3,
+     "reps": "10-12 / côté",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nUn genou et une main sur le banc (ou en fente, main sur la box), dos plat comme une table. Tire le coude vers la hanche, le buste ne tourne pas. Redescends lentement.",
+     "position": 4,
+     "suggested_weight": "8",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Step-up",
+     "sets": 2,
+     "reps": "8 / jambe",
+     "rest": 60,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nSur la plateforme à sa hauteur maximale, pied posé à une extrémité (au-dessus d'un pied de la plateforme) pour qu'elle ne bascule pas. Pied entier dessus, pousse uniquement avec la jambe du haut, redescends en 3 secondes.",
+     "position": 5,
+     "suggested_weight": "poids du corps",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Dead bug",
+     "sets": 3,
+     "reps": "6-8 / côté",
+     "rest": 45,
+     "note": "SUPERSET : enchaîne avec l'abduction, puis 45 s de repos.\n\nSur le dos, bras vers le plafond, genoux à 90°. Tends un bras et la jambe opposée en soufflant longuement. Le bas du dos reste plaqué au sol tout le temps : s'il décolle, réduis l'amplitude.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Abduction allongée sur le côté (poids de chevilles)",
+     "sets": 3,
+     "reps": "12-15 / côté",
+     "rest": 45,
+     "note": "Allongée sur le côté, jambe du dessous pliée. Jambe du dessus tendue, légèrement EN ARRIÈRE de ton corps, orteils vers l'avant (pas vers le plafond). Monte de 30 à 40° seulement, tiens 1 seconde, redescends en 2 secondes. Le bassin ne bascule pas en arrière. Tu dois sentir le haut-côté de la fesse brûler.",
+     "position": 7,
+     "suggested_weight": "poids de chevilles léger",
+     "weight_type": "poids de chevilles",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S1 · Séance B — Full body, fessiers & ischios",
+   "description": "Semaine 1/4 — Découverte. On apprend les mouvements et on trouve tes poids de départ. Note les poids utilisés : ce sera ta base.\n\nAu studio, avec Nina. Durée : ~60 min. En fin de séance, on fait le point sur ta récupération depuis la séance A (courbatures, fatigue, sommeil).\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s1d2-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s1d2-2",
+       "name": "Sac de frappe (échauffement)",
+       "reps": "2 min",
+       "note": "Enchaînements simples, sans forcer.",
+       "photo": "https://static.exercisedb.dev/media/hoXt6wv.gif"
+      },
+      {
+       "id": "s1d2-3",
+       "name": "World's greatest stretch",
+       "reps": "4 / côté",
+       "note": "Grande fente, main au sol, puis tourne le buste et lève le bras vers le plafond.",
+       "photo": "https://static.exercisedb.dev/media/DFGXwZr.gif"
+      },
+      {
+       "id": "s1d2-4",
+       "name": "Hip thrust au sol (glute bridge)",
+       "reps": "12",
+       "note": "Avec l'élastique au-dessus des genoux. Monte le bassin, serre les fesses 2 secondes en haut, les genoux poussent vers l'extérieur.",
+       "photo": "https://static.exercisedb.dev/media/u0cNiij.gif"
+      },
+      {
+       "id": "s1d2-5",
+       "name": "Monster walk",
+       "reps": "2 × 10 pas",
+       "note": "Élastique au-dessus des genoux, pas en diagonale vers l'avant. Les genoux ne rentrent pas.",
+       "photo": "https://static.exercisedb.dev/media/O95afRA.gif"
+      },
+      {
+       "id": "s1d2-6",
+       "name": "Wall slides",
+       "reps": "8",
+       "note": "Dos, tête et bras contre le mur, coudes à 90°. Fais glisser les bras vers le haut sans que le bas du dos décolle du mur.",
+       "photo": null
+      },
+      {
+       "id": "s1d2-7",
+       "name": "Pompes inclinées (mains sur la box)",
+       "reps": "5",
+       "note": "Corps gainé, réveil des épaules avant les poussées.",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      }
+     ]
+    },
+    {
+     "id": "s1d2-8",
+     "type": "exercise",
+     "name": "Hip thrust barre",
+     "sets": 3,
+     "reps": "10-12",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nBanc calé contre le mur, mousse ou serviette sur la barre. Le bas des omoplates sur le bord du banc, pieds placés pour que les tibias soient verticaux en haut. Menton rentré, monte jusqu'à l'alignement épaules-hanches-genoux et serre les fesses 1 seconde. Les côtes restent basses : ne te cambre pas pour monter plus haut.",
+     "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/hip-thrust.gif",
+     "suggested_weight": "20-30",
+     "weight_type": "barre",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Barre, disques, banc, mousse"
+    },
+    {
+     "id": "s1d2-9",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s1d2-10",
+       "name": "Split squat statique aux haltères",
+       "reps": "8-10 / jambe",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nSUPERSET : enchaîne avec le développé épaules, puis 1 min 15 de repos.\n\nEn fente, une grande enjambée entre les pieds, pied arrière sur la pointe. Descends à la verticale jusqu'à ce que le genou arrière frôle le sol, buste légèrement penché vers l'avant, pousse dans le pied avant. Commence par ta jambe la plus faible. Si l'équilibre est fragile, une main sur le rack.",
+       "suggested_weight": "poids du corps",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères",
+       "photo": "https://static.exercisedb.dev/media/9E25EOx.gif"
+      },
+      {
+       "id": "s1d2-11",
+       "name": "Développé épaules haltères debout",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nDebout, pieds largeur de hanches, fesses et abdos serrés. Haltères à hauteur d'oreilles, pousse vers le haut légèrement vers l'avant. Ne cambre pas le bas du dos : si tu te penches en arrière, c'est trop lourd. Variante : à genoux sur un genou, fesse de la jambe au sol serrée.",
+       "suggested_weight": "2×4",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères",
+       "photo": "https://static.exercisedb.dev/media/A6wtbuL.gif"
+      }
+     ]
+    },
+    {
+     "id": "s1d2-12",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s1d2-13",
+       "name": "Pompes inclinées (mains sur banc)",
+       "reps": "6-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nSUPERSET : enchaîne avec le pull-over (même banc), puis 1 min 15 de repos.\n\nCorps gainé en planche de la tête aux talons, coudes à 45° du corps, la poitrine descend jusqu'au support. Trop dur : barre dans le rack à hauteur de hanches. Trop facile : on baisse la barre d'un cran.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Barre dans le rack ou banc",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      },
+      {
+       "id": "s1d2-14",
+       "name": "Pull-over haltère allongée",
+       "reps": "10-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nAllongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut. Bras tendus au-dessus de la poitrine, coudes légèrement fléchis et FIXES. Descends l'haltère derrière la tête en 3 secondes jusqu'à ce que les bras soient dans le prolongement du corps, ou avant si tes épaules tirent. Les côtes restent basses et le bas du dos collé au banc. Remonte en tirant avec le dos, en soufflant.",
+       "suggested_weight": "6",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère, banc",
+       "photo": "https://static.exercisedb.dev/media/9XjtHvS.gif"
+      }
+     ]
+    },
+    {
+     "id": "s1d2-15",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 60,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s1d2-16",
+       "name": "Leg curl sur gros ballon",
+       "reps": "8-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "SUPERSET : enchaîne avec la marche du serveur, puis 1 min de repos.\n\nSur le dos, talons sur le ballon, bras écartés au sol. Monte le bassin, puis ramène les talons vers les fesses en gardant les hanches HAUTES : en fin de mouvement genoux, hanches et épaules sont alignés. Retends les jambes en 3 secondes sans laisser retomber le bassin. Si le bassin redescend, la série s'arrête.\n\nTrop dur : ramène le ballon fesses au sol, monte le bassin, puis retends lentement en 4 secondes (excentrique seul). Encore trop dur : pont tenu talons sur le ballon, 20-30 s.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Gros ballon",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/ball-leg-curl.gif"
+      },
+      {
+       "id": "s1d2-17",
+       "name": "Marche du serveur à une main (suitcase carry)",
+       "reps": "30 s / côté",
+       "mode": "time",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "UN seul haltère, bras tendu le long du corps comme une valise. Marche lentement, épaules à la même hauteur, buste droit : tu ne penches PAS du côté de l'haltère. Ventre serré, respiration normale. Si la place manque : allers-retours de quelques pas ou tenue statique 30 s. À 12,5 kg facile : marche sur la pointe des pieds.",
+       "suggested_weight": "10",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère",
+       "photo": "https://static.exercisedb.dev/media/qPEzJjA.gif"
+      }
+     ]
+    },
+    {
+     "id": "s1d2-18",
+     "type": "exercise",
+     "name": "Superman alterné",
+     "sets": 2,
+     "reps": "8 / côté",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 45,
+     "tempo": "",
+     "note": "Allongée sur le ventre, bras tendus devant, front sur une serviette. Lève en même temps le bras et la jambe opposés de quelques centimètres, tiens 2 secondes. Regard vers le sol, fesses serrées : c'est la hanche qui lève la jambe, pas le bas du dos qui se cambre.",
+     "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/superman.gif",
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "rpe": "",
+     "technique": ""
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Hip thrust barre",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nBanc calé contre le mur, mousse ou serviette sur la barre. Le bas des omoplates sur le bord du banc, pieds placés pour que les tibias soient verticaux en haut. Menton rentré, monte jusqu'à l'alignement épaules-hanches-genoux et serre les fesses 1 seconde. Les côtes restent basses : ne te cambre pas pour monter plus haut.",
+     "position": 1,
+     "suggested_weight": "20-30",
+     "weight_type": "barre",
+     "tempo": ""
+    },
+    {
+     "name": "Split squat statique aux haltères",
+     "sets": 3,
+     "reps": "8-10 / jambe",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nSUPERSET : enchaîne avec le développé épaules, puis 1 min 15 de repos.\n\nEn fente, une grande enjambée entre les pieds, pied arrière sur la pointe. Descends à la verticale jusqu'à ce que le genou arrière frôle le sol, buste légèrement penché vers l'avant, pousse dans le pied avant. Commence par ta jambe la plus faible. Si l'équilibre est fragile, une main sur le rack.",
+     "position": 2,
+     "suggested_weight": "poids du corps",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Développé épaules haltères debout",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nDebout, pieds largeur de hanches, fesses et abdos serrés. Haltères à hauteur d'oreilles, pousse vers le haut légèrement vers l'avant. Ne cambre pas le bas du dos : si tu te penches en arrière, c'est trop lourd. Variante : à genoux sur un genou, fesse de la jambe au sol serrée.",
+     "position": 3,
+     "suggested_weight": "2×4",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Pompes inclinées (mains sur banc)",
+     "sets": 3,
+     "reps": "6-10",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nSUPERSET : enchaîne avec le pull-over (même banc), puis 1 min 15 de repos.\n\nCorps gainé en planche de la tête aux talons, coudes à 45° du corps, la poitrine descend jusqu'au support. Trop dur : barre dans le rack à hauteur de hanches. Trop facile : on baisse la barre d'un cran.",
+     "position": 4,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Pull-over haltère allongée",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. On apprend le geste, il doit rester parfait.\n\nAllongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut. Bras tendus au-dessus de la poitrine, coudes légèrement fléchis et FIXES. Descends l'haltère derrière la tête en 3 secondes jusqu'à ce que les bras soient dans le prolongement du corps, ou avant si tes épaules tirent. Les côtes restent basses et le bas du dos collé au banc. Remonte en tirant avec le dos, en soufflant.",
+     "position": 5,
+     "suggested_weight": "6",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Leg curl sur gros ballon",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 60,
+     "note": "SUPERSET : enchaîne avec la marche du serveur, puis 1 min de repos.\n\nSur le dos, talons sur le ballon, bras écartés au sol. Monte le bassin, puis ramène les talons vers les fesses en gardant les hanches HAUTES : en fin de mouvement genoux, hanches et épaules sont alignés. Retends les jambes en 3 secondes sans laisser retomber le bassin. Si le bassin redescend, la série s'arrête.\n\nTrop dur : ramène le ballon fesses au sol, monte le bassin, puis retends lentement en 4 secondes (excentrique seul). Encore trop dur : pont tenu talons sur le ballon, 20-30 s.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Marche du serveur à une main (suitcase carry)",
+     "sets": 3,
+     "reps": "30 s / côté",
+     "rest": 60,
+     "note": "UN seul haltère, bras tendu le long du corps comme une valise. Marche lentement, épaules à la même hauteur, buste droit : tu ne penches PAS du côté de l'haltère. Ventre serré, respiration normale. Si la place manque : allers-retours de quelques pas ou tenue statique 30 s. À 12,5 kg facile : marche sur la pointe des pieds.",
+     "position": 7,
+     "suggested_weight": "10",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Superman alterné",
+     "sets": 2,
+     "reps": "8 / côté",
+     "rest": 45,
+     "note": "Allongée sur le ventre, bras tendus devant, front sur une serviette. Lève en même temps le bras et la jambe opposés de quelques centimètres, tiens 2 secondes. Regard vers le sol, fesses serrées : c'est la hanche qui lève la jambe, pas le bas du dos qui se cambre.",
+     "position": 8,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S1 · Séance C (optionnelle) — Maison",
+   "description": "Semaine 1/4 — Découverte. On apprend les mouvements et on trouve tes poids de départ. Note les poids utilisés : ce sera ta base.\n\nÀ la maison, ~30 min, sans matériel (un élastique si tu en as un). Volontairement facile : tu dois arriver reposée à tes séances au studio. Pas la veille d'une séance au studio. Si tu fais ton footing ce jour-là, saute-la.\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s1d3-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s1d3-2",
+       "name": "Cat-cow",
+       "reps": "8 lentes",
+       "note": "Lentement, sans forcer.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/cat-cow.gif"
+      },
+      {
+       "id": "s1d3-3",
+       "name": "World's greatest stretch",
+       "reps": "4 / côté",
+       "note": "Ouvre les hanches et le haut du dos.",
+       "photo": "https://static.exercisedb.dev/media/DFGXwZr.gif"
+      },
+      {
+       "id": "s1d3-4",
+       "name": "Squat au poids du corps",
+       "reps": "10",
+       "note": "Tranquillement, pour réveiller les jambes.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-poids-du-corps.gif"
+      }
+     ]
+    },
+    {
+     "id": "s1d3-5",
+     "type": "circuit",
+     "rounds": 2,
+     "rest_between_rounds": 90,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s1d3-6",
+       "name": "Squat sumo",
+       "reps": "15",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "CIRCUIT : enchaîne les 6 exercices, puis 1 min 30 de repos avant le tour suivant.\n\nPieds écartés, pointes vers l'extérieur, élastique au-dessus des genoux si tu en as un. Descends lentement, les genoux poussent vers l'extérieur.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-sumo.gif"
+      },
+      {
+       "id": "s1d3-7",
+       "name": "Hip thrust au sol (glute bridge)",
+       "reps": "15",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Monte le bassin et serre les fesses 2 secondes en haut. Le bas du dos ne se creuse pas.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/u0cNiij.gif"
+      },
+      {
+       "id": "s1d3-8",
+       "name": "Pompes inclinées (mains sur une table)",
+       "reps": "8-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Mains sur une table ou un plan de travail stable, corps gainé de la tête aux talons.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      },
+      {
+       "id": "s1d3-9",
+       "name": "Fentes arrière alternées (poids du corps)",
+       "reps": "10 / jambe",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Une jambe puis l'autre, buste légèrement penché vers l'avant, descente en 2 secondes.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/SSsBDwB.gif"
+      },
+      {
+       "id": "s1d3-10",
+       "name": "Dead bug",
+       "reps": "8 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Bas du dos plaqué au sol, souffle en tendant bras et jambe opposés.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/iny3m5y.gif"
+      },
+      {
+       "id": "s1d3-11",
+       "name": "Gainage / planche (plank)",
+       "reps": "30 s",
+       "mode": "time",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Sur les avant-bras, corps aligné, fesses serrées, bassin ni haut ni affaissé.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/planche.gif"
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Squat sumo",
+     "sets": 2,
+     "reps": "15",
+     "rest": 90,
+     "note": "CIRCUIT : enchaîne les 6 exercices, puis 1 min 30 de repos avant le tour suivant.\n\nPieds écartés, pointes vers l'extérieur, élastique au-dessus des genoux si tu en as un. Descends lentement, les genoux poussent vers l'extérieur.",
+     "position": 1,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Hip thrust au sol (glute bridge)",
+     "sets": 2,
+     "reps": "15",
+     "rest": 90,
+     "note": "Monte le bassin et serre les fesses 2 secondes en haut. Le bas du dos ne se creuse pas.",
+     "position": 2,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Pompes inclinées (mains sur une table)",
+     "sets": 2,
+     "reps": "8-10",
+     "rest": 90,
+     "note": "Mains sur une table ou un plan de travail stable, corps gainé de la tête aux talons.",
+     "position": 3,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Fentes arrière alternées (poids du corps)",
+     "sets": 2,
+     "reps": "10 / jambe",
+     "rest": 90,
+     "note": "Une jambe puis l'autre, buste légèrement penché vers l'avant, descente en 2 secondes.",
+     "position": 4,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Dead bug",
+     "sets": 2,
+     "reps": "8 / côté",
+     "rest": 90,
+     "note": "Bas du dos plaqué au sol, souffle en tendant bras et jambe opposés.",
+     "position": 5,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Gainage / planche (plank)",
+     "sets": 2,
+     "reps": "30 s",
+     "rest": 90,
+     "note": "Sur les avant-bras, corps aligné, fesses serrées, bassin ni haut ni affaissé.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S2 · Séance A — Full body, priorité squat",
+   "description": "Semaine 2/4 — Apprentissage. Même structure, on monte un peu les poids si le geste est propre.\n\nAu studio, avec Nina. Durée : ~60 min (10 min d'échauffement, 45 min de travail, 5 min de bilan). Laisse au moins 48 h entre la séance A et la séance B.\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s2d1-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s2d1-2",
+       "name": "Sac de frappe (échauffement)",
+       "reps": "2 min",
+       "note": "Enchaînements simples (direct, crochet), sans forcer. On monte la température.",
+       "photo": "https://static.exercisedb.dev/media/hoXt6wv.gif"
+      },
+      {
+       "id": "s2d1-3",
+       "name": "Cat-cow",
+       "reps": "8 lentes",
+       "note": "À quatre pattes : arrondis le dos en soufflant, puis creuse doucement en inspirant.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/cat-cow.gif"
+      },
+      {
+       "id": "s2d1-4",
+       "name": "Ouverture thoracique à quatre pattes",
+       "reps": "6 / côté",
+       "note": "Une main derrière la tête, ouvre le coude vers le plafond en suivant du regard. Le bassin ne bouge pas.",
+       "photo": null
+      },
+      {
+       "id": "s2d1-5",
+       "name": "Marche latérale élastique (band walk)",
+       "reps": "2 × 10 pas / côté",
+       "note": "Élastique au-dessus des genoux, légèrement accroupie, petits pas. Tu dois sentir le côté des fesses chauffer.",
+       "photo": "https://static.exercisedb.dev/media/O95afRA.gif"
+      },
+      {
+       "id": "s2d1-6",
+       "name": "Squat au poids du corps",
+       "reps": "8",
+       "note": "Genoux dans l'axe des pieds, descends aussi bas que ton dos reste droit.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-poids-du-corps.gif"
+      },
+      {
+       "id": "s2d1-7",
+       "name": "Charnière de hanche (poids du corps)",
+       "reps": "8",
+       "note": "Mains sur les hanches, genoux légèrement fléchis : recule les fesses comme pour fermer une porte, dos plat, puis redresse-toi en serrant les fesses.",
+       "photo": "https://static.exercisedb.dev/media/rR0LJzx.gif"
+      }
+     ]
+    },
+    {
+     "id": "s2d1-8",
+     "type": "exercise",
+     "name": "Squat gobelet (goblet squat)",
+     "sets": 3,
+     "reps": "8-12",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nHaltère tenu contre le sternum, coudes vers le bas. Pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes. Descends en 3 secondes, genoux dans l'axe des pieds, aussi bas que ton dos reste droit. Si tes talons décollent, on les surélève avec un petit disque.",
+     "photo": "https://static.exercisedb.dev/media/yn8yg1r.gif",
+     "suggested_weight": "8-10",
+     "weight_type": "haltères",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Haltère"
+    },
+    {
+     "id": "s2d1-9",
+     "type": "exercise",
+     "name": "Soulevé de terre barre surélevée",
+     "sets": 3,
+     "reps": "8-10",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nDisques posés sur les steps : la barre part à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied. Attrape la barre juste à l'extérieur des jambes, poitrine haute, dos plat. Avant de tirer, serre les bras comme pour « casser » la barre en deux. Pousse le sol avec les pieds, la barre glisse le long des jambes, finis debout en serrant les fesses — sans te pencher en arrière. Pour redescendre : d'abord les fesses en arrière, puis les genoux.",
+     "photo": "https://static.exercisedb.dev/media/ila4NZS.gif",
+     "suggested_weight": "20-25",
+     "weight_type": "barre",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Barre, disques, steps"
+    },
+    {
+     "id": "s2d1-10",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s2d1-11",
+       "name": "Développé couché haltères",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nSUPERSET : enchaîne avec le rowing, puis 1 min 15 de repos.\n\nOmoplates serrées contre le banc, pieds bien à plat. Les coudes partent à 45° du corps (pas en croix). Descends les haltères au niveau de la poitrine en 2 secondes, pousse sans verrouiller.",
+       "suggested_weight": "2×6",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères, banc",
+       "photo": "https://static.exercisedb.dev/media/SpYC0Kp.gif"
+      },
+      {
+       "id": "s2d1-12",
+       "name": "Rowing haltère 1 bras",
+       "reps": "10-12 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nUn genou et une main sur le banc (ou en fente, main sur la box), dos plat comme une table. Tire le coude vers la hanche, le buste ne tourne pas. Redescends lentement.",
+       "suggested_weight": "8-10",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère, banc",
+       "photo": "https://static.exercisedb.dev/media/C0MA9bC.gif"
+      }
+     ]
+    },
+    {
+     "id": "s2d1-13",
+     "type": "exercise",
+     "name": "Step-up",
+     "sets": 2,
+     "reps": "8 / jambe",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 60,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nSur la plateforme à sa hauteur maximale. Pied entier dessus, pousse uniquement avec la jambe du haut, redescends en 3 secondes.",
+     "photo": "https://static.exercisedb.dev/media/aXtJhlg.gif",
+     "suggested_weight": "poids du corps",
+     "weight_type": "poids du corps",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Plateforme"
+    },
+    {
+     "id": "s2d1-14",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 45,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s2d1-15",
+       "name": "Dead bug",
+       "reps": "6-8 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "SUPERSET : enchaîne avec l'abduction, puis 45 s de repos.\n\nSur le dos, bras vers le plafond, genoux à 90°. Tends un bras et la jambe opposée en soufflant longuement. Le bas du dos reste plaqué au sol tout le temps : s'il décolle, réduis l'amplitude.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/iny3m5y.gif"
+      },
+      {
+       "id": "s2d1-16",
+       "name": "Abduction allongée sur le côté (poids de chevilles)",
+       "reps": "12-15 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Allongée sur le côté, jambe du dessous pliée. Jambe du dessus tendue, légèrement EN ARRIÈRE de ton corps, orteils vers l'avant (pas vers le plafond). Monte de 30 à 40° seulement, tiens 1 seconde, redescends en 2 secondes. Le bassin ne bascule pas en arrière. Tu dois sentir le haut-côté de la fesse brûler.",
+       "suggested_weight": "poids de chevilles léger",
+       "weight_type": "poids de chevilles",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Poids de chevilles",
+       "photo": "https://static.exercisedb.dev/media/7WaDzyL.gif"
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Squat gobelet (goblet squat)",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nHaltère tenu contre le sternum, coudes vers le bas. Pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes. Descends en 3 secondes, genoux dans l'axe des pieds, aussi bas que ton dos reste droit. Si tes talons décollent, on les surélève avec un petit disque.",
+     "position": 1,
+     "suggested_weight": "8-10",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Soulevé de terre barre surélevée",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nDisques posés sur les steps : la barre part à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied. Attrape la barre juste à l'extérieur des jambes, poitrine haute, dos plat. Avant de tirer, serre les bras comme pour « casser » la barre en deux. Pousse le sol avec les pieds, la barre glisse le long des jambes, finis debout en serrant les fesses — sans te pencher en arrière. Pour redescendre : d'abord les fesses en arrière, puis les genoux.",
+     "position": 2,
+     "suggested_weight": "20-25",
+     "weight_type": "barre",
+     "tempo": ""
+    },
+    {
+     "name": "Développé couché haltères",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nSUPERSET : enchaîne avec le rowing, puis 1 min 15 de repos.\n\nOmoplates serrées contre le banc, pieds bien à plat. Les coudes partent à 45° du corps (pas en croix). Descends les haltères au niveau de la poitrine en 2 secondes, pousse sans verrouiller.",
+     "position": 3,
+     "suggested_weight": "2×6",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Rowing haltère 1 bras",
+     "sets": 3,
+     "reps": "10-12 / côté",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nUn genou et une main sur le banc (ou en fente, main sur la box), dos plat comme une table. Tire le coude vers la hanche, le buste ne tourne pas. Redescends lentement.",
+     "position": 4,
+     "suggested_weight": "8-10",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Step-up",
+     "sets": 2,
+     "reps": "8 / jambe",
+     "rest": 60,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nSur la plateforme à sa hauteur maximale. Pied entier dessus, pousse uniquement avec la jambe du haut, redescends en 3 secondes.",
+     "position": 5,
+     "suggested_weight": "poids du corps",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Dead bug",
+     "sets": 3,
+     "reps": "6-8 / côté",
+     "rest": 45,
+     "note": "SUPERSET : enchaîne avec l'abduction, puis 45 s de repos.\n\nSur le dos, bras vers le plafond, genoux à 90°. Tends un bras et la jambe opposée en soufflant longuement. Le bas du dos reste plaqué au sol tout le temps : s'il décolle, réduis l'amplitude.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Abduction allongée sur le côté (poids de chevilles)",
+     "sets": 3,
+     "reps": "12-15 / côté",
+     "rest": 45,
+     "note": "Allongée sur le côté, jambe du dessous pliée. Jambe du dessus tendue, légèrement EN ARRIÈRE de ton corps, orteils vers l'avant (pas vers le plafond). Monte de 30 à 40° seulement, tiens 1 seconde, redescends en 2 secondes. Le bassin ne bascule pas en arrière. Tu dois sentir le haut-côté de la fesse brûler.",
+     "position": 7,
+     "suggested_weight": "poids de chevilles léger",
+     "weight_type": "poids de chevilles",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S2 · Séance B — Full body, fessiers & ischios",
+   "description": "Semaine 2/4 — Apprentissage. Même structure, on monte un peu les poids si le geste est propre.\n\nAu studio, avec Nina. Durée : ~60 min. En fin de séance, on fait le point sur ta récupération depuis la séance A (courbatures, fatigue, sommeil).\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s2d2-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s2d2-2",
+       "name": "Sac de frappe (échauffement)",
+       "reps": "2 min",
+       "note": "Enchaînements simples, sans forcer.",
+       "photo": "https://static.exercisedb.dev/media/hoXt6wv.gif"
+      },
+      {
+       "id": "s2d2-3",
+       "name": "World's greatest stretch",
+       "reps": "4 / côté",
+       "note": "Grande fente, main au sol, puis tourne le buste et lève le bras vers le plafond.",
+       "photo": "https://static.exercisedb.dev/media/DFGXwZr.gif"
+      },
+      {
+       "id": "s2d2-4",
+       "name": "Hip thrust au sol (glute bridge)",
+       "reps": "12",
+       "note": "Avec l'élastique au-dessus des genoux. Monte le bassin, serre les fesses 2 secondes en haut, les genoux poussent vers l'extérieur.",
+       "photo": "https://static.exercisedb.dev/media/u0cNiij.gif"
+      },
+      {
+       "id": "s2d2-5",
+       "name": "Monster walk",
+       "reps": "2 × 10 pas",
+       "note": "Élastique au-dessus des genoux, pas en diagonale vers l'avant. Les genoux ne rentrent pas.",
+       "photo": "https://static.exercisedb.dev/media/O95afRA.gif"
+      },
+      {
+       "id": "s2d2-6",
+       "name": "Wall slides",
+       "reps": "8",
+       "note": "Dos, tête et bras contre le mur, coudes à 90°. Fais glisser les bras vers le haut sans que le bas du dos décolle du mur.",
+       "photo": null
+      },
+      {
+       "id": "s2d2-7",
+       "name": "Pompes inclinées (mains sur la box)",
+       "reps": "5",
+       "note": "Corps gainé, réveil des épaules avant les poussées.",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      }
+     ]
+    },
+    {
+     "id": "s2d2-8",
+     "type": "exercise",
+     "name": "Hip thrust barre",
+     "sets": 3,
+     "reps": "10-12",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nBanc calé contre le mur, mousse ou serviette sur la barre. Le bas des omoplates sur le bord du banc, pieds placés pour que les tibias soient verticaux en haut. Menton rentré, monte jusqu'à l'alignement épaules-hanches-genoux et serre les fesses 1 seconde. Les côtes restent basses : ne te cambre pas pour monter plus haut.",
+     "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/hip-thrust.gif",
+     "suggested_weight": "30",
+     "weight_type": "barre",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Barre, disques, banc, mousse"
+    },
+    {
+     "id": "s2d2-9",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s2d2-10",
+       "name": "Split squat statique aux haltères",
+       "reps": "8-10 / jambe",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nSUPERSET : enchaîne avec le développé épaules, puis 1 min 15 de repos.\n\nEn fente, une grande enjambée entre les pieds, pied arrière sur la pointe. Descends à la verticale jusqu'à ce que le genou arrière frôle le sol, buste légèrement penché vers l'avant, pousse dans le pied avant. Commence par ta jambe la plus faible. Si l'équilibre est fragile, une main sur le rack.",
+       "suggested_weight": "2×4",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères",
+       "photo": "https://static.exercisedb.dev/media/9E25EOx.gif"
+      },
+      {
+       "id": "s2d2-11",
+       "name": "Développé épaules haltères debout",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nDebout, pieds largeur de hanches, fesses et abdos serrés. Haltères à hauteur d'oreilles, pousse vers le haut légèrement vers l'avant. Ne cambre pas le bas du dos : si tu te penches en arrière, c'est trop lourd. Variante : à genoux sur un genou, fesse de la jambe au sol serrée.",
+       "suggested_weight": "2×5",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères",
+       "photo": "https://static.exercisedb.dev/media/A6wtbuL.gif"
+      }
+     ]
+    },
+    {
+     "id": "s2d2-12",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s2d2-13",
+       "name": "Pompes inclinées (mains sur banc)",
+       "reps": "6-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nSUPERSET : enchaîne avec le pull-over (même banc), puis 1 min 15 de repos.\n\nCorps gainé en planche de la tête aux talons, coudes à 45° du corps, la poitrine descend jusqu'au support. Trop dur : barre dans le rack à hauteur de hanches. Trop facile : on baisse la barre d'un cran.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Barre dans le rack ou banc",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      },
+      {
+       "id": "s2d2-14",
+       "name": "Pull-over haltère allongée",
+       "reps": "10-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nAllongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut. Bras tendus au-dessus de la poitrine, coudes légèrement fléchis et FIXES. Descends l'haltère derrière la tête en 3 secondes jusqu'à ce que les bras soient dans le prolongement du corps, ou avant si tes épaules tirent. Les côtes restent basses et le bas du dos collé au banc. Remonte en tirant avec le dos, en soufflant.",
+       "suggested_weight": "6-8",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère, banc",
+       "photo": "https://static.exercisedb.dev/media/9XjtHvS.gif"
+      }
+     ]
+    },
+    {
+     "id": "s2d2-15",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 60,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s2d2-16",
+       "name": "Leg curl sur gros ballon",
+       "reps": "8-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "SUPERSET : enchaîne avec la marche du serveur, puis 1 min de repos.\n\nSur le dos, talons sur le ballon, bras écartés au sol. Monte le bassin, puis ramène les talons vers les fesses en gardant les hanches HAUTES : en fin de mouvement genoux, hanches et épaules sont alignés. Retends les jambes en 3 secondes sans laisser retomber le bassin. Si le bassin redescend, la série s'arrête.\n\nTrop dur : ramène le ballon fesses au sol, monte le bassin, puis retends lentement en 4 secondes (excentrique seul). Encore trop dur : pont tenu talons sur le ballon, 20-30 s.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Gros ballon",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/ball-leg-curl.gif"
+      },
+      {
+       "id": "s2d2-17",
+       "name": "Marche du serveur à une main (suitcase carry)",
+       "reps": "30 s / côté",
+       "mode": "time",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "UN seul haltère, bras tendu le long du corps comme une valise. Marche lentement, épaules à la même hauteur, buste droit : tu ne penches PAS du côté de l'haltère. Ventre serré, respiration normale. Si la place manque : allers-retours de quelques pas ou tenue statique 30 s. À 12,5 kg facile : marche sur la pointe des pieds.",
+       "suggested_weight": "10-12,5",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère",
+       "photo": "https://static.exercisedb.dev/media/qPEzJjA.gif"
+      }
+     ]
+    },
+    {
+     "id": "s2d2-18",
+     "type": "exercise",
+     "name": "Superman alterné",
+     "sets": 2,
+     "reps": "8 / côté",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 45,
+     "tempo": "",
+     "note": "Comme la semaine 1 : bras et jambe opposés, 2 secondes de tenue, regard vers le sol, fesses serrées.",
+     "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/superman.gif",
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "rpe": "",
+     "technique": ""
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Hip thrust barre",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nBanc calé contre le mur, mousse ou serviette sur la barre. Le bas des omoplates sur le bord du banc, pieds placés pour que les tibias soient verticaux en haut. Menton rentré, monte jusqu'à l'alignement épaules-hanches-genoux et serre les fesses 1 seconde. Les côtes restent basses : ne te cambre pas pour monter plus haut.",
+     "position": 1,
+     "suggested_weight": "30",
+     "weight_type": "barre",
+     "tempo": ""
+    },
+    {
+     "name": "Split squat statique aux haltères",
+     "sets": 3,
+     "reps": "8-10 / jambe",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nSUPERSET : enchaîne avec le développé épaules, puis 1 min 15 de repos.\n\nEn fente, une grande enjambée entre les pieds, pied arrière sur la pointe. Descends à la verticale jusqu'à ce que le genou arrière frôle le sol, buste légèrement penché vers l'avant, pousse dans le pied avant. Commence par ta jambe la plus faible. Si l'équilibre est fragile, une main sur le rack.",
+     "position": 2,
+     "suggested_weight": "2×4",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Développé épaules haltères debout",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nDebout, pieds largeur de hanches, fesses et abdos serrés. Haltères à hauteur d'oreilles, pousse vers le haut légèrement vers l'avant. Ne cambre pas le bas du dos : si tu te penches en arrière, c'est trop lourd. Variante : à genoux sur un genou, fesse de la jambe au sol serrée.",
+     "position": 3,
+     "suggested_weight": "2×5",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Pompes inclinées (mains sur banc)",
+     "sets": 3,
+     "reps": "6-10",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nSUPERSET : enchaîne avec le pull-over (même banc), puis 1 min 15 de repos.\n\nCorps gainé en planche de la tête aux talons, coudes à 45° du corps, la poitrine descend jusqu'au support. Trop dur : barre dans le rack à hauteur de hanches. Trop facile : on baisse la barre d'un cran.",
+     "position": 4,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Pull-over haltère allongée",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il doit te rester environ 3 répétitions possibles. Si c'était trop facile la semaine dernière, monte un peu le poids.\n\nAllongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut. Bras tendus au-dessus de la poitrine, coudes légèrement fléchis et FIXES. Descends l'haltère derrière la tête en 3 secondes jusqu'à ce que les bras soient dans le prolongement du corps, ou avant si tes épaules tirent. Les côtes restent basses et le bas du dos collé au banc. Remonte en tirant avec le dos, en soufflant.",
+     "position": 5,
+     "suggested_weight": "6-8",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Leg curl sur gros ballon",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 60,
+     "note": "SUPERSET : enchaîne avec la marche du serveur, puis 1 min de repos.\n\nSur le dos, talons sur le ballon, bras écartés au sol. Monte le bassin, puis ramène les talons vers les fesses en gardant les hanches HAUTES : en fin de mouvement genoux, hanches et épaules sont alignés. Retends les jambes en 3 secondes sans laisser retomber le bassin. Si le bassin redescend, la série s'arrête.\n\nTrop dur : ramène le ballon fesses au sol, monte le bassin, puis retends lentement en 4 secondes (excentrique seul). Encore trop dur : pont tenu talons sur le ballon, 20-30 s.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Marche du serveur à une main (suitcase carry)",
+     "sets": 3,
+     "reps": "30 s / côté",
+     "rest": 60,
+     "note": "UN seul haltère, bras tendu le long du corps comme une valise. Marche lentement, épaules à la même hauteur, buste droit : tu ne penches PAS du côté de l'haltère. Ventre serré, respiration normale. Si la place manque : allers-retours de quelques pas ou tenue statique 30 s. À 12,5 kg facile : marche sur la pointe des pieds.",
+     "position": 7,
+     "suggested_weight": "10-12,5",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Superman alterné",
+     "sets": 2,
+     "reps": "8 / côté",
+     "rest": 45,
+     "note": "Comme la semaine 1 : bras et jambe opposés, 2 secondes de tenue, regard vers le sol, fesses serrées.",
+     "position": 8,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S2 · Séance C (optionnelle) — Maison",
+   "description": "Semaine 2/4 — Apprentissage. Même structure, on monte un peu les poids si le geste est propre.\n\nÀ la maison, ~30 min, sans matériel (un élastique si tu en as un). Volontairement facile : tu dois arriver reposée à tes séances au studio. Pas la veille d'une séance au studio. Si tu fais ton footing ce jour-là, saute-la.\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s2d3-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s2d3-2",
+       "name": "Cat-cow",
+       "reps": "8 lentes",
+       "note": "Lentement, sans forcer.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/cat-cow.gif"
+      },
+      {
+       "id": "s2d3-3",
+       "name": "World's greatest stretch",
+       "reps": "4 / côté",
+       "note": "Ouvre les hanches et le haut du dos.",
+       "photo": "https://static.exercisedb.dev/media/DFGXwZr.gif"
+      },
+      {
+       "id": "s2d3-4",
+       "name": "Squat au poids du corps",
+       "reps": "10",
+       "note": "Tranquillement, pour réveiller les jambes.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-poids-du-corps.gif"
+      }
+     ]
+    },
+    {
+     "id": "s2d3-5",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 90,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s2d3-6",
+       "name": "Squat sumo",
+       "reps": "15",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "CIRCUIT : enchaîne les 6 exercices, puis 1 min 30 de repos avant le tour suivant.\n\nPieds écartés, pointes vers l'extérieur, élastique au-dessus des genoux si tu en as un. Descends lentement, les genoux poussent vers l'extérieur.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-sumo.gif"
+      },
+      {
+       "id": "s2d3-7",
+       "name": "Hip thrust au sol (glute bridge)",
+       "reps": "15",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Monte le bassin et serre les fesses 2 secondes en haut. Le bas du dos ne se creuse pas.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/u0cNiij.gif"
+      },
+      {
+       "id": "s2d3-8",
+       "name": "Pompes inclinées (mains sur une table)",
+       "reps": "8-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Mains sur une table ou un plan de travail stable, corps gainé de la tête aux talons.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      },
+      {
+       "id": "s2d3-9",
+       "name": "Fentes arrière alternées (poids du corps)",
+       "reps": "10 / jambe",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Une jambe puis l'autre, buste légèrement penché vers l'avant, descente en 2 secondes.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/SSsBDwB.gif"
+      },
+      {
+       "id": "s2d3-10",
+       "name": "Dead bug",
+       "reps": "8 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Bas du dos plaqué au sol, souffle en tendant bras et jambe opposés.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/iny3m5y.gif"
+      },
+      {
+       "id": "s2d3-11",
+       "name": "Gainage / planche (plank)",
+       "reps": "30 s",
+       "mode": "time",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Sur les avant-bras, corps aligné, fesses serrées, bassin ni haut ni affaissé.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/planche.gif"
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Squat sumo",
+     "sets": 3,
+     "reps": "15",
+     "rest": 90,
+     "note": "CIRCUIT : enchaîne les 6 exercices, puis 1 min 30 de repos avant le tour suivant.\n\nPieds écartés, pointes vers l'extérieur, élastique au-dessus des genoux si tu en as un. Descends lentement, les genoux poussent vers l'extérieur.",
+     "position": 1,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Hip thrust au sol (glute bridge)",
+     "sets": 3,
+     "reps": "15",
+     "rest": 90,
+     "note": "Monte le bassin et serre les fesses 2 secondes en haut. Le bas du dos ne se creuse pas.",
+     "position": 2,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Pompes inclinées (mains sur une table)",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 90,
+     "note": "Mains sur une table ou un plan de travail stable, corps gainé de la tête aux talons.",
+     "position": 3,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Fentes arrière alternées (poids du corps)",
+     "sets": 3,
+     "reps": "10 / jambe",
+     "rest": 90,
+     "note": "Une jambe puis l'autre, buste légèrement penché vers l'avant, descente en 2 secondes.",
+     "position": 4,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Dead bug",
+     "sets": 3,
+     "reps": "8 / côté",
+     "rest": 90,
+     "note": "Bas du dos plaqué au sol, souffle en tendant bras et jambe opposés.",
+     "position": 5,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Gainage / planche (plank)",
+     "sets": 3,
+     "reps": "30 s",
+     "rest": 90,
+     "note": "Sur les avant-bras, corps aligné, fesses serrées, bassin ni haut ni affaissé.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S3 · Séance A — Full body, priorité squat",
+   "description": "Semaine 3/4 — On charge. Il ne doit plus te rester que 2 répétitions en fin de série. Le step-up passe sur la box.\n\nAu studio, avec Nina. Durée : ~60 min (10 min d'échauffement, 45 min de travail, 5 min de bilan). Laisse au moins 48 h entre la séance A et la séance B.\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s3d1-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s3d1-2",
+       "name": "Sac de frappe (échauffement)",
+       "reps": "2 min",
+       "note": "Enchaînements simples (direct, crochet), sans forcer. On monte la température.",
+       "photo": "https://static.exercisedb.dev/media/hoXt6wv.gif"
+      },
+      {
+       "id": "s3d1-3",
+       "name": "Cat-cow",
+       "reps": "8 lentes",
+       "note": "À quatre pattes : arrondis le dos en soufflant, puis creuse doucement en inspirant.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/cat-cow.gif"
+      },
+      {
+       "id": "s3d1-4",
+       "name": "Ouverture thoracique à quatre pattes",
+       "reps": "6 / côté",
+       "note": "Une main derrière la tête, ouvre le coude vers le plafond en suivant du regard. Le bassin ne bouge pas.",
+       "photo": null
+      },
+      {
+       "id": "s3d1-5",
+       "name": "Marche latérale élastique (band walk)",
+       "reps": "2 × 10 pas / côté",
+       "note": "Élastique au-dessus des genoux, légèrement accroupie, petits pas. Tu dois sentir le côté des fesses chauffer.",
+       "photo": "https://static.exercisedb.dev/media/O95afRA.gif"
+      },
+      {
+       "id": "s3d1-6",
+       "name": "Squat au poids du corps",
+       "reps": "8",
+       "note": "Genoux dans l'axe des pieds, descends aussi bas que ton dos reste droit.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-poids-du-corps.gif"
+      },
+      {
+       "id": "s3d1-7",
+       "name": "Charnière de hanche (poids du corps)",
+       "reps": "8",
+       "note": "Mains sur les hanches, genoux légèrement fléchis : recule les fesses comme pour fermer une porte, dos plat, puis redresse-toi en serrant les fesses.",
+       "photo": "https://static.exercisedb.dev/media/rR0LJzx.gif"
+      }
+     ]
+    },
+    {
+     "id": "s3d1-8",
+     "type": "exercise",
+     "name": "Squat gobelet (goblet squat)",
+     "sets": 3,
+     "reps": "8-12",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nHaltère tenu contre le sternum, coudes vers le bas. Pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes. Descends en 3 secondes, genoux dans l'axe des pieds, aussi bas que ton dos reste droit. Si tes talons décollent, on les surélève avec un petit disque.",
+     "photo": "https://static.exercisedb.dev/media/yn8yg1r.gif",
+     "suggested_weight": "10-12,5",
+     "weight_type": "haltères",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Haltère"
+    },
+    {
+     "id": "s3d1-9",
+     "type": "exercise",
+     "name": "Soulevé de terre barre surélevée",
+     "sets": 3,
+     "reps": "8-10",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nDisques posés sur les steps : la barre part à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied. Attrape la barre juste à l'extérieur des jambes, poitrine haute, dos plat. Avant de tirer, serre les bras comme pour « casser » la barre en deux. Pousse le sol avec les pieds, la barre glisse le long des jambes, finis debout en serrant les fesses — sans te pencher en arrière. Pour redescendre : d'abord les fesses en arrière, puis les genoux.",
+     "photo": "https://static.exercisedb.dev/media/ila4NZS.gif",
+     "suggested_weight": "25-30",
+     "weight_type": "barre",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Barre, disques, steps"
+    },
+    {
+     "id": "s3d1-10",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s3d1-11",
+       "name": "Développé couché haltères",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nSUPERSET : enchaîne avec le rowing, puis 1 min 15 de repos.\n\nOmoplates serrées contre le banc, pieds bien à plat. Les coudes partent à 45° du corps (pas en croix). Descends les haltères au niveau de la poitrine en 2 secondes, pousse sans verrouiller.",
+       "suggested_weight": "2×7",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères, banc",
+       "photo": "https://static.exercisedb.dev/media/SpYC0Kp.gif"
+      },
+      {
+       "id": "s3d1-12",
+       "name": "Rowing haltère 1 bras",
+       "reps": "10-12 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nUn genou et une main sur le banc (ou en fente, main sur la box), dos plat comme une table. Tire le coude vers la hanche, le buste ne tourne pas. Redescends lentement.",
+       "suggested_weight": "10",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère, banc",
+       "photo": "https://static.exercisedb.dev/media/C0MA9bC.gif"
+      }
+     ]
+    },
+    {
+     "id": "s3d1-13",
+     "type": "exercise",
+     "name": "Step-up",
+     "sets": 2,
+     "reps": "8 / jambe",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 60,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nOn passe sur la box, côté le plus bas, calée contre le mur. Au départ, seule la pointe du pied arrière touche le sol : tu dois monter sans t'aider de cette jambe. Redescends toujours en contrôlant, jamais en sautant.",
+     "photo": "https://static.exercisedb.dev/media/aXtJhlg.gif",
+     "suggested_weight": "poids du corps",
+     "weight_type": "poids du corps",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Box"
+    },
+    {
+     "id": "s3d1-14",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 45,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s3d1-15",
+       "name": "Dead bug",
+       "reps": "6-8 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "SUPERSET : enchaîne avec l'abduction, puis 45 s de repos.\n\nSur le dos, bras vers le plafond, genoux à 90°. Tends un bras et la jambe opposée en soufflant longuement. Le bas du dos reste plaqué au sol tout le temps : s'il décolle, réduis l'amplitude.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/iny3m5y.gif"
+      },
+      {
+       "id": "s3d1-16",
+       "name": "Abduction allongée sur le côté (poids de chevilles)",
+       "reps": "12-15 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Allongée sur le côté, jambe du dessous pliée. Jambe du dessus tendue, légèrement EN ARRIÈRE de ton corps, orteils vers l'avant (pas vers le plafond). Monte de 30 à 40° seulement, tiens 1 seconde, redescends en 2 secondes. Le bassin ne bascule pas en arrière. Tu dois sentir le haut-côté de la fesse brûler.",
+       "suggested_weight": "poids de chevilles",
+       "weight_type": "poids de chevilles",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Poids de chevilles",
+       "photo": "https://static.exercisedb.dev/media/7WaDzyL.gif"
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Squat gobelet (goblet squat)",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nHaltère tenu contre le sternum, coudes vers le bas. Pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes. Descends en 3 secondes, genoux dans l'axe des pieds, aussi bas que ton dos reste droit. Si tes talons décollent, on les surélève avec un petit disque.",
+     "position": 1,
+     "suggested_weight": "10-12,5",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Soulevé de terre barre surélevée",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nDisques posés sur les steps : la barre part à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied. Attrape la barre juste à l'extérieur des jambes, poitrine haute, dos plat. Avant de tirer, serre les bras comme pour « casser » la barre en deux. Pousse le sol avec les pieds, la barre glisse le long des jambes, finis debout en serrant les fesses — sans te pencher en arrière. Pour redescendre : d'abord les fesses en arrière, puis les genoux.",
+     "position": 2,
+     "suggested_weight": "25-30",
+     "weight_type": "barre",
+     "tempo": ""
+    },
+    {
+     "name": "Développé couché haltères",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nSUPERSET : enchaîne avec le rowing, puis 1 min 15 de repos.\n\nOmoplates serrées contre le banc, pieds bien à plat. Les coudes partent à 45° du corps (pas en croix). Descends les haltères au niveau de la poitrine en 2 secondes, pousse sans verrouiller.",
+     "position": 3,
+     "suggested_weight": "2×7",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Rowing haltère 1 bras",
+     "sets": 3,
+     "reps": "10-12 / côté",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nUn genou et une main sur le banc (ou en fente, main sur la box), dos plat comme une table. Tire le coude vers la hanche, le buste ne tourne pas. Redescends lentement.",
+     "position": 4,
+     "suggested_weight": "10",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Step-up",
+     "sets": 2,
+     "reps": "8 / jambe",
+     "rest": 60,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nOn passe sur la box, côté le plus bas, calée contre le mur. Au départ, seule la pointe du pied arrière touche le sol : tu dois monter sans t'aider de cette jambe. Redescends toujours en contrôlant, jamais en sautant.",
+     "position": 5,
+     "suggested_weight": "poids du corps",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Dead bug",
+     "sets": 3,
+     "reps": "6-8 / côté",
+     "rest": 45,
+     "note": "SUPERSET : enchaîne avec l'abduction, puis 45 s de repos.\n\nSur le dos, bras vers le plafond, genoux à 90°. Tends un bras et la jambe opposée en soufflant longuement. Le bas du dos reste plaqué au sol tout le temps : s'il décolle, réduis l'amplitude.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Abduction allongée sur le côté (poids de chevilles)",
+     "sets": 3,
+     "reps": "12-15 / côté",
+     "rest": 45,
+     "note": "Allongée sur le côté, jambe du dessous pliée. Jambe du dessus tendue, légèrement EN ARRIÈRE de ton corps, orteils vers l'avant (pas vers le plafond). Monte de 30 à 40° seulement, tiens 1 seconde, redescends en 2 secondes. Le bassin ne bascule pas en arrière. Tu dois sentir le haut-côté de la fesse brûler.",
+     "position": 7,
+     "suggested_weight": "poids de chevilles",
+     "weight_type": "poids de chevilles",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S3 · Séance B — Full body, fessiers & ischios",
+   "description": "Semaine 3/4 — On charge. Il ne doit plus te rester que 2 répétitions en fin de série. Le step-up passe sur la box.\n\nAu studio, avec Nina. Durée : ~60 min. En fin de séance, on fait le point sur ta récupération depuis la séance A (courbatures, fatigue, sommeil).\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s3d2-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s3d2-2",
+       "name": "Sac de frappe (échauffement)",
+       "reps": "2 min",
+       "note": "Enchaînements simples, sans forcer.",
+       "photo": "https://static.exercisedb.dev/media/hoXt6wv.gif"
+      },
+      {
+       "id": "s3d2-3",
+       "name": "World's greatest stretch",
+       "reps": "4 / côté",
+       "note": "Grande fente, main au sol, puis tourne le buste et lève le bras vers le plafond.",
+       "photo": "https://static.exercisedb.dev/media/DFGXwZr.gif"
+      },
+      {
+       "id": "s3d2-4",
+       "name": "Hip thrust au sol (glute bridge)",
+       "reps": "12",
+       "note": "Avec l'élastique au-dessus des genoux. Monte le bassin, serre les fesses 2 secondes en haut, les genoux poussent vers l'extérieur.",
+       "photo": "https://static.exercisedb.dev/media/u0cNiij.gif"
+      },
+      {
+       "id": "s3d2-5",
+       "name": "Monster walk",
+       "reps": "2 × 10 pas",
+       "note": "Élastique au-dessus des genoux, pas en diagonale vers l'avant. Les genoux ne rentrent pas.",
+       "photo": "https://static.exercisedb.dev/media/O95afRA.gif"
+      },
+      {
+       "id": "s3d2-6",
+       "name": "Wall slides",
+       "reps": "8",
+       "note": "Dos, tête et bras contre le mur, coudes à 90°. Fais glisser les bras vers le haut sans que le bas du dos décolle du mur.",
+       "photo": null
+      },
+      {
+       "id": "s3d2-7",
+       "name": "Pompes inclinées (mains sur la box)",
+       "reps": "5",
+       "note": "Corps gainé, réveil des épaules avant les poussées.",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      }
+     ]
+    },
+    {
+     "id": "s3d2-8",
+     "type": "exercise",
+     "name": "Hip thrust barre",
+     "sets": 3,
+     "reps": "10-12",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nBanc calé contre le mur, mousse ou serviette sur la barre. Le bas des omoplates sur le bord du banc, pieds placés pour que les tibias soient verticaux en haut. Menton rentré, monte jusqu'à l'alignement épaules-hanches-genoux et serre les fesses 1 seconde. Les côtes restent basses : ne te cambre pas pour monter plus haut.",
+     "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/hip-thrust.gif",
+     "suggested_weight": "35-40",
+     "weight_type": "barre",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Barre, disques, banc, mousse"
+    },
+    {
+     "id": "s3d2-9",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s3d2-10",
+       "name": "Split squat statique aux haltères",
+       "reps": "8-10 / jambe",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nSUPERSET : enchaîne avec le développé épaules, puis 1 min 15 de repos.\n\nEn fente, une grande enjambée entre les pieds, pied arrière sur la pointe. Descends à la verticale jusqu'à ce que le genou arrière frôle le sol, buste légèrement penché vers l'avant, pousse dans le pied avant. Commence par ta jambe la plus faible. Si l'équilibre est fragile, une main sur le rack.",
+       "suggested_weight": "2×6",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères",
+       "photo": "https://static.exercisedb.dev/media/9E25EOx.gif"
+      },
+      {
+       "id": "s3d2-11",
+       "name": "Développé épaules haltères debout",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nDebout, pieds largeur de hanches, fesses et abdos serrés. Haltères à hauteur d'oreilles, pousse vers le haut légèrement vers l'avant. Ne cambre pas le bas du dos : si tu te penches en arrière, c'est trop lourd. Variante : à genoux sur un genou, fesse de la jambe au sol serrée.",
+       "suggested_weight": "2×5-6",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères",
+       "photo": "https://static.exercisedb.dev/media/A6wtbuL.gif"
+      }
+     ]
+    },
+    {
+     "id": "s3d2-12",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s3d2-13",
+       "name": "Pompes inclinées (mains sur banc)",
+       "reps": "6-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nSUPERSET : enchaîne avec le pull-over (même banc), puis 1 min 15 de repos.\n\nCorps gainé en planche de la tête aux talons, coudes à 45° du corps, la poitrine descend jusqu'au support. Trop dur : barre dans le rack à hauteur de hanches. Trop facile : on baisse la barre d'un cran.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Banc",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      },
+      {
+       "id": "s3d2-14",
+       "name": "Pull-over haltère allongée",
+       "reps": "10-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nAllongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut. Bras tendus au-dessus de la poitrine, coudes légèrement fléchis et FIXES. Descends l'haltère derrière la tête en 3 secondes jusqu'à ce que les bras soient dans le prolongement du corps, ou avant si tes épaules tirent. Les côtes restent basses et le bas du dos collé au banc. Remonte en tirant avec le dos, en soufflant.",
+       "suggested_weight": "8",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère, banc",
+       "photo": "https://static.exercisedb.dev/media/9XjtHvS.gif"
+      }
+     ]
+    },
+    {
+     "id": "s3d2-15",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 60,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s3d2-16",
+       "name": "Leg curl sur gros ballon",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "SUPERSET : enchaîne avec la marche du serveur, puis 1 min de repos.\n\nSur le dos, talons sur le ballon, bras écartés au sol. Monte le bassin, puis ramène les talons vers les fesses en gardant les hanches HAUTES : en fin de mouvement genoux, hanches et épaules sont alignés. Retends les jambes en 3 secondes sans laisser retomber le bassin. Si le bassin redescend, la série s'arrête.\n\nTrop dur : ramène le ballon fesses au sol, monte le bassin, puis retends lentement en 4 secondes (excentrique seul). Encore trop dur : pont tenu talons sur le ballon, 20-30 s.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Gros ballon",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/ball-leg-curl.gif"
+      },
+      {
+       "id": "s3d2-17",
+       "name": "Marche du serveur à une main (suitcase carry)",
+       "reps": "30 s / côté",
+       "mode": "time",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "UN seul haltère, bras tendu le long du corps comme une valise. Marche lentement, épaules à la même hauteur, buste droit : tu ne penches PAS du côté de l'haltère. Ventre serré, respiration normale. Si la place manque : allers-retours de quelques pas ou tenue statique 30 s. À 12,5 kg facile : marche sur la pointe des pieds.",
+       "suggested_weight": "12,5",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère",
+       "photo": "https://static.exercisedb.dev/media/qPEzJjA.gif"
+      }
+     ]
+    },
+    {
+     "id": "s3d2-18",
+     "type": "exercise",
+     "name": "Superman",
+     "sets": 2,
+     "reps": "8",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 45,
+     "tempo": "",
+     "note": "On passe au superman complet : bras et jambes se lèvent en même temps de quelques centimètres, 3 secondes de tenue. Regard vers le sol, fesses serrées, aucune douleur dans le bas du dos (sinon, reviens à la version alternée).",
+     "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/superman.gif",
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "rpe": "",
+     "technique": ""
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Hip thrust barre",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nBanc calé contre le mur, mousse ou serviette sur la barre. Le bas des omoplates sur le bord du banc, pieds placés pour que les tibias soient verticaux en haut. Menton rentré, monte jusqu'à l'alignement épaules-hanches-genoux et serre les fesses 1 seconde. Les côtes restent basses : ne te cambre pas pour monter plus haut.",
+     "position": 1,
+     "suggested_weight": "35-40",
+     "weight_type": "barre",
+     "tempo": ""
+    },
+    {
+     "name": "Split squat statique aux haltères",
+     "sets": 3,
+     "reps": "8-10 / jambe",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nSUPERSET : enchaîne avec le développé épaules, puis 1 min 15 de repos.\n\nEn fente, une grande enjambée entre les pieds, pied arrière sur la pointe. Descends à la verticale jusqu'à ce que le genou arrière frôle le sol, buste légèrement penché vers l'avant, pousse dans le pied avant. Commence par ta jambe la plus faible. Si l'équilibre est fragile, une main sur le rack.",
+     "position": 2,
+     "suggested_weight": "2×6",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Développé épaules haltères debout",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nDebout, pieds largeur de hanches, fesses et abdos serrés. Haltères à hauteur d'oreilles, pousse vers le haut légèrement vers l'avant. Ne cambre pas le bas du dos : si tu te penches en arrière, c'est trop lourd. Variante : à genoux sur un genou, fesse de la jambe au sol serrée.",
+     "position": 3,
+     "suggested_weight": "2×5-6",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Pompes inclinées (mains sur banc)",
+     "sets": 3,
+     "reps": "6-10",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nSUPERSET : enchaîne avec le pull-over (même banc), puis 1 min 15 de repos.\n\nCorps gainé en planche de la tête aux talons, coudes à 45° du corps, la poitrine descend jusqu'au support. Trop dur : barre dans le rack à hauteur de hanches. Trop facile : on baisse la barre d'un cran.",
+     "position": 4,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Pull-over haltère allongée",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Les dernières répétitions sont dures, mais le geste reste propre.\n\nAllongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut. Bras tendus au-dessus de la poitrine, coudes légèrement fléchis et FIXES. Descends l'haltère derrière la tête en 3 secondes jusqu'à ce que les bras soient dans le prolongement du corps, ou avant si tes épaules tirent. Les côtes restent basses et le bas du dos collé au banc. Remonte en tirant avec le dos, en soufflant.",
+     "position": 5,
+     "suggested_weight": "8",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Leg curl sur gros ballon",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 60,
+     "note": "SUPERSET : enchaîne avec la marche du serveur, puis 1 min de repos.\n\nSur le dos, talons sur le ballon, bras écartés au sol. Monte le bassin, puis ramène les talons vers les fesses en gardant les hanches HAUTES : en fin de mouvement genoux, hanches et épaules sont alignés. Retends les jambes en 3 secondes sans laisser retomber le bassin. Si le bassin redescend, la série s'arrête.\n\nTrop dur : ramène le ballon fesses au sol, monte le bassin, puis retends lentement en 4 secondes (excentrique seul). Encore trop dur : pont tenu talons sur le ballon, 20-30 s.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Marche du serveur à une main (suitcase carry)",
+     "sets": 3,
+     "reps": "30 s / côté",
+     "rest": 60,
+     "note": "UN seul haltère, bras tendu le long du corps comme une valise. Marche lentement, épaules à la même hauteur, buste droit : tu ne penches PAS du côté de l'haltère. Ventre serré, respiration normale. Si la place manque : allers-retours de quelques pas ou tenue statique 30 s. À 12,5 kg facile : marche sur la pointe des pieds.",
+     "position": 7,
+     "suggested_weight": "12,5",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Superman",
+     "sets": 2,
+     "reps": "8",
+     "rest": 45,
+     "note": "On passe au superman complet : bras et jambes se lèvent en même temps de quelques centimètres, 3 secondes de tenue. Regard vers le sol, fesses serrées, aucune douleur dans le bas du dos (sinon, reviens à la version alternée).",
+     "position": 8,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S3 · Séance C (optionnelle) — Maison",
+   "description": "Semaine 3/4 — On charge. Il ne doit plus te rester que 2 répétitions en fin de série. Le step-up passe sur la box.\n\nÀ la maison, ~30 min, sans matériel (un élastique si tu en as un). Volontairement facile : tu dois arriver reposée à tes séances au studio. Pas la veille d'une séance au studio. Si tu fais ton footing ce jour-là, saute-la.\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s3d3-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s3d3-2",
+       "name": "Cat-cow",
+       "reps": "8 lentes",
+       "note": "Lentement, sans forcer.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/cat-cow.gif"
+      },
+      {
+       "id": "s3d3-3",
+       "name": "World's greatest stretch",
+       "reps": "4 / côté",
+       "note": "Ouvre les hanches et le haut du dos.",
+       "photo": "https://static.exercisedb.dev/media/DFGXwZr.gif"
+      },
+      {
+       "id": "s3d3-4",
+       "name": "Squat au poids du corps",
+       "reps": "10",
+       "note": "Tranquillement, pour réveiller les jambes.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-poids-du-corps.gif"
+      }
+     ]
+    },
+    {
+     "id": "s3d3-5",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 90,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s3d3-6",
+       "name": "Squat sumo",
+       "reps": "15",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "CIRCUIT : enchaîne les 6 exercices, puis 1 min 30 de repos avant le tour suivant.\n\nPieds écartés, pointes vers l'extérieur, élastique au-dessus des genoux si tu en as un. Descends lentement, les genoux poussent vers l'extérieur.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-sumo.gif"
+      },
+      {
+       "id": "s3d3-7",
+       "name": "Hip thrust au sol (glute bridge)",
+       "reps": "15",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Monte le bassin et serre les fesses 2 secondes en haut. Le bas du dos ne se creuse pas.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/u0cNiij.gif"
+      },
+      {
+       "id": "s3d3-8",
+       "name": "Pompes inclinées (mains sur une table)",
+       "reps": "8-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Mains sur une table ou un plan de travail stable, corps gainé de la tête aux talons.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      },
+      {
+       "id": "s3d3-9",
+       "name": "Fentes arrière alternées (poids du corps)",
+       "reps": "10 / jambe",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Une jambe puis l'autre, buste légèrement penché vers l'avant, descente en 2 secondes.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/SSsBDwB.gif"
+      },
+      {
+       "id": "s3d3-10",
+       "name": "Dead bug",
+       "reps": "8 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Bas du dos plaqué au sol, souffle en tendant bras et jambe opposés.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/iny3m5y.gif"
+      },
+      {
+       "id": "s3d3-11",
+       "name": "Gainage / planche (plank)",
+       "reps": "30 s",
+       "mode": "time",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Sur les avant-bras, corps aligné, fesses serrées, bassin ni haut ni affaissé.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/planche.gif"
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Squat sumo",
+     "sets": 3,
+     "reps": "15",
+     "rest": 90,
+     "note": "CIRCUIT : enchaîne les 6 exercices, puis 1 min 30 de repos avant le tour suivant.\n\nPieds écartés, pointes vers l'extérieur, élastique au-dessus des genoux si tu en as un. Descends lentement, les genoux poussent vers l'extérieur.",
+     "position": 1,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Hip thrust au sol (glute bridge)",
+     "sets": 3,
+     "reps": "15",
+     "rest": 90,
+     "note": "Monte le bassin et serre les fesses 2 secondes en haut. Le bas du dos ne se creuse pas.",
+     "position": 2,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Pompes inclinées (mains sur une table)",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 90,
+     "note": "Mains sur une table ou un plan de travail stable, corps gainé de la tête aux talons.",
+     "position": 3,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Fentes arrière alternées (poids du corps)",
+     "sets": 3,
+     "reps": "10 / jambe",
+     "rest": 90,
+     "note": "Une jambe puis l'autre, buste légèrement penché vers l'avant, descente en 2 secondes.",
+     "position": 4,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Dead bug",
+     "sets": 3,
+     "reps": "8 / côté",
+     "rest": 90,
+     "note": "Bas du dos plaqué au sol, souffle en tendant bras et jambe opposés.",
+     "position": 5,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Gainage / planche (plank)",
+     "sets": 3,
+     "reps": "30 s",
+     "rest": 90,
+     "note": "Sur les avant-bras, corps aligné, fesses serrées, bassin ni haut ni affaissé.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S4 · Séance A — Full body, priorité squat",
+   "description": "Semaine 4/4 — Semaine pleine. Objectif : battre tes poids ou tes répétitions de la semaine 3.\n\nAu studio, avec Nina. Durée : ~60 min (10 min d'échauffement, 45 min de travail, 5 min de bilan). Laisse au moins 48 h entre la séance A et la séance B.\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s4d1-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s4d1-2",
+       "name": "Sac de frappe (échauffement)",
+       "reps": "2 min",
+       "note": "Enchaînements simples (direct, crochet), sans forcer. On monte la température.",
+       "photo": "https://static.exercisedb.dev/media/hoXt6wv.gif"
+      },
+      {
+       "id": "s4d1-3",
+       "name": "Cat-cow",
+       "reps": "8 lentes",
+       "note": "À quatre pattes : arrondis le dos en soufflant, puis creuse doucement en inspirant.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/cat-cow.gif"
+      },
+      {
+       "id": "s4d1-4",
+       "name": "Ouverture thoracique à quatre pattes",
+       "reps": "6 / côté",
+       "note": "Une main derrière la tête, ouvre le coude vers le plafond en suivant du regard. Le bassin ne bouge pas.",
+       "photo": null
+      },
+      {
+       "id": "s4d1-5",
+       "name": "Marche latérale élastique (band walk)",
+       "reps": "2 × 10 pas / côté",
+       "note": "Élastique au-dessus des genoux, légèrement accroupie, petits pas. Tu dois sentir le côté des fesses chauffer.",
+       "photo": "https://static.exercisedb.dev/media/O95afRA.gif"
+      },
+      {
+       "id": "s4d1-6",
+       "name": "Squat au poids du corps",
+       "reps": "8",
+       "note": "Genoux dans l'axe des pieds, descends aussi bas que ton dos reste droit.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-poids-du-corps.gif"
+      },
+      {
+       "id": "s4d1-7",
+       "name": "Charnière de hanche (poids du corps)",
+       "reps": "8",
+       "note": "Mains sur les hanches, genoux légèrement fléchis : recule les fesses comme pour fermer une porte, dos plat, puis redresse-toi en serrant les fesses.",
+       "photo": "https://static.exercisedb.dev/media/rR0LJzx.gif"
+      }
+     ]
+    },
+    {
+     "id": "s4d1-8",
+     "type": "exercise",
+     "name": "Squat gobelet (goblet squat)",
+     "sets": 3,
+     "reps": "8-12",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nHaltère tenu contre le sternum, coudes vers le bas. Pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes. Descends en 3 secondes, genoux dans l'axe des pieds, aussi bas que ton dos reste droit. Si tes talons décollent, on les surélève avec un petit disque.",
+     "photo": "https://static.exercisedb.dev/media/yn8yg1r.gif",
+     "suggested_weight": "12,5",
+     "weight_type": "haltères",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Haltère"
+    },
+    {
+     "id": "s4d1-9",
+     "type": "exercise",
+     "name": "Soulevé de terre barre surélevée",
+     "sets": 3,
+     "reps": "8-10",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nDisques posés sur les steps : la barre part à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied. Attrape la barre juste à l'extérieur des jambes, poitrine haute, dos plat. Avant de tirer, serre les bras comme pour « casser » la barre en deux. Pousse le sol avec les pieds, la barre glisse le long des jambes, finis debout en serrant les fesses — sans te pencher en arrière. Pour redescendre : d'abord les fesses en arrière, puis les genoux.",
+     "photo": "https://static.exercisedb.dev/media/ila4NZS.gif",
+     "suggested_weight": "30",
+     "weight_type": "barre",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Barre, disques, steps"
+    },
+    {
+     "id": "s4d1-10",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s4d1-11",
+       "name": "Développé couché haltères",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nSUPERSET : enchaîne avec le rowing, puis 1 min 15 de repos.\n\nOmoplates serrées contre le banc, pieds bien à plat. Les coudes partent à 45° du corps (pas en croix). Descends les haltères au niveau de la poitrine en 2 secondes, pousse sans verrouiller.",
+       "suggested_weight": "2×8",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères, banc",
+       "photo": "https://static.exercisedb.dev/media/SpYC0Kp.gif"
+      },
+      {
+       "id": "s4d1-12",
+       "name": "Rowing haltère 1 bras",
+       "reps": "10-12 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nUn genou et une main sur le banc (ou en fente, main sur la box), dos plat comme une table. Tire le coude vers la hanche, le buste ne tourne pas. Redescends lentement.",
+       "suggested_weight": "10-12,5",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère, banc",
+       "photo": "https://static.exercisedb.dev/media/C0MA9bC.gif"
+      }
+     ]
+    },
+    {
+     "id": "s4d1-13",
+     "type": "exercise",
+     "name": "Step-up",
+     "sets": 2,
+     "reps": "8 / jambe",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 60,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nSur la box avec 2 haltères légers. Seule la pointe du pied arrière touche le sol au départ, montée sans élan, descente contrôlée.",
+     "photo": "https://static.exercisedb.dev/media/aXtJhlg.gif",
+     "suggested_weight": "2×4",
+     "weight_type": "haltères",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Box, haltères"
+    },
+    {
+     "id": "s4d1-14",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 45,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s4d1-15",
+       "name": "Dead bug",
+       "reps": "6-8 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "SUPERSET : enchaîne avec l'abduction, puis 45 s de repos.\n\nSur le dos, bras vers le plafond, genoux à 90°. Tends un bras et la jambe opposée en soufflant longuement. Le bas du dos reste plaqué au sol tout le temps : s'il décolle, réduis l'amplitude.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/iny3m5y.gif"
+      },
+      {
+       "id": "s4d1-16",
+       "name": "Abduction allongée sur le côté (poids de chevilles)",
+       "reps": "12-15 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Allongée sur le côté, jambe du dessous pliée. Jambe du dessus tendue, légèrement EN ARRIÈRE de ton corps, orteils vers l'avant (pas vers le plafond). Monte de 30 à 40° seulement, tiens 1 seconde, redescends en 2 secondes. Le bassin ne bascule pas en arrière. Tu dois sentir le haut-côté de la fesse brûler.",
+       "suggested_weight": "poids de chevilles",
+       "weight_type": "poids de chevilles",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Poids de chevilles",
+       "photo": "https://static.exercisedb.dev/media/7WaDzyL.gif"
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Squat gobelet (goblet squat)",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nHaltère tenu contre le sternum, coudes vers le bas. Pieds largeur de hanches ou un peu plus, pointes légèrement ouvertes. Descends en 3 secondes, genoux dans l'axe des pieds, aussi bas que ton dos reste droit. Si tes talons décollent, on les surélève avec un petit disque.",
+     "position": 1,
+     "suggested_weight": "12,5",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Soulevé de terre barre surélevée",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nDisques posés sur les steps : la barre part à mi-tibia. Pieds largeur de hanches, barre au-dessus du milieu du pied. Attrape la barre juste à l'extérieur des jambes, poitrine haute, dos plat. Avant de tirer, serre les bras comme pour « casser » la barre en deux. Pousse le sol avec les pieds, la barre glisse le long des jambes, finis debout en serrant les fesses — sans te pencher en arrière. Pour redescendre : d'abord les fesses en arrière, puis les genoux.",
+     "position": 2,
+     "suggested_weight": "30",
+     "weight_type": "barre",
+     "tempo": ""
+    },
+    {
+     "name": "Développé couché haltères",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nSUPERSET : enchaîne avec le rowing, puis 1 min 15 de repos.\n\nOmoplates serrées contre le banc, pieds bien à plat. Les coudes partent à 45° du corps (pas en croix). Descends les haltères au niveau de la poitrine en 2 secondes, pousse sans verrouiller.",
+     "position": 3,
+     "suggested_weight": "2×8",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Rowing haltère 1 bras",
+     "sets": 3,
+     "reps": "10-12 / côté",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nUn genou et une main sur le banc (ou en fente, main sur la box), dos plat comme une table. Tire le coude vers la hanche, le buste ne tourne pas. Redescends lentement.",
+     "position": 4,
+     "suggested_weight": "10-12,5",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Step-up",
+     "sets": 2,
+     "reps": "8 / jambe",
+     "rest": 60,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nSur la box avec 2 haltères légers. Seule la pointe du pied arrière touche le sol au départ, montée sans élan, descente contrôlée.",
+     "position": 5,
+     "suggested_weight": "2×4",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Dead bug",
+     "sets": 3,
+     "reps": "6-8 / côté",
+     "rest": 45,
+     "note": "SUPERSET : enchaîne avec l'abduction, puis 45 s de repos.\n\nSur le dos, bras vers le plafond, genoux à 90°. Tends un bras et la jambe opposée en soufflant longuement. Le bas du dos reste plaqué au sol tout le temps : s'il décolle, réduis l'amplitude.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Abduction allongée sur le côté (poids de chevilles)",
+     "sets": 3,
+     "reps": "12-15 / côté",
+     "rest": 45,
+     "note": "Allongée sur le côté, jambe du dessous pliée. Jambe du dessus tendue, légèrement EN ARRIÈRE de ton corps, orteils vers l'avant (pas vers le plafond). Monte de 30 à 40° seulement, tiens 1 seconde, redescends en 2 secondes. Le bassin ne bascule pas en arrière. Tu dois sentir le haut-côté de la fesse brûler.",
+     "position": 7,
+     "suggested_weight": "poids de chevilles",
+     "weight_type": "poids de chevilles",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S4 · Séance B — Full body, fessiers & ischios",
+   "description": "Semaine 4/4 — Semaine pleine. Objectif : battre tes poids ou tes répétitions de la semaine 3.\n\nAu studio, avec Nina. Durée : ~60 min. En fin de séance, on fait le point sur ta récupération depuis la séance A (courbatures, fatigue, sommeil).\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s4d2-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s4d2-2",
+       "name": "Sac de frappe (échauffement)",
+       "reps": "2 min",
+       "note": "Enchaînements simples, sans forcer.",
+       "photo": "https://static.exercisedb.dev/media/hoXt6wv.gif"
+      },
+      {
+       "id": "s4d2-3",
+       "name": "World's greatest stretch",
+       "reps": "4 / côté",
+       "note": "Grande fente, main au sol, puis tourne le buste et lève le bras vers le plafond.",
+       "photo": "https://static.exercisedb.dev/media/DFGXwZr.gif"
+      },
+      {
+       "id": "s4d2-4",
+       "name": "Hip thrust au sol (glute bridge)",
+       "reps": "12",
+       "note": "Avec l'élastique au-dessus des genoux. Monte le bassin, serre les fesses 2 secondes en haut, les genoux poussent vers l'extérieur.",
+       "photo": "https://static.exercisedb.dev/media/u0cNiij.gif"
+      },
+      {
+       "id": "s4d2-5",
+       "name": "Monster walk",
+       "reps": "2 × 10 pas",
+       "note": "Élastique au-dessus des genoux, pas en diagonale vers l'avant. Les genoux ne rentrent pas.",
+       "photo": "https://static.exercisedb.dev/media/O95afRA.gif"
+      },
+      {
+       "id": "s4d2-6",
+       "name": "Wall slides",
+       "reps": "8",
+       "note": "Dos, tête et bras contre le mur, coudes à 90°. Fais glisser les bras vers le haut sans que le bas du dos décolle du mur.",
+       "photo": null
+      },
+      {
+       "id": "s4d2-7",
+       "name": "Pompes inclinées (mains sur la box)",
+       "reps": "5",
+       "note": "Corps gainé, réveil des épaules avant les poussées.",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      }
+     ]
+    },
+    {
+     "id": "s4d2-8",
+     "type": "exercise",
+     "name": "Hip thrust barre",
+     "sets": 3,
+     "reps": "10-12",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 90,
+     "tempo": "",
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nBanc calé contre le mur, mousse ou serviette sur la barre. Le bas des omoplates sur le bord du banc, pieds placés pour que les tibias soient verticaux en haut. Menton rentré, monte jusqu'à l'alignement épaules-hanches-genoux et serre les fesses 1 seconde. Les côtes restent basses : ne te cambre pas pour monter plus haut.",
+     "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/hip-thrust.gif",
+     "suggested_weight": "40-45",
+     "weight_type": "barre",
+     "rpe": "",
+     "technique": "",
+     "equipment": "Barre, disques, banc, mousse"
+    },
+    {
+     "id": "s4d2-9",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s4d2-10",
+       "name": "Split squat statique aux haltères",
+       "reps": "8-10 / jambe",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nSUPERSET : enchaîne avec le développé épaules, puis 1 min 15 de repos.\n\nEn fente, une grande enjambée entre les pieds, pied arrière sur la pointe. Descends à la verticale jusqu'à ce que le genou arrière frôle le sol, buste légèrement penché vers l'avant, pousse dans le pied avant. Commence par ta jambe la plus faible. Si l'équilibre est fragile, une main sur le rack.",
+       "suggested_weight": "2×6-8",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères",
+       "photo": "https://static.exercisedb.dev/media/9E25EOx.gif"
+      },
+      {
+       "id": "s4d2-11",
+       "name": "Développé épaules haltères debout",
+       "reps": "8-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nDebout, pieds largeur de hanches, fesses et abdos serrés. Haltères à hauteur d'oreilles, pousse vers le haut légèrement vers l'avant. Ne cambre pas le bas du dos : si tu te penches en arrière, c'est trop lourd. Variante : à genoux sur un genou, fesse de la jambe au sol serrée.",
+       "suggested_weight": "2×6",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltères",
+       "photo": "https://static.exercisedb.dev/media/A6wtbuL.gif"
+      }
+     ]
+    },
+    {
+     "id": "s4d2-12",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 75,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s4d2-13",
+       "name": "Pompes inclinées (mains sur banc)",
+       "reps": "6-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nSUPERSET : enchaîne avec le pull-over (même banc), puis 1 min 15 de repos.\n\nCorps gainé en planche de la tête aux talons, coudes à 45° du corps, la poitrine descend jusqu'au support. Trop dur : barre dans le rack à hauteur de hanches. Trop facile : on baisse la barre d'un cran.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Banc",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      },
+      {
+       "id": "s4d2-14",
+       "name": "Pull-over haltère allongée",
+       "reps": "10-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nAllongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut. Bras tendus au-dessus de la poitrine, coudes légèrement fléchis et FIXES. Descends l'haltère derrière la tête en 3 secondes jusqu'à ce que les bras soient dans le prolongement du corps, ou avant si tes épaules tirent. Les côtes restent basses et le bas du dos collé au banc. Remonte en tirant avec le dos, en soufflant.",
+       "suggested_weight": "8-10",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère, banc",
+       "photo": "https://static.exercisedb.dev/media/9XjtHvS.gif"
+      }
+     ]
+    },
+    {
+     "id": "s4d2-15",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 60,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s4d2-16",
+       "name": "Leg curl sur gros ballon",
+       "reps": "10-12",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "SUPERSET : enchaîne avec la marche du serveur, puis 1 min de repos.\n\nSur le dos, talons sur le ballon, bras écartés au sol. Monte le bassin, puis ramène les talons vers les fesses en gardant les hanches HAUTES : en fin de mouvement genoux, hanches et épaules sont alignés. Retends les jambes en 3 secondes sans laisser retomber le bassin. Si le bassin redescend, la série s'arrête.\n\nTrop dur : ramène le ballon fesses au sol, monte le bassin, puis retends lentement en 4 secondes (excentrique seul). Encore trop dur : pont tenu talons sur le ballon, 20-30 s.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Gros ballon",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/ball-leg-curl.gif"
+      },
+      {
+       "id": "s4d2-17",
+       "name": "Marche du serveur à une main (suitcase carry)",
+       "reps": "30 s / côté",
+       "mode": "time",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "UN seul haltère, bras tendu le long du corps comme une valise. Marche lentement, épaules à la même hauteur, buste droit : tu ne penches PAS du côté de l'haltère. Ventre serré, respiration normale. Si la place manque : allers-retours de quelques pas ou tenue statique 30 s. À 12,5 kg facile : marche sur la pointe des pieds.",
+       "suggested_weight": "12,5",
+       "weight_type": "haltères",
+       "rpe": "",
+       "technique": "",
+       "equipment": "Haltère",
+       "photo": "https://static.exercisedb.dev/media/qPEzJjA.gif"
+      }
+     ]
+    },
+    {
+     "id": "s4d2-18",
+     "type": "exercise",
+     "name": "Superman",
+     "sets": 2,
+     "reps": "10",
+     "mode": "reps",
+     "duration": 30,
+     "rest": 45,
+     "tempo": "",
+     "note": "Superman complet, 3 secondes de tenue. Regard vers le sol, fesses serrées.",
+     "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/superman.gif",
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "rpe": "",
+     "technique": ""
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Hip thrust barre",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 90,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nBanc calé contre le mur, mousse ou serviette sur la barre. Le bas des omoplates sur le bord du banc, pieds placés pour que les tibias soient verticaux en haut. Menton rentré, monte jusqu'à l'alignement épaules-hanches-genoux et serre les fesses 1 seconde. Les côtes restent basses : ne te cambre pas pour monter plus haut.",
+     "position": 1,
+     "suggested_weight": "40-45",
+     "weight_type": "barre",
+     "tempo": ""
+    },
+    {
+     "name": "Split squat statique aux haltères",
+     "sets": 3,
+     "reps": "8-10 / jambe",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nSUPERSET : enchaîne avec le développé épaules, puis 1 min 15 de repos.\n\nEn fente, une grande enjambée entre les pieds, pied arrière sur la pointe. Descends à la verticale jusqu'à ce que le genou arrière frôle le sol, buste légèrement penché vers l'avant, pousse dans le pied avant. Commence par ta jambe la plus faible. Si l'équilibre est fragile, une main sur le rack.",
+     "position": 2,
+     "suggested_weight": "2×6-8",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Développé épaules haltères debout",
+     "sets": 3,
+     "reps": "8-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nDebout, pieds largeur de hanches, fesses et abdos serrés. Haltères à hauteur d'oreilles, pousse vers le haut légèrement vers l'avant. Ne cambre pas le bas du dos : si tu te penches en arrière, c'est trop lourd. Variante : à genoux sur un genou, fesse de la jambe au sol serrée.",
+     "position": 3,
+     "suggested_weight": "2×6",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Pompes inclinées (mains sur banc)",
+     "sets": 3,
+     "reps": "6-10",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nSUPERSET : enchaîne avec le pull-over (même banc), puis 1 min 15 de repos.\n\nCorps gainé en planche de la tête aux talons, coudes à 45° du corps, la poitrine descend jusqu'au support. Trop dur : barre dans le rack à hauteur de hanches. Trop facile : on baisse la barre d'un cran.",
+     "position": 4,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Pull-over haltère allongée",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 75,
+     "note": "Charge : à la fin de chaque série, il ne doit te rester que 2 répétitions possibles. Essaie de battre tes poids ou tes répétitions de la semaine 3.\n\nAllongée dans la longueur du banc, un haltère tenu à deux mains par le disque du haut. Bras tendus au-dessus de la poitrine, coudes légèrement fléchis et FIXES. Descends l'haltère derrière la tête en 3 secondes jusqu'à ce que les bras soient dans le prolongement du corps, ou avant si tes épaules tirent. Les côtes restent basses et le bas du dos collé au banc. Remonte en tirant avec le dos, en soufflant.",
+     "position": 5,
+     "suggested_weight": "8-10",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Leg curl sur gros ballon",
+     "sets": 3,
+     "reps": "10-12",
+     "rest": 60,
+     "note": "SUPERSET : enchaîne avec la marche du serveur, puis 1 min de repos.\n\nSur le dos, talons sur le ballon, bras écartés au sol. Monte le bassin, puis ramène les talons vers les fesses en gardant les hanches HAUTES : en fin de mouvement genoux, hanches et épaules sont alignés. Retends les jambes en 3 secondes sans laisser retomber le bassin. Si le bassin redescend, la série s'arrête.\n\nTrop dur : ramène le ballon fesses au sol, monte le bassin, puis retends lentement en 4 secondes (excentrique seul). Encore trop dur : pont tenu talons sur le ballon, 20-30 s.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Marche du serveur à une main (suitcase carry)",
+     "sets": 3,
+     "reps": "30 s / côté",
+     "rest": 60,
+     "note": "UN seul haltère, bras tendu le long du corps comme une valise. Marche lentement, épaules à la même hauteur, buste droit : tu ne penches PAS du côté de l'haltère. Ventre serré, respiration normale. Si la place manque : allers-retours de quelques pas ou tenue statique 30 s. À 12,5 kg facile : marche sur la pointe des pieds.",
+     "position": 7,
+     "suggested_weight": "12,5",
+     "weight_type": "haltères",
+     "tempo": ""
+    },
+    {
+     "name": "Superman",
+     "sets": 2,
+     "reps": "10",
+     "rest": 45,
+     "note": "Superman complet, 3 secondes de tenue. Regard vers le sol, fesses serrées.",
+     "position": 8,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    }
+   ]
+  },
+  {
+   "name": "Auriane · S4 · Séance C (optionnelle) — Maison",
+   "description": "Semaine 4/4 — Semaine pleine. Objectif : battre tes poids ou tes répétitions de la semaine 3.\n\nÀ la maison, ~30 min, sans matériel (un élastique si tu en as un). Volontairement facile : tu dois arriver reposée à tes séances au studio. Pas la veille d'une séance au studio. Si tu fais ton footing ce jour-là, saute-la.\n\nProgression : chaque exercice a une fourchette de répétitions (ex. 8-12). Quand tu fais le haut de la fourchette sur toutes les séries avec un geste propre, on augmente un peu la charge la séance suivante.\n\nCes 3 à 4 premières semaines, la balance peut stagner ou monter de 0,5 à 1 kg : c'est de l'eau (courbatures, muscles qui se remplissent), pas du gras. On regarde la moyenne de la semaine et les mensurations.\n\nAu quotidien : ~1600 kcal, 120 g de protéines minimum, au moins 10 000 pas.",
+   "blocks": [
+    {
+     "id": "s4d3-1",
+     "type": "warmup",
+     "exercises": [
+      {
+       "id": "s4d3-2",
+       "name": "Cat-cow",
+       "reps": "8 lentes",
+       "note": "Lentement, sans forcer.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/cat-cow.gif"
+      },
+      {
+       "id": "s4d3-3",
+       "name": "World's greatest stretch",
+       "reps": "4 / côté",
+       "note": "Ouvre les hanches et le haut du dos.",
+       "photo": "https://static.exercisedb.dev/media/DFGXwZr.gif"
+      },
+      {
+       "id": "s4d3-4",
+       "name": "Squat au poids du corps",
+       "reps": "10",
+       "note": "Tranquillement, pour réveiller les jambes.",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-poids-du-corps.gif"
+      }
+     ]
+    },
+    {
+     "id": "s4d3-5",
+     "type": "circuit",
+     "rounds": 3,
+     "rest_between_rounds": 90,
+     "interval_mode": false,
+     "exercises": [
+      {
+       "id": "s4d3-6",
+       "name": "Squat sumo",
+       "reps": "15",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "CIRCUIT : enchaîne les 6 exercices, puis 1 min 30 de repos avant le tour suivant.\n\nPieds écartés, pointes vers l'extérieur, élastique au-dessus des genoux si tu en as un. Descends lentement, les genoux poussent vers l'extérieur.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/squat-sumo.gif"
+      },
+      {
+       "id": "s4d3-7",
+       "name": "Hip thrust au sol (glute bridge)",
+       "reps": "15",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Monte le bassin et serre les fesses 2 secondes en haut. Le bas du dos ne se creuse pas.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/u0cNiij.gif"
+      },
+      {
+       "id": "s4d3-8",
+       "name": "Pompes inclinées (mains sur une table)",
+       "reps": "8-10",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Mains sur une table ou un plan de travail stable, corps gainé de la tête aux talons.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/B1EVP9F.gif"
+      },
+      {
+       "id": "s4d3-9",
+       "name": "Fentes arrière alternées (poids du corps)",
+       "reps": "10 / jambe",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Une jambe puis l'autre, buste légèrement penché vers l'avant, descente en 2 secondes.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/SSsBDwB.gif"
+      },
+      {
+       "id": "s4d3-10",
+       "name": "Dead bug",
+       "reps": "8 / côté",
+       "mode": "reps",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Bas du dos plaqué au sol, souffle en tendant bras et jambe opposés.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://static.exercisedb.dev/media/iny3m5y.gif"
+      },
+      {
+       "id": "s4d3-11",
+       "name": "Gainage / planche (plank)",
+       "reps": "30 s",
+       "mode": "time",
+       "duration": 30,
+       "work_time": 30,
+       "rest_time": 30,
+       "tempo": "",
+       "note": "Sur les avant-bras, corps aligné, fesses serrées, bassin ni haut ni affaissé.",
+       "suggested_weight": "",
+       "weight_type": "poids du corps",
+       "rpe": "",
+       "technique": "",
+       "photo": "https://raw.githubusercontent.com/mallardnina16-cloud/Processlab/main/public/exercise-gifs/planche.gif"
+      }
+     ]
+    }
+   ],
+   "exercises": [
+    {
+     "name": "",
+     "sets": null,
+     "reps": "",
+     "rest": null,
+     "note": "",
+     "position": 0,
+     "suggested_weight": "",
+     "weight_type": "",
+     "tempo": ""
+    },
+    {
+     "name": "Squat sumo",
+     "sets": 3,
+     "reps": "15",
+     "rest": 90,
+     "note": "CIRCUIT : enchaîne les 6 exercices, puis 1 min 30 de repos avant le tour suivant.\n\nPieds écartés, pointes vers l'extérieur, élastique au-dessus des genoux si tu en as un. Descends lentement, les genoux poussent vers l'extérieur.",
+     "position": 1,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Hip thrust au sol (glute bridge)",
+     "sets": 3,
+     "reps": "15",
+     "rest": 90,
+     "note": "Monte le bassin et serre les fesses 2 secondes en haut. Le bas du dos ne se creuse pas.",
+     "position": 2,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Pompes inclinées (mains sur une table)",
+     "sets": 3,
+     "reps": "8-10",
+     "rest": 90,
+     "note": "Mains sur une table ou un plan de travail stable, corps gainé de la tête aux talons.",
+     "position": 3,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Fentes arrière alternées (poids du corps)",
+     "sets": 3,
+     "reps": "10 / jambe",
+     "rest": 90,
+     "note": "Une jambe puis l'autre, buste légèrement penché vers l'avant, descente en 2 secondes.",
+     "position": 4,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Dead bug",
+     "sets": 3,
+     "reps": "8 / côté",
+     "rest": 90,
+     "note": "Bas du dos plaqué au sol, souffle en tendant bras et jambe opposés.",
+     "position": 5,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    },
+    {
+     "name": "Gainage / planche (plank)",
+     "sets": 3,
+     "reps": "30 s",
+     "rest": 90,
+     "note": "Sur les avant-bras, corps aligné, fesses serrées, bassin ni haut ni affaissé.",
+     "position": 6,
+     "suggested_weight": "",
+     "weight_type": "poids du corps",
+     "tempo": ""
+    }
+   ]
+  }
+ ]
+}
