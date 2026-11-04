@@ -231,10 +231,14 @@ export const Eyebrow = ({ children, style = {} }) => (
   <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 650, letterSpacing: "0.14em", textTransform: "uppercase", ...style }}>{children}</div>
 );
 
+// Date du jour « YYYY-MM-DD » en heure locale (toISOString donne la date UTC : entre minuit et
+// 1 h en France, ce serait encore la veille).
+export const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 // Choix du jour « ‹ Aujourd'hui · mer. 22 oct. › » : on remonte jusqu'à `maxBack` jours en arrière.
 // `done(dateStr)` permet d'afficher une coche quand le jour est déjà rempli.
 export const DayPicker = ({ value, onChange, maxBack = 3, done }) => {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDay();
   const shift = (n) => { const d = new Date(value); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const back = Math.round((new Date(todayStr) - new Date(value)) / 86400000);
   const canPrev = back < maxBack, canNext = back > 0;

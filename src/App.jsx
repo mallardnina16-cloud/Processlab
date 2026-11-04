@@ -3,11 +3,27 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { importProgram } from "../scripts/lib/importProgram.mjs";
 import { makeSupabaseDb } from "../scripts/lib/db-supabase.mjs";
 import { C, F, BRAND_NAME } from "./theme.js";
-import { usePrefersReducedMotion, Logo, Card, Btn, inputSt, Inp, TA, Avatar, Badge, SectionTitle, PremiumHero, Tab, ALPHABET, AlphaIndex, Spinner, Icon, useIsWide, UnderlineTabs, Segmented, Eyebrow, DayPicker, NumField } from "./ui.jsx";
+import { usePrefersReducedMotion, Logo, Card, Btn, inputSt, Inp, TA, Avatar, Badge, SectionTitle, PremiumHero, Tab, ALPHABET, AlphaIndex, Spinner, localDay, Icon, useIsWide, UnderlineTabs, Segmented, Eyebrow, DayPicker, NumField } from "./ui.jsx";
 
 const SUPABASE_URL = "https://wetjzebxuyefzvulujxl.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndldGp6ZWJ4dXllZnp2dWx1anhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTUxMDcsImV4cCI6MjA5MTA3MTEwN30.8DvkApXsMT7hGahVQD5kpAJdD92Tzyo7qC0nwmnGEaU";
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Une requête qui ne répond jamais (réseau qui coupe, appli rouverte après une mise en veille)
+// laissait les boutons « Enregistrement… » tourner sans fin : on coupe au bout de 20 s pour
+// afficher une erreur et laisser réessayer. Les fonctions (analyse IA) et l'envoi de photos
+// peuvent être plus longs : non concernés.
+const fetchWithTimeout = (input, init = {}) => {
+  const url = typeof input === "string" ? input : input.url;
+  if (init.signal || !/\/(rest|auth)\/v1\//.test(url)) return globalThis.fetch(input, init);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  return globalThis.fetch(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+};
+// lock : sur iPhone, le verrou de session par défaut (navigator.locks) peut rester bloqué quand
+// l'appli revient de l'arrière-plan, et toutes les requêtes suivantes attendent indéfiniment.
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  global: { fetch: fetchWithTimeout },
+  auth: { lock: (_name, _acquireTimeout, fn) => fn() },
+});
 
 const COACH_EMAIL = "mallardnina16@gmail.com";
 const CONTRACT_TEXT = {
@@ -223,7 +239,12 @@ const avgWeightBetween = (weights = [], from, to) => {
 };
 const feelings = ["😩", "😔", "😐", "🙂", "🔥"];
 const feelingLabels = ["Très difficile", "Difficile", "Neutre", "Bien", "Excellent"];
-const today = new Date().toISOString().slice(0, 10);
+const today = localDay();
+// `today` est figé au chargement : une appli laissée ouverte (écran d'accueil iPhone) gardait la
+// date de la veille et enregistrait le journal, les pas ou la séance au mauvais jour.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && localDay() !== today) window.location.reload();
+});
 const daysUntil = d => Math.ceil((new Date(d) - new Date(today)) / 86400000);
 
 const formatDate = (dateStr) => {
@@ -232,6 +253,33 @@ const formatDate = (dateStr) => {
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 };
+
+// Mensurations : bras et cuisses mesurés de chaque côté, tour de ventre au niveau du nombril.
+// « thighs » (une seule valeur de cuisse) est l'ancien champ, gardé pour l'historique déjà saisi.
+const MEASURE_FIELDS = [
+  ["chest", "Poitrine"], ["waist", "Tour de taille"], ["belly", "Tour de ventre (nombril)", "Ventre"], ["hips", "Hanches"],
+  ["arm_left", "Bras gauche", "Bras G"], ["arm_right", "Bras droit", "Bras D"],
+  ["thigh_left", "Cuisse gauche", "Cuisse G"], ["thigh_right", "Cuisse droite", "Cuisse D"],
+];
+const MEASURE_FIELDS_ALL = [...MEASURE_FIELDS, ["thighs", "Cuisses (ancienne saisie)", "Cuisses"]];
+const EMPTY_MEASURE = Object.fromEntries(MEASURE_FIELDS.map(([k]) => [k, ""]));
+// Évolution champ par champ, entre la première et la dernière mesure qui contiennent ce champ
+// (les anciennes mesures n'ont ni bras ni ventre).
+const measureEvolution = (measurements) => MEASURE_FIELDS_ALL.map(([k, label]) => {
+  const withK = measurements.filter(m => m[k] != null);
+  if (withK.length < 2) return null;
+  const last = withK[withK.length - 1][k];
+  return { k, label, last, diff: Math.round((last - withK[0][k]) * 10) / 10 };
+}).filter(Boolean);
+const MeasureEvolutionRow = ({ label, last, diff }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
+    <span style={{ color: C.textMuted }}>{label}</span>
+    <span>
+      <strong>{last} cm</strong>{" "}
+      <span style={{ color: diff < 0 ? C.green : diff > 0 ? C.red : C.textMuted, fontSize: 11 }}>{diff < 0 ? diff : diff > 0 ? `+${diff}` : "—"} cm</span>
+    </span>
+  </div>
+);
 
 const addDays = (dateStr, days) => {
   const d = new Date(dateStr);
@@ -2151,9 +2199,9 @@ const useClientData = (clientId, { isCoach = false } = {}) => {
     // exécutée) ou qu'une requête échoue, le reste du journal continue de se charger normalement
     // au lieu de rester bloqué en chargement indéfiniment.
     const settled = await Promise.all([
-      supabase.from("entries").select("id, client_id, date, feeling, steps, meal_note, photos, calories_total, protein_total, carb_total, fat_total, session_status, session_note, hydration, sleep_hours, nap, had_difficulty, difficulty_note, coach_message").eq("client_id", clientId).order("date", { ascending: false }),
+      supabase.from("entries").select("id, client_id, date, feeling, steps, meal_note, photos, calories_total, protein_total, carb_total, fat_total, session_status, session_note, hydration, sleep_hours, nap, had_difficulty, difficulty_note, coach_message, journal_filled").eq("client_id", clientId).order("date", { ascending: false }),
       supabase.from("weights").select("id, client_id, value, date").eq("client_id", clientId).order("date"),
-      supabase.from("measurements").select("id, client_id, chest, waist, hips, thighs, date").eq("client_id", clientId).order("date"),
+      supabase.from("measurements").select("id, client_id, chest, waist, belly, hips, arm_left, arm_right, thigh_left, thigh_right, thighs, date").eq("client_id", clientId).order("date"),
       // blocks/photo exclus ici pour la même raison que useWorkouts : évite de transférer des
       // photos d'exercices potentiellement énormes (stockées en base64 faute de policy sur le
       // bucket) juste pour afficher la liste des séances assignées.
@@ -2198,18 +2246,25 @@ const useClientData = (clientId, { isCoach = false } = {}) => {
   useEffect(() => { fetch(); }, [clientId]);
 
   const addEntry = async (entry) => {
-    const { data } = await supabase.from("entries").insert([{ ...entry, client_id: clientId }]).select().single();
+    const { data, error } = await supabase.from("entries").insert([{ ...entry, client_id: clientId }]).select().single();
+    if (error) { alert("Erreur lors de l'enregistrement du journal : " + error.message); return null; }
     if (data) { setEntries(e => [data, ...e]); if (isJournalFilled(data)) await supabase.from("clients").update({ today_done: true }).eq("id", clientId); }
     return data;
   };
   const updateEntry = async (id, patch) => {
-    const { data } = await supabase.from("entries").update(patch).eq("id", id).select().single();
-    if (data) setEntries(e => e.map(x => x.id === id ? data : x));
+    const { data, error } = await supabase.from("entries").update(patch).eq("id", id).select().single();
+    if (error) { alert("Erreur lors de l'enregistrement du journal : " + error.message); return null; }
+    if (data) setEntries(e => e.some(x => x.id === id) ? e.map(x => x.id === id ? data : x) : [data, ...e]);
     if (data && patch.journal_filled && data.date === today) await supabase.from("clients").update({ today_done: true }).eq("id", clientId);
     return data;
   };
   const addWeight = async (value) => { const { data } = await supabase.from("weights").insert([{ client_id: clientId, value, date: today }]).select().single(); if (data) setWeights(w => [...w, data]); };
-  const addMeasurement = async (m) => { const { data } = await supabase.from("measurements").insert([{ ...m, client_id: clientId, date: today }]).select().single(); if (data) setMeasurements(ms => [...ms, data]); };
+  const addMeasurement = async (m) => {
+    const { data, error } = await supabase.from("measurements").insert([{ ...m, client_id: clientId, date: today }]).select().single();
+    if (error) { alert("Erreur lors de l'enregistrement des mensurations : " + error.message); return null; }
+    setMeasurements(ms => [...ms, data]);
+    return data;
+  };
   const toggleWorkout = async (workoutId) => {
     const has = assignedWorkouts.find(a => a.workout_id === workoutId);
     if (has) { await supabase.from("client_workouts").delete().eq("client_id", clientId).eq("workout_id", workoutId); setAssignedWorkouts(a => a.filter(x => x.workout_id !== workoutId)); }
@@ -2419,8 +2474,10 @@ const JournalForm = ({ entries, onSave, onBack, onViewHistory, clientId, profile
     if (!existing) {
       payload.meal_note = ""; payload.calories_total = null; payload.protein_total = null; payload.carb_total = null; payload.fat_total = null;
     }
-    await onSave(payload);
-    setSaving(false); onBack();
+    const saved = await onSave(payload);
+    setSaving(false);
+    // En cas d'échec on reste sur le formulaire : rien de ce qui a été saisi n'est perdu.
+    if (saved) onBack();
   };
 
   if (mealsDate) return <MealLogForm meals={meals} profile={profile} clientId={clientId} getKcalTarget={getKcalTarget} initialDate={mealsDate} onAddMeal={onAddMeal} onUpdateMeal={onUpdateMeal} onDeleteMeal={onDeleteMeal} onBack={() => { setMealsDate(null); window.scrollTo(0, 0); }} backLabel="← Retour au journal" />;
@@ -3599,7 +3656,7 @@ const startOfWeek = (date) => {
   d.setDate(d.getDate() + diff);
   return d;
 };
-const dayKey = d => d.toISOString().slice(0, 10);
+const dayKey = d => localDay(d);
 const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"];
 
 const WeekStrip = ({ schedule = [], workoutsById = {}, appointments = [], onSelectWorkout, loadingWorkoutId }) => {
@@ -4778,36 +4835,19 @@ const CoachApp = ({ user, onLogout }) => {
                     {measurements.length > 0 && (
                       <Card>
                         <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 14 }}>📏 MENSURATIONS</div>
-                        {measurements.length >= 2 && (() => {
-                          const first = measurements[0], last = measurements[measurements.length - 1];
-                          return (
-                            <div style={{ marginBottom: 14 }}>
-                              {[["chest", "Poitrine"], ["waist", "Tour de taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => {
-                                if (last[k] == null || first[k] == null) return null;
-                                const diff = (last[k] - first[k]).toFixed(1);
-                                return (
-                                  <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
-                                    <span style={{ color: C.textMuted }}>{label}</span>
-                                    <span>
-                                      <strong>{last[k]} cm</strong>{" "}
-                                      <span style={{ color: diff < 0 ? C.green : diff > 0 ? C.red : C.textMuted, fontSize: 11 }}>
-                                        {diff < 0 ? diff : diff > 0 ? `+${diff}` : "—"} cm
-                                      </span>
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
+                        {measureEvolution(measurements).length > 0 && (
+                          <div style={{ marginBottom: 14 }}>
+                            {measureEvolution(measurements).map(ev => <MeasureEvolutionRow key={ev.k} {...ev} />)}
+                          </div>
+                        )}
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                           {[...measurements].reverse().map((m, i) => (
                             <div key={i} style={{ background: C.field, borderRadius: 10, padding: "10px 12px" }}>
                               <div style={{ fontSize: 12, color: C.pink, fontWeight: 700, marginBottom: 6 }}>{formatDate(m.date)}</div>
                               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
-                                {[["chest", "Poitrine"], ["waist", "Taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => m[k] != null ? (
+                                {MEASURE_FIELDS_ALL.map(([k, label, short]) => m[k] != null ? (
                                   <div key={k} style={{ textAlign: "center" }}>
-                                    <div style={{ fontSize: 9, color: C.textMuted, marginBottom: 2 }}>{label.toUpperCase()}</div>
+                                    <div style={{ fontSize: 9, color: C.textMuted, marginBottom: 2 }}>{(short || label).toUpperCase()}</div>
                                     <div style={{ fontSize: 13, fontWeight: 800 }}>{m[k]} <span style={{ fontSize: 10, color: C.textMuted }}>cm</span></div>
                                   </div>
                                 ) : null)}
@@ -4923,7 +4963,8 @@ const ClientApp = ({ user, onLogout }) => {
   const [openExercise, setOpenExercise] = useState(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [newWeight, setNewWeight] = useState("");
-  const [newMeasure, setNewMeasure] = useState({ chest: "", waist: "", hips: "", thighs: "" });
+  const [newMeasure, setNewMeasure] = useState(EMPTY_MEASURE);
+  const [savingMeasure, setSavingMeasure] = useState(false);
   const [newPhotoNote, setNewPhotoNote] = useState("");
   const [imgConsentAnswer, setImgConsentAnswer] = useState(null);
   const [imgConsentFaceAnswer, setImgConsentFaceAnswer] = useState(null);
@@ -4994,8 +5035,12 @@ const ClientApp = ({ user, onLogout }) => {
 
   const handleSaveJournal = async (payload) => {
     const existingEntry = entries.find(e => e.date === payload.date);
-    if (existingEntry) { await updateEntry(existingEntry.id, payload); }
-    else { await addEntry({ ...payload, client_id: clientId }); }
+    if (existingEntry) return updateEntry(existingEntry.id, payload);
+    // La liste locale peut être en retard (repas noté depuis un autre appareil, ligne créée par le
+    // trigger des repas) : on vérifie en base avant d'insérer, pour ne pas créer un doublon du jour.
+    const { data: inDb } = await supabase.from("entries").select("id").eq("client_id", clientId).eq("date", payload.date).limit(1);
+    if (inDb?.[0]) return updateEntry(inDb[0].id, payload);
+    return addEntry({ ...payload, client_id: clientId });
   };
   const openWorkoutPreview = async (w) => {
     setLoadingWorkoutId(w.id);
@@ -5004,7 +5049,17 @@ const ClientApp = ({ user, onLogout }) => {
   };
 
   const handleAddWeight = async () => { if (!newWeight) return; await addWeight(parseFloat(newWeight)); setNewWeight(""); alert("✅ Poids enregistré !"); };
-  const handleAddMeasure = async () => { await addMeasurement({ chest: parseFloat(newMeasure.chest), waist: parseFloat(newMeasure.waist), hips: parseFloat(newMeasure.hips), thighs: parseFloat(newMeasure.thighs) }); setNewMeasure({ chest: "", waist: "", hips: "", thighs: "" }); alert("✅ Mensurations enregistrées !"); };
+  const handleAddMeasure = async () => {
+    // Virgule acceptée (clavier français) ; un champ vide est enregistré vide, pas à 0.
+    const values = Object.fromEntries(MEASURE_FIELDS.map(([k]) => { const v = parseFloat(String(newMeasure[k]).replace(",", ".")); return [k, Number.isFinite(v) && v > 0 ? v : null]; }));
+    if (!Object.values(values).some(v => v != null)) { alert("Renseigne au moins une mensuration."); return; }
+    setSavingMeasure(true);
+    const saved = await addMeasurement(values);
+    setSavingMeasure(false);
+    if (!saved) return;
+    setNewMeasure(EMPTY_MEASURE);
+    alert("✅ Mensurations enregistrées !");
+  };
   const handleAddProgressPhoto = async (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
@@ -5298,7 +5353,7 @@ const ClientApp = ({ user, onLogout }) => {
           )}
           {bodyTab === "measures" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {measurements.length >= 2 && (() => { const first = measurements[0], last = measurements[measurements.length - 1]; return <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>ÉVOLUTION GLOBALE</div>{[["chest", "Poitrine"], ["waist", "Tour de taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => { const diff = last[k] - first[k]; return <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${C.border}`, fontSize: 13 }}><span style={{ color: C.textMuted }}>{label}</span><span><strong>{last[k]} cm</strong> <span style={{ color: diff < 0 ? C.green : diff > 0 ? C.red : C.textMuted, fontSize: 11 }}>{diff < 0 ? diff : diff > 0 ? `+${diff}` : "—"} cm</span></span></div>; })}</Card>; })()}
+              {measureEvolution(measurements).length > 0 && <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>ÉVOLUTION GLOBALE</div>{measureEvolution(measurements).map(ev => <MeasureEvolutionRow key={ev.k} {...ev} />)}</Card>}
               {measurements.length > 0 && (
                 <Card>
                   <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>HISTORIQUE COMPLET</div>
@@ -5306,9 +5361,9 @@ const ClientApp = ({ user, onLogout }) => {
                     <div key={i} style={{ borderBottom: `1px solid ${C.border}`, paddingBottom: 12, marginBottom: 12 }}>
                       <div style={{ fontSize: 12, color: C.pink, fontWeight: 700, marginBottom: 8 }}>{formatDate(m.date)}</div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                        {[["chest", "Poitrine"], ["waist", "Taille"], ["hips", "Hanches"], ["thighs", "Cuisses"]].map(([k, label]) => m[k] ? (
+                        {MEASURE_FIELDS_ALL.map(([k, label, short]) => m[k] != null ? (
                           <div key={k} style={{ background: C.field, borderRadius: 8, padding: "8px 10px" }}>
-                            <div style={{ fontSize: 9, color: C.textMuted, marginBottom: 2 }}>{label.toUpperCase()}</div>
+                            <div style={{ fontSize: 9, color: C.textMuted, marginBottom: 2 }}>{(short || label).toUpperCase()}</div>
                             <div style={{ fontSize: 15, fontWeight: 800 }}>{m[k]} <span style={{ fontSize: 11, color: C.textMuted }}>cm</span></div>
                           </div>
                         ) : null)}
@@ -5317,7 +5372,14 @@ const ClientApp = ({ user, onLogout }) => {
                   ))}
                 </Card>
               )}
-              <Card><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>NOUVELLES MENSURATIONS</div><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{[["chest", "Poitrine (cm)"], ["waist", "Tour de taille (cm)"], ["hips", "Hanches (cm)"], ["thighs", "Cuisses (cm)"]].map(([k, label]) => <input key={k} type="number" placeholder={label} value={newMeasure[k]} onChange={e => setNewMeasure({ ...newMeasure, [k]: e.target.value })} style={inputSt} />)}<Btn onClick={handleAddMeasure}>Enregistrer</Btn></div></Card>
+              <Card>
+                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginBottom: 12 }}>NOUVELLES MENSURATIONS</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 10 }}>
+                  {MEASURE_FIELDS.map(([k, label]) => <NumField key={k} label={label} unit="cm" decimal value={newMeasure[k]} onChange={e => setNewMeasure({ ...newMeasure, [k]: e.target.value })} placeholder="—" />)}
+                </div>
+                <p style={{ color: C.textMuted, fontSize: 12, margin: "0 0 12px" }}>Remplis seulement ce que tu as mesuré. Le tour de ventre se prend au niveau du nombril.</p>
+                <Btn onClick={handleAddMeasure} disabled={savingMeasure} style={{ width: "100%" }}>{savingMeasure ? "Enregistrement…" : "Enregistrer"}</Btn>
+              </Card>
             </div>
           )}
           {bodyTab === "photos" && (
